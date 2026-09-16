@@ -9,7 +9,10 @@ export default defineConfig({
   site: productionHost ? `https://${productionHost}` : 'https://alexkachur.com',
   output: 'static',
   trailingSlash: 'never',
-  adapter: vercel({ maxDuration: 30 }),
+  adapter: vercel({ 
+    maxDuration: 30,
+    webAnalytics: { enabled: true }
+  }),
   build: { inlineStylesheets: 'never' },
   vite: { build: { assetsInlineLimit: 0 } },
   redirects: { '/resume': '/Alex-Kachur-Resume.pdf' },
