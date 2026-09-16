@@ -1,0 +1,40 @@
+---
+import '@fontsource/barlow/latin-400.css';
+import '@fontsource/barlow/latin-600.css';
+import '@fontsource/barlow/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import '../styles/fonts.css';
+import barlow400 from '@fontsource/barlow/files/barlow-latin-400-normal.woff2?url';
+import barlow600 from '@fontsource/barlow/files/barlow-latin-600-normal.woff2?url';
+import barlow700 from '@fontsource/barlow/files/barlow-latin-700-normal.woff2?url';
+import mono400 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url';
+import Analytics from '@vercel/analytics/astro';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
+const canonical = new URL(path, Astro.site);
+const preloads = [barlow400, barlow600, barlow700, mono400];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <script is:inline src="/theme.js"></script>
+    {preloads.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
+  </head>
+  <body>
+    <slot />
+    <Analytics />
+  </body>
+</html>
