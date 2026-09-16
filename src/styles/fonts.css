@@ -1,0 +1,39 @@
+/* Fallback faces sized to the real fonts with @capsizecss/core from the fonts' own metrics. Arial and Consolas were read from the Windows font files; the Menlo face uses the metrics of DejaVu Sans Mono, the font Menlo is derived from (2048 units, ascent 1901, descent 483, advance 1233). */
+@font-face {
+  font-family: "Barlow Fallback";
+  src: local("Arial"), local("ArialMT");
+  font-display: swap;
+  ascent-override: 103.4341%;
+  descent-override: 20.6868%;
+  line-gap-override: 0%;
+  size-adjust: 96.68%;
+}
+
+@font-face {
+  font-family: "JetBrains Mono Fallback";
+  src: local("Consolas");
+  font-display: swap;
+  ascent-override: 93.4668%;
+  descent-override: 27.4902%;
+  line-gap-override: 0%;
+  size-adjust: 109.1297%;
+}
+
+@font-face {
+  font-family: "JetBrains Mono Fallback Menlo";
+  src: local("Menlo");
+  font-display: swap;
+  ascent-override: 102.3486%;
+  descent-override: 30.1025%;
+  line-gap-override: 0%;
+  size-adjust: 99.6594%;
+}
+
+:root {
+  --font-sans: "Barlow", "Barlow Fallback", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", "JetBrains Mono Fallback Menlo", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}
