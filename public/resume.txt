@@ -1,0 +1,19 @@
+ALEX KACHUR
+Toronto, Canada · alexkachur98@gmail.com · github.com/AlexKachur98 · linkedin.com/in/alex-kachur
+
+I build full-stack web apps with an AI doing real work inside them.
+Final-year software engineering student, Centennial College. Available full-time from May 2027.
+
+WORK
+2026-        Freelance web developer. Uraz Hoops (urazhoops.com); Think Smarter Insurance review funnel (demo, awaiting go-live).
+2022-2025    QA tester, 360 Plus IT Consulting. Dynamics CRM and Power Apps; SQL validation; Jira.
+2019-2022    Manager, IOAL Distributing. Warehouse operations.
+
+PROJECTS
+SplitRoof AI assistant   read-only, tool-calling assistant over household data; 17 Jest tests before the model
+This site                Astro, sql.js, Vercel functions, Anthropic API; question -> SQL -> your browser
+
+SKILLS
+JavaScript, TypeScript, Java, C#, Python, SQL, Kotlin · React, Next.js, Node, Spring Boot, .NET · Anthropic and Gemini APIs, tool calling · Jest, Selenium, Git, Vercel, Cloudflare Pages, Linux
+
+Full resume: https://alexkachur.com/Alex-Kachur-Resume.pdf
