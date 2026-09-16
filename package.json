@@ -1,0 +1,35 @@
+{
+  "name": "alexkachur.com",
+  "description": "A portfolio that compiles to a SQLite database, answers questions by writing SQL, exposes a public API, and caps its own AI spending.",
+  "author": "Alex Kachur",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrojs/vercel": "^11.0.10",
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/functions": "^3.9.8",
+    "astro": "^7.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^24.13.5",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}
