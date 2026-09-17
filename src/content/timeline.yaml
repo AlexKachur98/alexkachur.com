@@ -11,9 +11,8 @@
   date: "2025-01"
   kind: education
   event: Started Software Engineering Technology at Centennial College and left the QA role
-# TODO-ALEX: month the Uraz Hoops website was delivered
-- id: 2026-uraz-hoops
-  date: "2026"
+- id: 2026-06-uraz-hoops
+  date: "2026-06"
   kind: project
   event: Uraz Hoops website delivered
 - id: 2026-08-think-smarter

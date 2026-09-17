@@ -17,8 +17,7 @@ uses_llm: 1
 llm_job: answers questions about a household's shared expenses by calling typed tools; never does the arithmetic itself.
 paid: 0
 featured: 1
-# TODO-ALEX: name the model provider behind the LLM tool calling
-technologies: [react, node-js, express, firebase, jest]
+technologies: [react, node-js, express, firebase, anthropic-api, jest]
 screenshots:
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-1.png
     alt: A terminal in VS Code after npm test in splitroof-assistant-spike, with tools.test.js and assistant.test.js passing, 17 tests in total
@@ -34,7 +33,7 @@ People who share a home keep asking the same questions: who paid for what, who o
 
 ## What I built
 
-A read-only assistant. The model gets a small set of typed tool functions and can only call those. <!-- TODO-ALEX: name the three, for example household balance, expenses by category, who owes whom --> The functions run the queries and return exact figures. The model turns the result into a sentence. It cannot write to the database and it never adds anything up on its own.
+A read-only assistant. The model, Claude Haiku 4.5 through the Anthropic API, gets a small set of typed tool functions (getBalance, getCategorySpend and getBudgetStatus) and can only call those. The functions run the queries and return exact figures. The model turns the result into a sentence. It cannot write to the database and it never adds anything up on its own.
 
 ## Decisions
 
