@@ -1,0 +1,16 @@
+- id: simba
+  name: Simba
+  species: cat
+  breed: tabby
+  born: 2024
+  personality: energetic, a bit crazy, very cuddly
+  photo_url: /images/pets/simba.webp
+  photo_alt: Simba peeking out from between grey couch cushions with one paw forward
+- id: moura
+  name: Moura
+  species: cat
+  breed: Norwegian Forest cat
+  born: 2014
+  personality: makes you earn her love, then becomes your best friend
+  photo_url: /images/pets/moura.webp
+  photo_alt: Close-up of Moura on the cat tree, pink nose forward

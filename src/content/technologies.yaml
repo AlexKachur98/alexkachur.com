@@ -1,0 +1,80 @@
+# Canonical, unversioned names. Projects reference the id. The integer id in the database
+# follows name order, so this list can stay grouped by category.
+- id: typescript
+  name: TypeScript
+  category: language
+- id: javascript
+  name: JavaScript
+  category: language
+- id: html
+  name: HTML
+  category: language
+- id: css
+  name: CSS
+  category: language
+- id: java
+  name: Java
+  category: language
+- id: c-sharp
+  name: "C#"
+  category: language
+- id: python
+  name: Python
+  category: language
+- id: sql
+  name: SQL
+  category: language
+- id: kotlin
+  name: Kotlin
+  category: language
+- id: react
+  name: React
+  category: library
+- id: next-js
+  name: Next.js
+  category: framework
+- id: express
+  name: Express
+  category: framework
+- id: astro
+  name: Astro
+  category: framework
+- id: tailwind-css
+  name: Tailwind CSS
+  category: framework
+- id: spring-boot
+  name: Spring Boot
+  category: framework
+- id: framer-motion
+  name: Framer Motion
+  category: library
+- id: sql-js
+  name: sql.js
+  category: library
+- id: node-js
+  name: Node.js
+  category: runtime
+- id: firebase
+  name: Firebase
+  category: platform
+- id: cloudflare-pages
+  name: Cloudflare Pages
+  category: platform
+- id: vercel
+  name: Vercel
+  category: platform
+- id: upstash-redis
+  name: Upstash Redis
+  category: database
+- id: anthropic-api
+  name: Anthropic API
+  category: ai
+- id: resend
+  name: Resend
+  category: service
+- id: web3forms
+  name: Web3Forms
+  category: service
+- id: jest
+  name: Jest
+  category: testing

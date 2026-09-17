@@ -1,0 +1,17 @@
+# One row per fact. The id is the key column.
+- id: name
+  value: Alex Kachur
+- id: headline
+  value: I build full-stack web apps with an AI doing real work inside them.
+- id: location
+  value: Toronto, Canada
+- id: status
+  value: Final-year software engineering student at Centennial College
+- id: available_from
+  value: "2027-05"
+- id: email
+  value: alexkachur98@gmail.com
+- id: github
+  value: github.com/AlexKachur98
+- id: linkedin
+  value: linkedin.com/in/alex-kachur

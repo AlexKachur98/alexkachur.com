@@ -1,0 +1,32 @@
+# TODO-ALEX: topics per course
+- id: comp-307
+  code: COMP 307
+  name: Software Security
+  term: Fall 2026
+  topics: null
+- id: comp-303
+  code: COMP 303
+  name: Enterprise Application Development
+  term: Fall 2026
+  topics: null
+- id: comp-309
+  code: COMP 309
+  name: Data Warehousing and Predictive Analytics
+  term: Fall 2026
+  topics: null
+- id: comp-306
+  code: COMP 306
+  name: API Engineering and Cloud Computing
+  term: Fall 2026
+  topics: null
+- id: comp-231
+  code: COMP 231
+  name: Software Development Project 1
+  term: Fall 2026
+  topics: null
+- id: comp-255
+  code: COMP 255
+  name: Business and Entrepreneurship for SET
+  term: Fall 2026
+  topics: null
+# TODO-ALEX: Winter 2027 courses, not registered yet

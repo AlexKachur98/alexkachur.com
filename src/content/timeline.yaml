@@ -1,0 +1,34 @@
+# The integer id in the database follows date then event order.
+- id: 2019-08-ioal-distributing
+  date: "2019-08"
+  kind: work
+  event: Manager, IOAL Distributing
+- id: 2022-01-360-plus
+  date: "2022-01"
+  kind: work
+  event: QA Tester, 360 Plus IT Consulting
+- id: 2025-01-centennial
+  date: "2025-01"
+  kind: education
+  event: Started Software Engineering Technology at Centennial College and left the QA role
+# TODO-ALEX: month the Uraz Hoops website was delivered
+- id: 2026-uraz-hoops
+  date: "2026"
+  kind: project
+  event: Uraz Hoops website delivered
+- id: 2026-08-think-smarter
+  date: "2026-08"
+  kind: project
+  event: Think Smarter Insurance review funnel delivered as a live demo
+- id: 2026-09-splitroof
+  date: "2026-09"
+  kind: project
+  event: SplitRoof AI assistant started
+- id: 2027-04-graduation
+  date: "2027-04"
+  kind: education
+  event: Graduation expected
+- id: 2027-05-available
+  date: "2027-05"
+  kind: work
+  event: Available for full-time work
