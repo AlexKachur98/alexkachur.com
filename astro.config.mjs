@@ -11,6 +11,8 @@ export default defineConfig({
   trailingSlash: 'never',
   adapter: vercel({ maxDuration: 30 }),
   build: { inlineStylesheets: 'never' },
+  // Rendered markdown keeps the characters of the source: no curly quotes, no dashes made from --.
+  markdown: { smartypants: false },
   vite: { build: { assetsInlineLimit: 0 } },
   redirects: { '/resume': '/Alex-Kachur-Resume.pdf' },
 });
