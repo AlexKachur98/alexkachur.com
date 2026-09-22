@@ -1,0 +1,40 @@
+---
+import { examples } from '../data/examples.ts';
+
+// The six example queries (SPEC 4.2) as buttons carrying their SQL. The bootstrap hands a click
+// to the console chunk, which shows the SQL in the panel and runs it.
+---
+
+<ul class="examples" role="list" data-examples>
+  {
+    examples.map((example) => (
+      <li>
+        <button type="button" class="button chip" data-sql={example.sql}>
+          {example.label}
+        </button>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    margin: 0;
+    max-width: none;
+  }
+
+  /* A label that wraps on a phone gets room; a one-line chip stays at the 40px control height. */
+  .chip {
+    padding-block: var(--space-2);
+    text-align: left;
+  }
+</style>

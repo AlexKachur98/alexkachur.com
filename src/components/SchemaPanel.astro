@@ -1,0 +1,106 @@
+---
+import schema from '../generated/schema.json';
+
+// Every table and column with its one-line description (SPEC 4.2), from the schema.json the
+// build writes out of the zod descriptions, so this list, /api/schema.json and the ask prompt
+// cannot drift. Columns sit under their table's name rather than repeating it as table.column,
+// which would leave no room for the descriptions beside the console. The list scrolls inside a
+// bounded height, so it takes focus for keyboard users.
+// TODO-ALEX: the panel title "schema" is not in copy-drafts.md; confirm it or give the word.
+---
+
+<div class="schema">
+  <p class="schema-title" id="schema-title">schema</p>
+  <div class="schema-list" role="region" tabindex="0" aria-labelledby="schema-title">
+    {
+      schema.tables.map((table) => (
+        <dl>
+          <div class="schema-table">
+            <dt>{table.name}</dt>
+            <dd>{table.description}</dd>
+          </div>
+          {table.columns.map((column) => (
+            <div class="schema-column">
+              <dt>{column.name}</dt>
+              <dd>{column.description}</dd>
+            </div>
+          ))}
+        </dl>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .schema {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-mono);
+  }
+
+  .schema-title {
+    margin: 0;
+    padding: var(--space-4) var(--space-4) 0;
+    max-width: none;
+    color: var(--muted);
+  }
+
+  /* Bounded so the list does not push the page down; shorter on a phone, where a tall scroll
+     box would capture most swipes. */
+  .schema-list {
+    max-height: 24rem;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    overflow-y: auto;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+  }
+
+  dl + dl {
+    margin-top: var(--space-4);
+  }
+
+  .schema-table,
+  .schema-column {
+    display: contents;
+  }
+
+  dt,
+  dd {
+    margin: 0;
+    max-width: none;
+  }
+
+  .schema-table dt,
+  .schema-table dd {
+    grid-column: 1 / -1;
+  }
+
+  .schema-table dt {
+    font-weight: 700;
+  }
+
+  .schema-table dd {
+    margin-bottom: var(--space-1);
+  }
+
+  .schema-column dd {
+    color: var(--muted);
+  }
+
+  @media (min-width: 768px) {
+    .schema {
+      grid-column: 8 / 13;
+    }
+
+    .schema-list {
+      max-height: 40rem;
+    }
+  }
+</style>

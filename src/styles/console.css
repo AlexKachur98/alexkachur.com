@@ -1,0 +1,252 @@
+/* The console panel (DESIGN 7): dark in both themes on its own tokens, never the page's. The
+   results table is built at run time, so these rules are global rather than scoped. */
+
+.console {
+  --cut-fill: var(--console-bg);
+
+  color-scheme: dark;
+  padding: var(--space-4);
+  color: var(--console-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-mono);
+}
+
+.console a {
+  color: var(--console-ink);
+}
+
+/* The header line: "query", the byte size, then the status region (DESIGN 7: monospace 14px,
+   muted) and the cursor. */
+.console-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  margin: 0 0 var(--space-3);
+  max-width: none;
+  color: var(--console-muted);
+}
+
+/* The dots are their own hidden-from-AT spans, so neither the label's name nor the status
+   region's text picks one up; a dot before an empty readout is not shown. */
+.console-dot:has(+ :empty) {
+  display: none;
+}
+
+.console-input {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--control) * 3);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--console-muted);
+  background: var(--console-bg);
+  color: var(--console-accent);
+  caret-color: var(--console-accent);
+  resize: vertical;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.console-input:focus-visible {
+  border-color: var(--console-accent);
+}
+
+.console-run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--console-ink);
+  background: transparent;
+  color: var(--console-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: var(--leading-body);
+  transition:
+    background-color var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+.console-run:hover {
+  background: var(--console-ink);
+  color: var(--console-bg);
+}
+
+/* The cursor exists only while a query is in flight (DESIGN 6): a blink in two steps. Idle,
+   the textarea's own caret is the only cursor. */
+.console-cursor {
+  display: none;
+  width: 0.6em;
+  height: 1em;
+  background: var(--console-accent);
+  vertical-align: text-bottom;
+}
+
+.console[data-working] .console-cursor {
+  display: inline-block;
+  animation: console-blink var(--blink) steps(2, jump-none) infinite;
+}
+
+@keyframes console-blink {
+  from {
+    visibility: visible;
+  }
+
+  to {
+    visibility: hidden;
+  }
+}
+
+.console-error {
+  margin: 0;
+  max-width: none;
+  color: var(--console-danger);
+}
+
+.console-error:not(:empty) {
+  margin-top: var(--space-3);
+}
+
+.console-results {
+  overflow-x: auto;
+}
+
+.console-results:not(:empty) {
+  margin-top: var(--space-4);
+}
+
+.console-results th,
+.console-results td {
+  border-color: var(--console-rule);
+}
+
+.console-results th {
+  color: var(--console-muted);
+}
+
+.console-results .null {
+  color: var(--console-muted);
+}
+
+/* The one image exception of DESIGN 5. */
+.console-results img {
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 1px solid var(--console-rule);
+}
+
+.console-results a {
+  display: inline-block;
+}
+
+/* Rows appear one after another (DESIGN 6): the whole table is inserted at once and each row
+   waits its index times the step, rows after the twentieth with the twentieth. A step at the
+   end of a 1 ms run with both fills means hidden until the delay is up, visible after. */
+.console-results tbody tr {
+  animation: console-reveal 1ms step-end both;
+}
+
+.console-results tbody tr:nth-child(2) {
+  animation-delay: var(--row-step);
+}
+
+.console-results tbody tr:nth-child(3) {
+  animation-delay: calc(var(--row-step) * 2);
+}
+
+.console-results tbody tr:nth-child(4) {
+  animation-delay: calc(var(--row-step) * 3);
+}
+
+.console-results tbody tr:nth-child(5) {
+  animation-delay: calc(var(--row-step) * 4);
+}
+
+.console-results tbody tr:nth-child(6) {
+  animation-delay: calc(var(--row-step) * 5);
+}
+
+.console-results tbody tr:nth-child(7) {
+  animation-delay: calc(var(--row-step) * 6);
+}
+
+.console-results tbody tr:nth-child(8) {
+  animation-delay: calc(var(--row-step) * 7);
+}
+
+.console-results tbody tr:nth-child(9) {
+  animation-delay: calc(var(--row-step) * 8);
+}
+
+.console-results tbody tr:nth-child(10) {
+  animation-delay: calc(var(--row-step) * 9);
+}
+
+.console-results tbody tr:nth-child(11) {
+  animation-delay: calc(var(--row-step) * 10);
+}
+
+.console-results tbody tr:nth-child(12) {
+  animation-delay: calc(var(--row-step) * 11);
+}
+
+.console-results tbody tr:nth-child(13) {
+  animation-delay: calc(var(--row-step) * 12);
+}
+
+.console-results tbody tr:nth-child(14) {
+  animation-delay: calc(var(--row-step) * 13);
+}
+
+.console-results tbody tr:nth-child(15) {
+  animation-delay: calc(var(--row-step) * 14);
+}
+
+.console-results tbody tr:nth-child(16) {
+  animation-delay: calc(var(--row-step) * 15);
+}
+
+.console-results tbody tr:nth-child(17) {
+  animation-delay: calc(var(--row-step) * 16);
+}
+
+.console-results tbody tr:nth-child(18) {
+  animation-delay: calc(var(--row-step) * 17);
+}
+
+.console-results tbody tr:nth-child(19) {
+  animation-delay: calc(var(--row-step) * 18);
+}
+
+.console-results tbody tr:nth-child(n + 20) {
+  animation-delay: calc(var(--row-step) * 19);
+}
+
+@keyframes console-reveal {
+  from {
+    visibility: hidden;
+  }
+
+  to {
+    visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console[data-working] .console-cursor {
+    animation: none;
+  }
+
+  .console-results tbody tr {
+    animation: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .console {
+    grid-column: 1 / 8;
+  }
+}

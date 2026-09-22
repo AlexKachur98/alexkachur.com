@@ -1,0 +1,41 @@
+---
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import '../styles/console.css';
+
+// The header line and the loading message show the database's real size (SPEC 4.2), and the
+// module fetches the file by a version derived from its bytes, so the immutable cache never
+// serves a returning visitor an older database than this page was built with. Both come from
+// the file build-db wrote for this build; the path starts at the project root, where build-db
+// writes it, because the adapter prerenders from its output folder and a URL relative to this
+// module would point elsewhere. The panel is wired by src/scripts/console.ts once the bootstrap
+// loads it on the first interaction; the two live regions are always present and are emptied,
+// never removed (DESIGN 7).
+const database = readFileSync(join(process.cwd(), 'public', 'data', 'portfolio.sqlite'));
+const kb = Math.round(database.byteLength / 1000);
+const version = createHash('sha256').update(database).digest('hex').slice(0, 8);
+---
+
+<div class="console cut" data-console data-kb={kb} data-db-version={version}>
+  <p class="console-head">
+    <span id="console-label">query</span>
+    <span class="console-dot" aria-hidden="true">·</span>
+    <span>{kb} KB</span>
+    <span class="console-dot" aria-hidden="true">·</span>
+    <span id="console-status" role="status" data-console-status></span>
+    <span class="console-cursor" aria-hidden="true"></span>
+  </p>
+  <textarea
+    class="console-input"
+    rows="4"
+    spellcheck="false"
+    autocomplete="off"
+    autocapitalize="off"
+    autocorrect="off"
+    aria-labelledby="console-label"
+    data-console-input></textarea>
+  <button type="button" class="console-run" data-console-run>Run</button>
+  <p class="console-error" role="alert" data-console-error></p>
+  <div class="console-results" role="region" aria-labelledby="console-label console-status" data-console-results></div>
+</div>

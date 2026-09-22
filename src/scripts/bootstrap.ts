@@ -1,6 +1,6 @@
 // The one deferred module every page loads before interaction (SPEC 5.8), kept under 2 KB
-// gzipped. It holds the theme toggle now; ready() and the trigger listeners arrive with the
-// console module.
+// gzipped. It holds the theme toggle and ready(), the memoised import of the console chunk;
+// the stats fetch arrives with the footer readouts.
 import { nextTheme, type Theme } from './theme.ts';
 
 const root = document.documentElement;
@@ -26,3 +26,38 @@ document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
     // Storage can be blocked; the attribute still switches the theme for this page view.
   }
 });
+
+// ready(): one promise that loads the console chunk and starts it. Focus inside the console
+// and pointerdown on the console or the examples preload it; a click on Run or an example and
+// Ctrl or Cmd+Enter in the textarea are handed to the chunk once it is there, so the first one
+// works before any of it has loaded. The chunk attaches no listeners of its own.
+type ConsoleModule = typeof import('./console.ts');
+let loading: Promise<ConsoleModule> | undefined;
+
+function ready(): Promise<ConsoleModule> {
+  return (loading ??= import('./console.ts').then((module) => {
+    module.init();
+    return module;
+  }));
+}
+
+function preload(): void {
+  void ready();
+}
+
+document.querySelector('[data-console]')?.addEventListener('focusin', preload);
+document.querySelector('[data-console-input]')?.addEventListener('keydown', (event) => {
+  const { key, ctrlKey, metaKey, repeat } = event as KeyboardEvent;
+  if (key === 'Enter' && (ctrlKey || metaKey)) {
+    event.preventDefault();
+    if (!repeat) void ready().then((module) => module.run());
+  }
+});
+
+for (const panel of document.querySelectorAll('[data-console], [data-examples]')) {
+  panel.addEventListener('pointerdown', preload);
+  panel.addEventListener('click', (event) => {
+    const button = (event.target as Element).closest<HTMLElement>('[data-sql], [data-console-run]');
+    if (button) void ready().then((module) => module.click(button));
+  });
+}

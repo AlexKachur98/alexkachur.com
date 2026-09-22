@@ -87,8 +87,11 @@
   --measure: 68ch;
   --control: 40px;
   --cut: 12px;
+  --thumb: 48px;
   --duration: 120ms;
   --ease: linear;
+  --blink: 1s;
+  --row-step: 30ms;
 }
 
 @property --bg {

@@ -1,8 +1,11 @@
 ---
 import About from '../components/About.astro';
+import Console from '../components/Console.astro';
 import Contact from '../components/Contact.astro';
+import Examples from '../components/Examples.astro';
 import Hero from '../components/Hero.astro';
 import Now from '../components/Now.astro';
+import SchemaPanel from '../components/SchemaPanel.astro';
 import Section from '../components/Section.astro';
 import WorkList from '../components/WorkList.astro';
 import Base from '../layouts/Base.astro';
@@ -13,11 +16,22 @@ import Base from '../layouts/Base.astro';
     <Hero />
     <WorkList />
     <Section id="query" title="Query this site">
-      <!-- Stage 6: the raw SQL console, the schema panel and the six example queries render here. -->
       <p>Everything on this site is generated from one small database. It is loaded into your browser and nothing you type leaves it. Read-only, SQLite.</p>
+      <Examples />
+      <div class="grid query">
+        <Console />
+        <SchemaPanel />
+      </div>
     </Section>
     <About />
     <Now />
     <Contact />
   </main>
 </Base>
+
+<style>
+  /* The console keeps its own height beside the schema list rather than stretching to it. */
+  .query {
+    align-items: start;
+  }
+</style>
