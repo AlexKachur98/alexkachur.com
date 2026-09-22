@@ -2,9 +2,11 @@
 import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
+import { dataFile } from '../lib/data-file.ts';
 
 // Structure and intro copy only. Every measured number, the model in use and the what-broke
 // list arrive once the site is live and measured, and are marked TODO below.
+const dump = dataFile('portfolio.sql');
 ---
 
 <Base title="How this site works" description="This site is a small full-stack system.">
@@ -22,7 +24,7 @@ import Base from '../layouts/Base.astro';
 
     <Section id="build-time-database" title="Build-time database">
       <!-- TODO: describe the build step (scripts/build-db.ts, the seven tables, the determinism test) and add a sentence pointing at the readable dump linked below. -->
-      <p><a href="/data/portfolio.sql"><code>/data/portfolio.sql</code></a></p>
+      <p><a href={dump.url}><code>/data/portfolio.sql</code></a></p>
     </Section>
 
     <Section id="the-ask-pipeline" title="The ask pipeline">

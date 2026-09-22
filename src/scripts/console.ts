@@ -47,7 +47,6 @@ const LOAD_MESSAGE = 'The database could not be loaded. Reload the page to try a
 const WORKING_MESSAGE = 'working';
 const TIMEOUT_MS = 3000;
 const WORKER_URL = '/console-worker.js';
-const DATABASE_URL = '/data/portfolio.sqlite';
 
 // The prefix check. It only produces the friendly message; read-only itself is the
 // engine's PRAGMA in the worker.
@@ -194,13 +193,13 @@ export function createExecutor({ spawn, load, timeout = TIMEOUT_MS }: ExecutorOp
   return { ready: () => connect().then(() => undefined), run };
 }
 
-// The file is cached as immutable with no hash in its name, so the version of the bytes goes in
-// the query string: a returning visitor gets the database this page was built with, not the
-// one their browser kept from a previous visit.
-async function fetchDatabase(version: string): Promise<ArrayBuffer> {
-  const url = version ? `${DATABASE_URL}?v=${version}` : DATABASE_URL;
+// The URL comes from the markup, where the build put the version of the file's bytes in the
+// query string: the file is cached as immutable with no hash in its name, and a returning visitor
+// must get the database this page was built with, not the one their browser kept.
+async function fetchDatabase(url: string | undefined): Promise<ArrayBuffer> {
+  if (!url) throw new Error('console: data-db-url is missing');
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status} ${DATABASE_URL}`);
+  if (!response.ok) throw new Error(`${response.status} ${url}`);
   return response.arrayBuffer();
 }
 
@@ -371,7 +370,7 @@ export function init(): void {
     results: element<HTMLElement>(root, '[data-console-results]'),
     executor: createExecutor({
       spawn: () => new Worker(WORKER_URL),
-      load: () => fetchDatabase(root.dataset['dbVersion'] ?? ''),
+      load: () => fetchDatabase(root.dataset['dbUrl']),
     }),
     loaded: false,
     inFlight: 0,

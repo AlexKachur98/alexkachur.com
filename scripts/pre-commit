@@ -1,0 +1,7 @@
+#!/bin/sh
+# Installed into .git/hooks by npm install (the prepare script). Blocks a commit that fails the
+# hygiene test; the full suite still runs in CI.
+npx vitest run tests/hygiene.test.ts || {
+  echo "pre-commit: the hygiene test failed, commit blocked" >&2
+  exit 1
+}

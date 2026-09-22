@@ -113,7 +113,7 @@ export const tables = {
   },
   timeline: {
     row: timelineRow,
-    description: 'Work, education and project milestones by date',
+    description: 'Work, education and project events by date',
     primaryKey: ['id'],
     unique: [],
   },

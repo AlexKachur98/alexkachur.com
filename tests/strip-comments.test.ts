@@ -20,15 +20,15 @@ describe('stripHtmlComments', () => {
 
 describe('stripComments', () => {
   it('drops a comment that is a block of its own', async () => {
-    const html = await render('## Outcome\n\n<!-- TODO-ALEX: fill after the build -->\n\n## Credits\n\nBuilt alone.\n');
+    const html = await render('## Outcome\n\n<!-- TODO: fill after the build -->\n\n## Credits\n\nBuilt alone.\n');
     expect(html).not.toContain('<!--');
-    expect(html).not.toContain('TODO-ALEX');
+    expect(html).not.toContain('TODO:');
     expect(html).toContain('<h2 id="outcome">Outcome</h2>');
     expect(html).toContain('<p>Built alone.</p>');
   });
 
   it('drops a comment inside a paragraph or list item and keeps the text around it', async () => {
-    const html = await render('In progress. <!-- TODO-ALEX: demo date --> More text.\n\n- Item <!-- TODO-ALEX: caption --> tail\n');
+    const html = await render('In progress. <!-- TODO: demo date --> More text.\n\n- Item <!-- TODO: caption --> tail\n');
     expect(html).not.toContain('<!--');
     expect(html).toContain('In progress.');
     expect(html).toContain('More text.');
@@ -52,7 +52,7 @@ describe('stripComments', () => {
       expect(source, `${file} fixture still has comments to strip`).toContain('<!--');
       const html = await render(source);
       expect(html, file).not.toContain('<!--');
-      expect(html, file).not.toContain('TODO-ALEX');
+      expect(html, file).not.toContain('TODO:');
     }
   });
 });
