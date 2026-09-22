@@ -1,9 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   buildDatabase,
   buildInfo,
@@ -201,49 +202,60 @@ describe('build-db', () => {
   });
 
   describe('main', () => {
+    // A root of its own: other test files run in parallel workers and import from the
+    // repository's src/generated, so the outputs there must never be deleted or rewritten here.
+    const root = mkdtempSync(join(tmpdir(), 'build-db-'));
+    const at = (path: string) => join(root, path);
+
     beforeAll(() => {
+      // The content, the screenshots it references and the pet photos it checks for.
+      for (const dir of ['src/content', 'src/assets', 'public/images']) cpSync(dir, at(dir), { recursive: true });
       // A stale version and a stray file, both of which main must clear.
-      mkdirSync('public/vendor/sql.js-0.0.0', { recursive: true });
-      writeFileSync('public/vendor/stray.txt', '');
-      return main();
+      mkdirSync(at('public/vendor/sql.js-0.0.0'), { recursive: true });
+      writeFileSync(at('public/vendor/stray.txt'), '');
+      return main(root);
+    });
+
+    afterAll(() => {
+      rmSync(root, { recursive: true, force: true });
     });
 
     it('writes the database, the dump and a module byte-identical to the file', () => {
-      const sqlite = readFileSync('public/data/portfolio.sqlite');
+      const sqlite = readFileSync(at('public/data/portfolio.sqlite'));
       expect(sqlite.equals(Buffer.from(bytes))).toBe(true);
-      expect(readFileSync('public/data/portfolio.sql', 'utf8')).toBe(sql);
-      expect(Buffer.from(decodeBase64Module(readFileSync('src/generated/portfolio-db.ts', 'utf8'))).equals(sqlite)).toBe(true);
+      expect(readFileSync(at('public/data/portfolio.sql'), 'utf8')).toBe(sql);
+      expect(Buffer.from(decodeBase64Module(readFileSync(at('src/generated/portfolio-db.ts'), 'utf8'))).equals(sqlite)).toBe(true);
     });
 
     it('writes the wasm module and vendors sql.js under a folder named after the installed version', () => {
       const installed = JSON.parse(readFileSync('node_modules/sql.js/package.json', 'utf8')).version;
       const wasm = readFileSync(require.resolve('sql.js/dist/sql-wasm.wasm'));
-      expect(Buffer.from(decodeBase64Module(readFileSync('src/generated/sql-wasm.ts', 'utf8'))).equals(wasm)).toBe(true);
-      expect(readdirSync('public/vendor')).toEqual([`sql.js-${installed}`]);
-      const vendor = join('public', 'vendor', `sql.js-${installed}`);
+      expect(Buffer.from(decodeBase64Module(readFileSync(at('src/generated/sql-wasm.ts'), 'utf8'))).equals(wasm)).toBe(true);
+      expect(readdirSync(at('public/vendor'))).toEqual([`sql.js-${installed}`]);
+      const vendor = at(join('public', 'vendor', `sql.js-${installed}`));
       expect(readdirSync(vendor).sort()).toEqual(['sql-wasm.js', 'sql-wasm.wasm']);
       expect(readFileSync(join(vendor, 'sql-wasm.wasm')).equals(wasm)).toBe(true);
       expect(readFileSync(join(vendor, 'sql-wasm.js')).equals(readFileSync(require.resolve('sql.js/dist/sql-wasm.js')))).toBe(true);
     });
 
     it('writes schema.json with the same hash and build-info.json with a commit and a timestamp', () => {
-      const schema = JSON.parse(readFileSync('src/generated/schema.json', 'utf8'));
+      const schema = JSON.parse(readFileSync(at('src/generated/schema.json'), 'utf8'));
       expect(schema.hash).toBe(schemaJson(content).hash);
-      const info = JSON.parse(readFileSync('src/generated/build-info.json', 'utf8'));
+      const info = JSON.parse(readFileSync(at('src/generated/build-info.json'), 'utf8'));
       expect(info.commit).toMatch(/^[0-9a-f]{7,40}$|^local$/);
       expect(new Date(info.builtAt).toISOString()).toBe(info.builtAt);
     });
 
     it('runs as node scripts/build-db.ts, under type stripping, and recreates every output with the same bytes', () => {
-      for (const dir of ['public/data', 'public/vendor', 'src/generated']) rmSync(dir, { recursive: true, force: true });
-      execFileSync(process.execPath, ['scripts/build-db.ts'], { stdio: 'pipe' });
-      expect(readFileSync('public/data/portfolio.sqlite').equals(Buffer.from(bytes))).toBe(true);
-      expect(readFileSync('public/data/portfolio.sql', 'utf8')).toBe(sql);
-      expect(Buffer.from(decodeBase64Module(readFileSync('src/generated/portfolio-db.ts', 'utf8'))).equals(Buffer.from(bytes))).toBe(true);
-      expect(JSON.parse(readFileSync('src/generated/schema.json', 'utf8')).hash).toBe(schemaJson(content).hash);
-      expect(existsSync('src/generated/sql-wasm.ts')).toBe(true);
-      expect(existsSync('src/generated/build-info.json')).toBe(true);
-      expect(readdirSync('public/vendor')).toHaveLength(1);
+      for (const dir of ['public/data', 'public/vendor', 'src/generated']) rmSync(at(dir), { recursive: true, force: true });
+      execFileSync(process.execPath, [resolve('scripts/build-db.ts')], { cwd: root, stdio: 'pipe' });
+      expect(readFileSync(at('public/data/portfolio.sqlite')).equals(Buffer.from(bytes))).toBe(true);
+      expect(readFileSync(at('public/data/portfolio.sql'), 'utf8')).toBe(sql);
+      expect(Buffer.from(decodeBase64Module(readFileSync(at('src/generated/portfolio-db.ts'), 'utf8'))).equals(Buffer.from(bytes))).toBe(true);
+      expect(JSON.parse(readFileSync(at('src/generated/schema.json'), 'utf8')).hash).toBe(schemaJson(content).hash);
+      expect(existsSync(at('src/generated/sql-wasm.ts'))).toBe(true);
+      expect(existsSync(at('src/generated/build-info.json'))).toBe(true);
+      expect(readdirSync(at('public/vendor'))).toHaveLength(1);
     });
   });
 });
