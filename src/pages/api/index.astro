@@ -1,0 +1,152 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { tables } from '../../content/schemas.ts';
+import schema from '../../generated/schema.json';
+import { chips } from '../../data/examples.ts';
+import { previewJson } from '../../lib/preview-json.ts';
+import { petRows, projectRows, projectTechnologyRows, technologyRows, timelineRows } from '../../lib/rows.ts';
+
+// The example responses are cut from the same rows the endpoints serve (SPEC 3.4).
+const [projects, technologies, timeline, pets] = await Promise.all([
+  getCollection('projects'),
+  getCollection('technologies'),
+  getCollection('timeline'),
+  getCollection('pets'),
+]);
+const projectList = projectRows(projects);
+const technologyList = technologyRows(technologies);
+const names = new Map(technologyList.map((row) => [row.id, row.name]));
+const first = projectList[0]!;
+const single = {
+  ...first,
+  technologies: projectTechnologyRows(projects, technologies)
+    .filter((link) => link.project_id === first.id)
+    .map((link) => names.get(link.technology_id)),
+};
+
+const url = (path: string) => new URL(path, Astro.site).href;
+const question = chips[0]!.label;
+
+interface Endpoint {
+  method: 'GET' | 'POST';
+  path: string;
+  description: string | undefined;
+  curl: string;
+  response: string | undefined;
+}
+
+const endpoints: Endpoint[] = [
+  {
+    method: 'GET',
+    path: '/api/projects.json',
+    description: tables.projects.description,
+    curl: `curl ${url('/api/projects.json')}`,
+    response: previewJson(projectList, { items: 1 }),
+  },
+  {
+    method: 'GET',
+    path: '/api/projects/{slug}.json',
+    description: undefined,
+    curl: `curl ${url(`/api/projects/${first.slug}.json`)}`,
+    response: previewJson(single),
+  },
+  {
+    method: 'GET',
+    path: '/api/technologies.json',
+    description: tables.technologies.description,
+    curl: `curl ${url('/api/technologies.json')}`,
+    response: previewJson(technologyList, { items: 3 }),
+  },
+  {
+    method: 'GET',
+    path: '/api/timeline.json',
+    description: tables.timeline.description,
+    curl: `curl ${url('/api/timeline.json')}`,
+    response: previewJson(timelineRows(timeline), { items: 2 }),
+  },
+  {
+    method: 'GET',
+    path: '/api/pets.json',
+    description: tables.pets.description,
+    curl: `curl ${url('/api/pets.json')}`,
+    response: previewJson(petRows(pets), { items: 1 }),
+  },
+  {
+    method: 'GET',
+    path: '/api/schema.json',
+    description: undefined,
+    curl: `curl ${url('/api/schema.json')}`,
+    response: previewJson(schema, { items: 1, chars: 60 }),
+  },
+  {
+    method: 'POST',
+    path: '/api/ask',
+    description: undefined,
+    curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'`,
+    response: undefined,
+  },
+  {
+    method: 'GET',
+    path: '/api/stats',
+    description: undefined,
+    curl: `curl ${url('/api/stats')}`,
+    response: undefined,
+  },
+];
+---
+
+<Base title="API" description="These endpoints return the same records the pages are built from.">
+  <main class="container">
+    <header class="page-head">
+      <h1>API</h1>
+      <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per connection and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
+      <!-- TODO-ALEX: one or two sentences on the /api/ask cache and that the monthly cap counts the UTC calendar month (SPEC 3.4). -->
+      <!-- Stage 9: the sentence linking /api/openapi.json goes here, once the document exists. -->
+      <p>Try it:</p>
+      <pre><code>curl {url('/api/projects.json')}</code></pre>
+    </header>
+    {
+      endpoints.map((endpoint) => (
+        <section class="section endpoint" id={endpoint.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}>
+          <h2>
+            {endpoint.method} {endpoint.path}
+          </h2>
+          {endpoint.description ? (
+            <p>{endpoint.description}</p>
+          ) : (
+            <Fragment>
+              <!-- TODO-ALEX: one sentence describing this endpoint. -->
+            </Fragment>
+          )}
+          <pre><code>{endpoint.curl}</code></pre>
+          {endpoint.response ? (
+            <pre><code>{endpoint.response}</code></pre>
+          ) : (
+            <Fragment>
+              <!-- Stage 7 and Stage 9: a recorded example response for the dynamic endpoint goes here. -->
+            </Fragment>
+          )}
+        </section>
+      ))
+    }
+  </main>
+</Base>
+
+<style>
+  .page-head {
+    padding-top: var(--space-8);
+  }
+
+  /* A method and a path are data, so the endpoint titles are mono (DESIGN 3). */
+  .endpoint h2 {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+  }
+
+  @media (min-width: 768px) {
+    .page-head {
+      padding-top: var(--space-9);
+    }
+  }
+</style>

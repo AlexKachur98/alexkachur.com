@@ -1,0 +1,48 @@
+---
+import { getEntry } from 'astro:content';
+import Section from '../components/Section.astro';
+import Base from '../layouts/Base.astro';
+import { splitSections } from '../lib/sections.ts';
+
+const page = await getEntry('pages', 'uses');
+if (!page) throw new Error('src/content/pages/uses.md is missing');
+const sections = splitSections(page.rendered?.html ?? '');
+// The frontmatter date is UTC midnight, so the UTC date string is the date Alex wrote.
+const updated = page.data.updated?.toISOString().slice(0, 10);
+---
+
+<Base title="Uses" description="The machines, peripherals and software Alex Kachur uses, and what he is learning.">
+  <main class="container">
+    <header class="page-head">
+      <h1>Uses</h1>
+      {updated && <p class="updated">Last updated: {updated}</p>}
+    </header>
+    {
+      sections.map((section) => (
+        <Section id={section.id} title={section.title}>
+          <Fragment set:html={section.body} />
+        </Section>
+      ))
+    }
+  </main>
+</Base>
+
+<style>
+  .page-head {
+    padding-top: var(--space-8);
+  }
+
+  .updated {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-mono);
+  }
+
+  @media (min-width: 768px) {
+    .page-head {
+      padding-top: var(--space-9);
+    }
+  }
+</style>
