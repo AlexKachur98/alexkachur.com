@@ -1,4 +1,4 @@
-/* Design tokens from DESIGN.md. Components use these and never raw values. */
+/* Design tokens. Components use these and never raw values. */
 
 /* Page colours, declared once with light-dark(). A custom property is never rejected when
    parsed, so a plain fallback line would not help a browser without light-dark(); the
@@ -42,7 +42,7 @@
   color-scheme: dark;
 }
 
-/* Type scale (DESIGN.md 3), rem on a 16px base. The three heading steps grow from 768px. */
+/* Type scale, rem on a 16px base. The three heading steps grow from 768px. */
 :root {
   --text-xs: 0.8125rem;
   --text-sm: 0.875rem;
@@ -66,7 +66,7 @@
   }
 }
 
-/* Spacing scale (DESIGN.md 4). */
+/* Spacing scale. */
 :root {
   --space-1: 4px;
   --space-2: 8px;
@@ -80,7 +80,7 @@
   --space-10: 128px;
 }
 
-/* Layout, shape and motion (DESIGN.md 4 to 6). Breakpoints are 480px, 768px and 1080px;
+/* Layout, shape and motion. Breakpoints are 480px, 768px and 1080px;
    media queries cannot read custom properties, so they carry those values literally. */
 :root {
   --container: 1080px;

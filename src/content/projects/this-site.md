@@ -16,7 +16,7 @@ llm_job: turns a visitor's question into one validated SQL statement that runs i
 paid: 0
 featured: 0
 technologies: [astro, typescript, css, sql-js, vercel, anthropic-api, upstash-redis]
-# TODO-ALEX: screenshots of this site after the build
+# TODO: add screenshots of this site after the build.
 screenshots: []
 ---
 
@@ -26,16 +26,16 @@ Every portfolio says "full-stack with AI". I wanted one where you can check.
 
 ## What I built
 
-<!-- TODO-ALEX: after the build. Cover: the build-time database, the Ask pipeline and its validation rules, the public API, the curl response, the cost cap and cache, the readouts in the footer. -->
+<!-- TODO: write this after the build. Cover the build-time database, the Ask pipeline and its validation rules, the public API, the curl response, the cost cap and cache, and the readouts in the footer. -->
 
 ## Decisions
 
-<!-- TODO-ALEX: after the build (at least: SQL generated on the server but run in the browser; engine validation, preparing the SQL against the real database, instead of trusting the model; a monthly cap with a graceful fallback). -->
+<!-- TODO: write this after the build. At least: SQL generated on the server but run in the browser; engine validation, preparing the SQL against the real database, instead of trusting the model; a monthly cap with a graceful fallback. -->
 
 ## What went wrong or what I would change
 
-<!-- TODO-ALEX: after the build -->
+<!-- TODO: write this after the build. -->
 
 ## Outcome
 
-<!-- TODO-ALEX: Lighthouse scores, monthly AI cost -->
+<!-- TODO: add the Lighthouse scores and the monthly AI cost. -->

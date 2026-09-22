@@ -1,6 +1,6 @@
 // Splits rendered markdown into its h2 sections, so a page can place each one in the site's
-// section layout and insert its own blocks between them (SPEC 3.2 puts Screenshots before
-// Credits; the SplitRoof flow diagram sits inside What I built). The heading ids come from
+// section layout and insert its own blocks between them (Screenshots goes before Credits; the
+// SplitRoof flow diagram sits inside What I built). The heading ids come from
 // the processor's heading-ids plugin.
 export interface Section {
   id: string;

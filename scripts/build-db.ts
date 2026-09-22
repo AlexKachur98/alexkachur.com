@@ -1,5 +1,5 @@
 // Compiles src/content into the SQLite database, its readable dump, the vendored sql.js files and
-// the generated modules (SPEC 5.1). Runs under Node's type stripping, so imports keep their .ts
+// the generated modules. Runs under Node's type stripping, so imports keep their .ts
 // extension and nothing here needs a compiler. Astro's loaders drop a row without an id and only
 // log an unknown reference, so this script parses the YAML itself and fails hard on both.
 import { execFileSync } from 'node:child_process';
@@ -318,7 +318,7 @@ export function schemaJson(content: Content) {
       })),
     };
   });
-  // The ask cache key carries the first 8 characters of this hash (SPEC 5.2), so it covers
+  // The ask cache key carries the first 8 characters of this hash, so it covers
   // exactly what the model is shown: the DDL and the table list.
   const hash = sha256(JSON.stringify({ ddl: ddlText, tables: tableList }));
   const photoAlt = Object.fromEntries(petRows(content.pets).map((pet) => [pet.photo_url, pet.photo_alt]));

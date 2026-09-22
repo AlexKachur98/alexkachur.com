@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// The build output test of SPEC 9.7, first version: no HTML comment and no TODO-ALEX anywhere.
+// The build output test, first version: no HTML comment and no TODO-ALEX anywhere.
 // npm test builds first (pretest), so the tree is the current one. The static tree is dist/
 // until an on-demand endpoint exists and dist/client from then on.
 const root = ['dist/client', 'dist'].find((dir) => existsSync(join(dir, 'index.html')));

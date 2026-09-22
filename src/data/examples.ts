@@ -1,5 +1,6 @@
-// The six example queries from copy-drafts.md (query 5 selects born instead of age, SPEC 6). One
-// source for the console buttons, the two Ask chips and the worked examples in the ask prompt.
+// The six example queries (query 5 selects born instead of age, which the pets table does not
+// store). One source for the console buttons, the two Ask chips and the worked examples in the
+// ask prompt.
 export interface Example {
   label: string;
   sql: string;
@@ -32,5 +33,5 @@ export const examples: readonly Example[] = [
   },
 ];
 
-// The two Ask chips carry examples 1 and 2 statically and run with no API call (SPEC 4.1).
+// The two Ask chips carry examples 1 and 2 statically and run with no API call.
 export const chips: readonly Example[] = examples.slice(0, 2);

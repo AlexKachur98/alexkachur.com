@@ -36,7 +36,7 @@ const { name, summary, role, year_start, year_end, client_name, team, live_url, 
 const year = year_end === null || year_end === year_start ? String(year_start) : `${year_start} to ${year_end}`;
 const links = [repo_url, live_url].filter((url): url is string => url !== null);
 
-// SPEC 3.2 order: the markdown sections, then Screenshots, then Credits (the last markdown
+// Page order: the markdown sections, then Screenshots, then Credits (the last markdown
 // section). The SplitRoof flow diagram sits inside What I built.
 const sections = splitSections(project.rendered?.html ?? '');
 const creditsAt = sections.findIndex((section) => section.id === 'credits');
@@ -172,7 +172,7 @@ const shotSizes = '(min-width: 1080px) 984px, calc(100vw - 48px)';
     list-style: none;
   }
 
-  /* A 40px hit area (DESIGN 9) without growing the row: the margin gives back the padding. */
+  /* A 40px hit area without growing the row: the margin gives back the padding. */
   .fact-links a {
     display: inline-block;
     padding-block: calc((var(--control) - var(--leading-mono) * 1em) / 2);

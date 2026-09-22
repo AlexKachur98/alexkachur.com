@@ -3,8 +3,8 @@ import { createExecutor, guard, renderCell, ROWS, summary, visibleRows } from '.
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
-// The strings as copy-drafts.md has them, so a typo in the module cannot pass by comparing the
-// module to itself.
+// The strings written out here rather than imported, so a typo in the module cannot pass by
+// comparing the module to itself.
 const GUARD = 'Read-only console: SELECT, WITH and EXPLAIN only.';
 const STOPPED = 'query stopped after 3 s';
 

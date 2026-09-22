@@ -1,4 +1,4 @@
-# TODO-ALEX: topics per course
+# TODO: fill in the topics for each course.
 - id: comp-307
   code: COMP 307
   name: Software Security
@@ -29,4 +29,4 @@
   name: Business and Entrepreneurship for SET
   term: Fall 2026
   topics: null
-# TODO-ALEX: Winter 2027 courses, not registered yet
+# TODO: add the Winter 2027 courses once I have registered.

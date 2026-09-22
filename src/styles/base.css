@@ -1,4 +1,4 @@
-/* Base styles from DESIGN.md: type, measure, focus, rules, controls, the diagonal cut, motion. */
+/* Base styles: type, measure, focus, rules, controls, the diagonal cut, motion. */
 
 *,
 *::before,
@@ -270,7 +270,7 @@ td {
   vertical-align: top;
 }
 
-/* The diagonal cut (DESIGN.md 5): only the console panel and the primary button carry .cut.
+/* The diagonal cut: only the console panel and the primary button carry .cut.
    The fill and the clip live on ::before, so the element's own focus ring is never clipped. */
 .cut {
   position: relative;

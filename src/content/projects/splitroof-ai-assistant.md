@@ -11,7 +11,7 @@ year_end: null
 client_name: null
 live_url: null
 repo_url: https://github.com/AlexKachur98/splitroof-assistant-spike
-# TODO-ALEX: main repo link if the team agrees
+# TODO: add the main repo link if the team agrees.
 has_live_demo: 0
 uses_llm: 1
 llm_job: answers questions about a household's shared expenses by calling typed tools; never does the arithmetic itself.
@@ -21,10 +21,10 @@ technologies: [react, node-js, express, firebase, anthropic-api, jest]
 screenshots:
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-1.png
     alt: A terminal in VS Code after npm test in splitroof-assistant-spike, with tools.test.js and assistant.test.js passing, 17 tests in total
-    # TODO-ALEX: caption
+    # TODO: write the caption.
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-2.png
     alt: VS Code with src/assistant.js open on the system prompt, which tells the model that every number must come from a tool result
-    # TODO-ALEX: caption
+    # TODO: write the caption.
 ---
 
 ## The problem
@@ -43,12 +43,12 @@ A read-only assistant. The model, Claude Haiku 4.5 through the Anthropic API, ge
 
 ## What went wrong or what I would change
 
-<!-- TODO-ALEX: fill after the first iteration ships -->
+<!-- TODO: fill this in after the first iteration ships. -->
 
 ## Outcome
 
-In progress. <!-- TODO-ALEX: update with the demo date, what the team shipped, and anything measurable (questions answered correctly in testing, response time) -->
+In progress. <!-- TODO: add the demo date, what the team shipped, and anything measurable, such as questions answered correctly in testing and response time. -->
 
 ## Credits
 
-Group project. <!-- TODO-ALEX: team size and names, if they agree --> I own the AI integration, keep the project documentation, and keep us on schedule.
+Group project. <!-- TODO: add the team size and names, if they agree. --> I own the AI integration, keep the project documentation, and keep us on schedule.

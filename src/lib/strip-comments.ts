@@ -1,4 +1,4 @@
-// The rehype step of SPEC 5.1 in two halves. Markdown: HTML comments (the TODO-ALEX checklist)
+// The comment stripping in two halves. Markdown: HTML comments (the TODO checklist)
 // reach the hast tree as raw nodes and are dropped there. Page output: the compiler strips the
 // comments in slot children but keeps those written in a component's own template, so the
 // middleware runs stripHtmlComments over every HTML response. The dist test checks both.

@@ -1,4 +1,4 @@
-// The console chunk (SPEC 4.2, 5.8): loaded by the bootstrap's ready() on the first interaction
+// The console chunk: loaded by the bootstrap's ready() on the first interaction
 // and never before. Nothing runs at module level, so evaluating it early on pointerdown is
 // free. The executor owns the worker, the 3-second timer and the row cap; the Ask box will run
 // its validated SQL through the same executor and renderer.
@@ -49,7 +49,7 @@ const TIMEOUT_MS = 3000;
 const WORKER_URL = '/console-worker.js';
 const DATABASE_URL = '/data/portfolio.sqlite';
 
-// The prefix check of SPEC 4.2. It only produces the friendly message; read-only itself is the
+// The prefix check. It only produces the friendly message; read-only itself is the
 // engine's PRAGMA in the worker.
 export function guard(sql: string): string | null {
   return /^\s*(?:select|with|explain)\b/i.test(sql) ? null : GUARD_MESSAGE;
@@ -204,7 +204,7 @@ async function fetchDatabase(version: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
-// What a cell renders as. The one rule beyond plain text (SPEC 4.2): a photo_url column whose
+// What a cell renders as. The one rule beyond plain text: a photo_url column whose
 // value is a site image becomes a 48px thumbnail linking to the image, with the alt text from
 // the pets collection and never from the shape of the query.
 export type Rendered = { kind: 'text'; text: string; empty: boolean } | { kind: 'image'; src: string; alt: string };

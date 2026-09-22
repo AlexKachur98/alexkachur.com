@@ -3,8 +3,8 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
 
-// Structure and intro copy only (SPEC 3.5, milestone 6). Every measured number, the model in
-// use and the what-broke list arrive after milestone 7 and are marked TODO-ALEX below.
+// Structure and intro copy only. Every measured number, the model in use and the what-broke
+// list arrive once the site is live and measured, and are marked TODO below.
 ---
 
 <Base title="How this site works" description="This site is a small full-stack system.">
@@ -16,42 +16,42 @@ import Base from '../layouts/Base.astro';
 
     <Section id="architecture" title="Architecture">
       <ArchitectureDiagram />
-      <!-- TODO-ALEX: a sentence introducing the curl one-liner (SPEC 5.5: the plain-text resume for curl, wget and httpie). -->
+      <!-- TODO: write a sentence introducing the curl one-liner: the plain-text resume for curl, wget and httpie. -->
       <pre><code>curl -A curl/8.0 https://alexkachur.com</code></pre>
     </Section>
 
     <Section id="build-time-database" title="Build-time database">
-      <!-- TODO-ALEX: the build step (scripts/build-db.ts, the seven tables, the determinism test) and a sentence pointing at the readable dump linked below. -->
+      <!-- TODO: describe the build step (scripts/build-db.ts, the seven tables, the determinism test) and add a sentence pointing at the readable dump linked below. -->
       <p><a href="/data/portfolio.sql"><code>/data/portfolio.sql</code></a></p>
     </Section>
 
     <Section id="the-ask-pipeline" title="The ask pipeline">
-      <!-- TODO-ALEX: the nine steps of SPEC 5.2 in prose. -->
-      <!-- Stage 9: the model in use renders here from /api/stats, never hard-coded, with the sentence that the model is configurable and that Anthropic publishes the running model's earliest retirement date. -->
+      <!-- TODO: describe the nine steps of the /api/ask pipeline in prose. -->
+      <!-- The model in use renders here from /api/stats once that endpoint exists, never hard-coded, with the sentence that the model is configurable and that Anthropic publishes the running model's earliest retirement date. -->
     </Section>
 
     <Section id="what-the-validator-rejects-and-why" title="What the validator rejects and why">
-      <!-- TODO-ALEX: the lexical pre-check and the engine validation ("the validator is the database"), with the rules from SPEC 5.2 step 7. -->
+      <!-- TODO: describe the lexical pre-check and the engine validation ("the validator is the database"), with the validator's rules. -->
     </Section>
 
     <Section id="cost-and-the-cap" title="Cost and the cap">
-      <!-- TODO-ALEX: measured input and output token counts per question, the worst-case monthly ceiling at the default cap, the typical month, and why prompt caching is not used (the prompt is below Haiku 4.5's 4,096-token minimum and the volume would keep the cache cold). Numbers come from the live eval after milestone 7. -->
+      <!-- TODO: add the measured input and output token counts per question, the worst-case monthly ceiling at the default cap, the typical month, and why prompt caching is not used (the prompt is below Haiku 4.5's 4,096-token minimum and the volume would keep the cache cold). The numbers come from the live eval once /api/ask is running. -->
     </Section>
 
     <Section id="caching" title="Caching">
-      <!-- TODO-ALEX: the Redis response cache, its key scheme and TTLs, and the fact that the footer is at most 60 seconds stale. -->
+      <!-- TODO: describe the Redis response cache, its key scheme and TTLs, and that the footer is at most 60 seconds stale. -->
     </Section>
 
     <Section id="performance" title="Performance">
-      <!-- TODO-ALEX: the JavaScript budget as the literal list of the four files that load before interaction with their sizes as measured by the 9.7 check, the Lighthouse mobile scores as text, and CLS. -->
+      <!-- TODO: list the JavaScript budget as the four files that load before interaction with their measured sizes, the Lighthouse mobile scores as text, and CLS. -->
     </Section>
 
     <Section id="what-broke" title="What broke">
-      <!-- TODO-ALEX: after the build. -->
+      <!-- TODO: write this after the build. -->
     </Section>
 
     <Section id="what-i-left-out-on-purpose" title="What I left out on purpose">
-      <!-- TODO-ALEX: a short list. -->
+      <!-- TODO: write a short list. -->
     </Section>
   </main>
 </Base>

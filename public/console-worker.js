@@ -1,4 +1,4 @@
-// The site's own worker (SPEC 4.2): sql.js from the versioned vendor folder, one database
+// The site's own worker: sql.js from the versioned vendor folder, one database
 // opened from the bytes the page posts, every statement prepared and stepped here up to a row
 // limit. A classic worker, so importScripts and the initSqlJs global it defines load sql.js;
 // the page thread never runs SQL. The stock worker.sql-wasm.js has no prepare, step or row

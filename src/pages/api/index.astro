@@ -7,7 +7,7 @@ import { chips } from '../../data/examples.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { petRows, projectRows, projectTechnologyRows, technologyRows, timelineRows } from '../../lib/rows.ts';
 
-// The example responses are cut from the same rows the endpoints serve (SPEC 3.4).
+// The example responses are cut from the same rows the endpoints serve.
 const [projects, technologies, timeline, pets] = await Promise.all([
   getCollection('projects'),
   getCollection('technologies'),
@@ -101,8 +101,8 @@ const endpoints: Endpoint[] = [
     <header class="page-head">
       <h1>API</h1>
       <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per connection and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
-      <!-- TODO-ALEX: one or two sentences on the /api/ask cache and that the monthly cap counts the UTC calendar month (SPEC 3.4). -->
-      <!-- Stage 9: the sentence linking /api/openapi.json goes here, once the document exists. -->
+      <!-- TODO: write one or two sentences on the /api/ask cache and say that the monthly cap counts the UTC calendar month. -->
+      <!-- The sentence linking /api/openapi.json goes here once the document exists. -->
       <p>Try it:</p>
       <pre><code>curl {url('/api/projects.json')}</code></pre>
     </header>
@@ -116,7 +116,7 @@ const endpoints: Endpoint[] = [
             <p>{endpoint.description}</p>
           ) : (
             <Fragment>
-              <!-- TODO-ALEX: one sentence describing this endpoint. -->
+              <!-- TODO: write one sentence describing this endpoint. -->
             </Fragment>
           )}
           <pre><code>{endpoint.curl}</code></pre>
@@ -124,7 +124,7 @@ const endpoints: Endpoint[] = [
             <pre><code>{endpoint.response}</code></pre>
           ) : (
             <Fragment>
-              <!-- Stage 7 and Stage 9: a recorded example response for the dynamic endpoint goes here. -->
+              <!-- A recorded example response for the dynamic endpoint goes here once it is live. -->
             </Fragment>
           )}
         </section>
@@ -138,7 +138,7 @@ const endpoints: Endpoint[] = [
     padding-top: var(--space-8);
   }
 
-  /* A method and a path are data, so the endpoint titles are mono (DESIGN 3). */
+  /* A method and a path are data, so the endpoint titles are mono. */
   .endpoint h2 {
     font-family: var(--font-mono);
     font-size: var(--text-lg);

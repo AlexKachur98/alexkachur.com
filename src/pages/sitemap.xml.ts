@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { projectRows } from '../lib/rows.ts';
 
-// Hand-written (SPEC 3.6): the home page, the case studies in site order, and the three
+// Hand-written: the home page, the case studies in site order, and the three
 // utility pages. The 404 page, the endpoints and the text files stay out.
 export const GET: APIRoute = async ({ site }) => {
   const projects = projectRows(await getCollection('projects')).map((project) => `/work/${project.slug}`);

@@ -4,14 +4,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import '../styles/console.css';
 
-// The header line and the loading message show the database's real size (SPEC 4.2), and the
+// The header line and the loading message show the database's real size, and the
 // module fetches the file by a version derived from its bytes, so the immutable cache never
 // serves a returning visitor an older database than this page was built with. Both come from
 // the file build-db wrote for this build; the path starts at the project root, where build-db
 // writes it, because the adapter prerenders from its output folder and a URL relative to this
 // module would point elsewhere. The panel is wired by src/scripts/console.ts once the bootstrap
 // loads it on the first interaction; the two live regions are always present and are emptied,
-// never removed (DESIGN 7).
+// never removed, so they announce.
 const database = readFileSync(join(process.cwd(), 'public', 'data', 'portfolio.sqlite'));
 const kb = Math.round(database.byteLength / 1000);
 const version = createHash('sha256').update(database).digest('hex').slice(0, 8);

@@ -19,10 +19,10 @@ technologies: [html, css, javascript, cloudflare-pages, web3forms]
 screenshots:
   - src: ../../assets/work/think-smarter-review-funnel/think-smarter-1.jpg
     alt: The review page, a navy card with the Think Smarter Insurance logo, the question How did we do? and five empty stars, above a From our clients section
-    # TODO-ALEX: caption
+    # TODO: write the caption.
   - src: ../../assets/work/think-smarter-review-funnel/think-smarter-2.jpg
     alt: The private feedback form, Tell us what went wrong, with fields for what happened, name and email, and a Send privately button
-    # TODO-ALEX: caption
+    # TODO: write the caption.
 ---
 
 ## The problem
@@ -45,7 +45,7 @@ My first design used a green and gold theme I liked. It did not match the client
 
 ## Outcome
 
-The demo is live at think-smarter-review.pages.dev. Go-live on the client's domain is waiting on her next steps. <!-- TODO-ALEX: update when she confirms -->
+The demo is live at think-smarter-review.pages.dev. Go-live on the client's domain is waiting on her next steps. <!-- TODO: update this when she confirms. -->
 
 ## Credits
 

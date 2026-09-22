@@ -1,4 +1,4 @@
-// The one deferred module every page loads before interaction (SPEC 5.8), kept under 2 KB
+// The one deferred module every page loads before interaction, kept under 2 KB
 // gzipped. It holds the theme toggle and ready(), the memoised import of the console chunk;
 // the stats fetch arrives with the footer readouts.
 import { nextTheme, type Theme } from './theme.ts';

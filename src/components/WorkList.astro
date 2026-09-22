@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import Figure from './Figure.astro';
 import Section from './Section.astro';
 
-// Rows separated by rules, never cards (DESIGN 4): the first entry is featured with its
+// Rows separated by rules, never cards: the first entry is featured with its
 // screenshot across eight columns, the others keep their screenshot to four.
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
 const technologies = await getCollection('technologies');
@@ -78,7 +78,7 @@ const rowSizes = '(min-width: 1080px) 312px, (min-width: 768px) calc(33vw - 40px
     margin-bottom: var(--space-2);
   }
 
-  /* A 40px hit area (DESIGN 9) without growing the row: the margin gives back the padding. */
+  /* A 40px hit area without growing the row: the margin gives back the padding. */
   h3 a {
     display: inline-block;
     padding-block: calc((var(--control) - var(--leading-heading) * 1em) / 2);

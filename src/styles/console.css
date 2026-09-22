@@ -1,4 +1,4 @@
-/* The console panel (DESIGN 7): dark in both themes on its own tokens, never the page's. The
+/* The console panel: dark in both themes on its own tokens, never the page's. The
    results table is built at run time, so these rules are global rather than scoped. */
 
 .console {
@@ -16,8 +16,8 @@
   color: var(--console-ink);
 }
 
-/* The header line: "query", the byte size, then the status region (DESIGN 7: monospace 14px,
-   muted) and the cursor. */
+/* The header line: "query", the byte size, then the status region (monospace 14px, muted)
+   and the cursor. */
 .console-head {
   display: flex;
   flex-wrap: wrap;
@@ -75,7 +75,7 @@
   color: var(--console-bg);
 }
 
-/* The cursor exists only while a query is in flight (DESIGN 6): a blink in two steps. Idle,
+/* The cursor exists only while a query is in flight: a blink in two steps. Idle,
    the textarea's own caret is the only cursor. */
 .console-cursor {
   display: none;
@@ -131,7 +131,7 @@
   color: var(--console-muted);
 }
 
-/* The one image exception of DESIGN 5. */
+/* The one image shown at a fixed size and without a caption: the thumbnail in a results cell. */
 .console-results img {
   width: var(--thumb);
   height: var(--thumb);
@@ -142,7 +142,7 @@
   display: inline-block;
 }
 
-/* Rows appear one after another (DESIGN 6): the whole table is inserted at once and each row
+/* Rows appear one after another: the whole table is inserted at once and each row
    waits its index times the step, rows after the twentieth with the twentieth. A step at the
    end of a 1 ms run with both fills means hidden until the delay is up, visible after. */
 .console-results tbody tr {

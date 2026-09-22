@@ -68,7 +68,7 @@ describe('build-db', () => {
     expect(rows.facts).toHaveLength(8);
   });
 
-  it('derives the SPEC 6 DDL from the shared schemas', () => {
+  it('derives the DDL from the shared schemas', () => {
     const text = ddl();
     expect(text).toContain('id INTEGER PRIMARY KEY, -- Position in the site order, 1 first');
     expect(text).toContain('slug TEXT NOT NULL UNIQUE');
@@ -103,7 +103,7 @@ describe('build-db', () => {
     });
   });
 
-  it('answers the six example queries as SPEC 9.4 expects', () => {
+  it('answers the six example queries with the expected rows', () => {
     const [paying, llm, shared, courses, pets, facts] = examples.map((example) => query(example.sql));
     expect(paying).toEqual([
       { name: 'Uraz Hoops', client_name: 'Uraz Hoops', year_start: 2026, live_url: 'https://urazhoops.com' },

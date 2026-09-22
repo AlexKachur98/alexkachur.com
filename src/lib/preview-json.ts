@@ -1,4 +1,4 @@
-// Truncated example responses for the /api docs page (SPEC 3.4), built from the same rows the
+// Truncated example responses for the /api docs page, built from the same rows the
 // endpoints serve: arrays keep their first items and long strings their first characters,
 // with "..." standing in for the rest.
 const MARK = '...';
