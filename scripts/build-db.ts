@@ -318,11 +318,13 @@ export function schemaJson(content: Content) {
       })),
     };
   });
-  // The ask cache key carries the first 8 characters of this hash, so it covers
-  // exactly what the model is shown: the DDL and the table list.
-  const hash = sha256(JSON.stringify({ ddl: ddlText, tables: tableList }));
+  // The ask cache key carries the first 8 characters of this hash, so it covers exactly what
+  // the model is shown: the DDL, the table list and the keys the facts table holds, which the
+  // prompt names because the DDL cannot show them.
+  const factKeys = factRows(content.facts).map((fact) => fact.key);
+  const hash = sha256(JSON.stringify({ ddl: ddlText, tables: tableList, factKeys }));
   const photoAlt = Object.fromEntries(petRows(content.pets).map((pet) => [pet.photo_url, pet.photo_alt]));
-  return { hash, ddl: ddlText, tables: tableList, photoAlt };
+  return { hash, ddl: ddlText, tables: tableList, factKeys, photoAlt };
 }
 
 export function buildInfo(env: NodeJS.ProcessEnv = process.env): { commit: string; builtAt: string } {

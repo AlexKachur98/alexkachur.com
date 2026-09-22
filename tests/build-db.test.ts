@@ -81,12 +81,13 @@ describe('build-db', () => {
     expect(text.match(/CREATE TABLE/g)).toHaveLength(7);
   });
 
-  it('writes a schema.json whose hash is stable and covers the DDL and table list', () => {
+  it('writes a schema.json whose hash is stable and covers the DDL, the table list and the fact keys', () => {
     const schema = schemaJson(content);
     const again = schemaJson(parseContent(readContentFiles('src/content')));
     expect(again).toEqual(schema);
     expect(schema.hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(schema.hash).toBe(sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables })));
+    expect(schema.hash).toBe(sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys })));
+    expect(schema.factKeys).toEqual(['available_from', 'email', 'github', 'headline', 'linkedin', 'location', 'name', 'status']);
     expect(schema.tables.map((table) => table.name)).toEqual([
       'facts',
       'projects',
