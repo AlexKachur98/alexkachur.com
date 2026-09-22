@@ -7,6 +7,11 @@
   border-radius: 0;
 }
 
+/* A display rule on a class would otherwise beat the browser's own rule for the attribute. */
+[hidden] {
+  display: none !important;
+}
+
 /* The theme flips by fading the registered tokens once, here; everything painted with them
    follows on the same clock. */
 html {
@@ -222,11 +227,14 @@ button {
   color: var(--on-accent);
 }
 
+/* A label that wraps on a phone gets room; a one-line chip stays at the 40px control height. */
 .chip {
+  padding-block: var(--space-2);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 400;
   line-height: var(--leading-mono);
+  text-align: left;
 }
 
 .input {

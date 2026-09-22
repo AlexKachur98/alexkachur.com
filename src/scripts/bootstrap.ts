@@ -27,10 +27,11 @@ document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
   }
 });
 
-// ready(): one promise that loads the console chunk and starts it. Focus inside the console
-// and pointerdown on the console or the examples preload it; a click on Run or an example and
-// Ctrl or Cmd+Enter in the textarea are handed to the chunk once it is there, so the first one
-// works before any of it has loaded. The chunk attaches no listeners of its own.
+// ready(): one promise that loads the console chunk and starts it. Focus inside the console or
+// the Ask box and pointerdown on any of the panels preload it; a click on Run, an example, a
+// chip or Edit this query, a submitted question and Ctrl or Cmd+Enter in the textarea are
+// handed to the chunk once it is there, so the first one works before any of it has loaded.
+// The chunk attaches no listeners of its own.
 type ConsoleModule = typeof import('./console.ts');
 let loading: Promise<ConsoleModule> | undefined;
 
@@ -45,7 +46,6 @@ function preload(): void {
   void ready();
 }
 
-document.querySelector('[data-console]')?.addEventListener('focusin', preload);
 document.querySelector('[data-console-input]')?.addEventListener('keydown', (event) => {
   const { key, ctrlKey, metaKey, repeat } = event as KeyboardEvent;
   if (key === 'Enter' && (ctrlKey || metaKey)) {
@@ -54,10 +54,19 @@ document.querySelector('[data-console-input]')?.addEventListener('keydown', (eve
   }
 });
 
-for (const panel of document.querySelectorAll('[data-console], [data-examples]')) {
+document.querySelector('[data-ask-form]')?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  void ready().then((module) => module.ask());
+});
+
+for (const panel of document.querySelectorAll('[data-console], [data-ask]')) {
+  panel.addEventListener('focusin', preload);
+}
+
+for (const panel of document.querySelectorAll('[data-console], [data-examples], [data-ask]')) {
   panel.addEventListener('pointerdown', preload);
   panel.addEventListener('click', (event) => {
-    const button = (event.target as Element).closest<HTMLElement>('[data-sql], [data-console-run]');
+    const button = (event.target as Element).closest<HTMLElement>('[data-sql], [data-console-run], [data-ask-edit]');
     if (button) void ready().then((module) => module.click(button));
   });
 }

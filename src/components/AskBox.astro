@@ -1,0 +1,197 @@
+---
+import { chips, examples } from '../data/examples.ts';
+import { dataFile } from '../lib/data-file.ts';
+import '../styles/console.css';
+
+// The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,
+// in the compact console panel below the chips. The two chips carry reviewed SQL and run it
+// locally with no request. The panel is always in the markup, so its status and error regions
+// exist before anything is written to them; it shows its padding only once it holds something.
+// The six examples are the fallback listed when the AI is out of reach. A page without the raw
+// console (404) gets no Edit this query button, since there is nowhere to edit.
+interface Props {
+  editable?: boolean;
+}
+
+const { editable = false } = Astro.props;
+const database = dataFile('portfolio.sqlite');
+const kb = Math.round(database.bytes / 1000);
+---
+
+<div data-ask data-kb={kb} data-db-url={database.url}>
+  <!-- Enter submits through the form. Its method makes the browser's own submission a no-op
+       (there is no dialog around it), so a question typed before the script has loaded, or
+       with scripts off, never lands in the URL; the submit event still fires for the script. -->
+  <form method="dialog" data-ask-form>
+    <label class="ask-label" for="ask-input">Ask this site anything about me. It answers by writing SQL.</label>
+    <div class="ask-row">
+      <input class="input" id="ask-input" type="text" maxlength="200" autocomplete="off" data-ask-input />
+      <button type="submit" class="button button-primary cut">Ask</button>
+    </div>
+    <ul class="ask-chips" role="list">
+      {
+        chips.map((chip) => (
+          <li>
+            <button type="button" class="button chip" data-sql={chip.sql}>
+              {chip.label}
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="ask-privacy">
+      Your question is sent to the AI service to be turned into SQL, and the resulting query is cached for a month so repeat questions cost nothing.
+      Nothing else is stored, and no question is ever logged.
+    </p>
+  </form>
+  <div class="console cut ask-panel" data-ask-panel>
+    <p class="console-head">
+      <span id="ask-question" data-ask-question></span>
+      <span class="console-dot" aria-hidden="true">·</span>
+      <span id="ask-status" role="status" data-ask-status></span>
+      <span class="console-cursor" aria-hidden="true"></span>
+    </p>
+    <!-- A refusal is answered by this line alone, with nothing on the status line, so it
+         announces itself. -->
+    <p class="ask-explanation" aria-live="polite" data-ask-explanation></p>
+    <pre class="ask-sql" data-ask-sql></pre>
+    {editable && <button type="button" class="console-run" data-ask-edit hidden>Edit this query</button>}
+    <p class="console-error" role="alert" data-ask-error></p>
+    <div class="console-results" role="region" aria-labelledby="ask-question ask-status" data-ask-results></div>
+    <ul class="ask-fallback" role="list" data-ask-fallback hidden>
+      {
+        examples.map((example) => (
+          <li>
+            <button type="button" class="ask-example" data-sql={example.sql}>
+              {example.label}
+            </button>
+            <code>{example.sql}</code>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>
+
+<style>
+  .ask-label {
+    display: block;
+    margin-bottom: var(--space-3);
+    font-weight: 600;
+  }
+
+  .ask-row {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .ask-row .input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ask-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-3);
+    padding: 0;
+    list-style: none;
+  }
+
+  .ask-chips li {
+    margin: 0;
+    max-width: none;
+  }
+
+  .ask-privacy {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+
+  /* Closed, the panel has no padding and its empty lines no height, so nothing shows. */
+  .ask-panel {
+    margin-top: var(--space-4);
+  }
+
+  .ask-panel:not([data-open]) {
+    margin: 0;
+    padding: 0;
+  }
+
+  .ask-panel:not([data-open]) .console-head {
+    margin: 0;
+  }
+
+  .ask-explanation,
+  .ask-sql {
+    margin: 0;
+    max-width: none;
+  }
+
+  .ask-explanation:not(:empty) {
+    margin-bottom: var(--space-3);
+  }
+
+  /* The SQL as it came back, wrapped rather than scrolled, in the colour the console gives
+     a query; the code-block frame from the page styles does not apply here. */
+  .ask-sql {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--console-accent);
+    font-size: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .ask-sql:not(:empty) {
+    margin-bottom: var(--space-3);
+  }
+
+  .ask-fallback {
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ask-fallback li {
+    margin: 0;
+    max-width: none;
+  }
+
+  .ask-fallback li + li {
+    margin-top: var(--space-2);
+  }
+
+  /* Each label is a button that runs its SQL here; it reads as a link, at control height. */
+  .ask-example {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--console-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: var(--leading-body);
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .ask-example:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .ask-fallback code {
+    display: block;
+    color: var(--console-muted);
+    overflow-wrap: anywhere;
+  }
+</style>

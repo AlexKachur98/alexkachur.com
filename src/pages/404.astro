@@ -1,5 +1,6 @@
 ---
 import simba from '../assets/cats/simba-05.webp';
+import AskBox from '../components/AskBox.astro';
 import Figure from '../components/Figure.astro';
 import Base from '../layouts/Base.astro';
 ---
@@ -10,9 +11,11 @@ import Base from '../layouts/Base.astro';
       <h1>Nothing at this address.</h1>
       <p class="lead">The database does not have that page either. Try asking it something instead.</p>
     </header>
-    <!-- The Ask box goes here once it is built. -->
     <!-- TODO: the caption was drafted for me; rewrite it or keep it. -->
     <div class="grid">
+      <div class="ask-slot">
+        <AskBox />
+      </div>
       <div class="photo">
         <Figure
           src={simba}
@@ -32,10 +35,6 @@ import Base from '../layouts/Base.astro';
     padding-top: var(--space-8);
   }
 
-  .photo {
-    margin-top: var(--space-6);
-  }
-
   .home {
     margin-top: var(--space-6);
     font-weight: 600;
@@ -52,7 +51,12 @@ import Base from '../layouts/Base.astro';
       padding-top: var(--space-9);
     }
 
-    /* Six of the twelve columns, the 480px the figure is sized for. */
+    /* The Ask box takes the width it has on the home page; the photo sits under it at six of
+       the twelve columns, the 480px the figure is sized for. */
+    .ask-slot {
+      grid-column: 1 / 9;
+    }
+
     .photo {
       grid-column: 1 / 7;
     }

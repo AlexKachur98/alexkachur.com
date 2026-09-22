@@ -1,7 +1,8 @@
 // The console chunk: loaded by the bootstrap's ready() on the first interaction
 // and never before. Nothing runs at module level, so evaluating it early on pointerdown is
-// free. The executor owns the worker, the 3-second timer and the row cap; the Ask box will run
-// its validated SQL through the same executor and renderer.
+// free. One executor owns the worker, the 3-second timer and the row cap, and one renderer
+// paints results into either panel: the raw console and the Ask box, which posts the question
+// to /api/ask and runs the SQL it gets back through the same path.
 import { photoAlt } from '../generated/schema.json';
 
 export type Cell = string | number | null | Uint8Array;
@@ -45,8 +46,25 @@ const TRUNCATED_MESSAGE = 'showing 50 of more';
 const EMPTY_MESSAGE = 'No rows. The query ran; the data just does not have that.';
 const LOAD_MESSAGE = 'The database could not be loaded. Reload the page to try again.';
 const WORKING_MESSAGE = 'working';
+const CACHED_LABEL = 'cached';
+const UNUSABLE_MESSAGE = 'I could not turn that into a safe query. Try rephrasing, or write the SQL yourself.';
+// The three sentences that point at the raw console, and the same sentences cut for a page that
+// has no console (404), where the six examples run in the Ask panel instead.
+const RATE_LIMITED_MESSAGE = {
+  console: 'Too many questions from your connection. Try again in a minute, or type SQL directly below.',
+  alone: 'Too many questions from your connection. Try again in a minute.',
+};
+const BUDGET_MESSAGE = {
+  console: 'The AI budget for this month is used up. The raw console still works, and here are six questions with their SQL.',
+  alone: 'The AI budget for this month is used up. Here are six questions with their SQL.',
+};
+const UPSTREAM_MESSAGE = {
+  console: 'The AI service is not responding right now. The raw console still works, and here are six questions with their SQL.',
+  alone: 'The AI service is not responding right now. Here are six questions with their SQL.',
+};
 const TIMEOUT_MS = 3000;
 const WORKER_URL = '/console-worker.js';
+const ASK_URL = '/api/ask';
 
 // The prefix check. It only produces the friendly message; read-only itself is the
 // engine's PRAGMA in the worker.
@@ -62,7 +80,7 @@ function message(error: unknown): string {
 // its cause for the console but is told apart from a failed query, which shows what SQLite said.
 class LoadError extends Error {}
 
-function failure(error: unknown): string {
+export function failure(error: unknown): string {
   return error instanceof LoadError ? LOAD_MESSAGE : message(error);
 }
 
@@ -230,20 +248,84 @@ export function summary(result: Result): string {
   return result.rows.length === 1 ? '1 row' : `${result.rows.length} rows`;
 }
 
-interface Ui {
+// What /api/ask answered, or null when no reply arrived at all (the network, not the service).
+export interface Reply {
+  status: number;
+  body: unknown;
+}
+
+// What the Ask panel shows for a reply. An answer runs its SQL; a refusal shows only the model's
+// sentence; a failure shows one of the copy sentences, with the six example queries listed when
+// the AI is out of reach and the console is the way forward.
+export type AskState =
+  | { kind: 'answer'; sql: string; explanation: string; cached: boolean }
+  | { kind: 'refusal'; explanation: string; cached: boolean }
+  | { kind: 'failed'; message: string; fallback: boolean };
+
+function field(body: unknown, name: string): unknown {
+  return body !== null && typeof body === 'object' ? (body as Record<string, unknown>)[name] : undefined;
+}
+
+// withConsole says whether the page also has the raw console the sentences point at.
+export function askState(reply: Reply | null, withConsole = true): AskState {
+  const wording = withConsole ? 'console' : 'alone';
+  const upstream: AskState = { kind: 'failed', message: UPSTREAM_MESSAGE[wording], fallback: true };
+  if (!reply) return upstream;
+  const { status, body } = reply;
+  if (status === 200) {
+    const sql = field(body, 'sql');
+    const explanation = field(body, 'explanation');
+    if (typeof sql !== 'string' || typeof explanation !== 'string') return upstream;
+    const cached = field(body, 'cached') === true;
+    if (sql.trim() === '') return { kind: 'refusal', explanation, cached };
+    return { kind: 'answer', sql, explanation, cached };
+  }
+  // A 400 (a question under three characters) shares the unusable sentence.
+  if (status === 400 || status === 422) return { kind: 'failed', message: UNUSABLE_MESSAGE, fallback: false };
+  if (status === 429) return { kind: 'failed', message: RATE_LIMITED_MESSAGE[wording], fallback: false };
+  // A missing variable in production reads the same as a used-up month to the visitor.
+  const reason = field(body, 'reason');
+  if (status === 503 && (reason === 'budget' || reason === 'config')) {
+    return { kind: 'failed', message: BUDGET_MESSAGE[wording], fallback: true };
+  }
+  return upstream;
+}
+
+// The parts the two panels share: the working attribute for the cursor, the status and error
+// regions, and the results container. The suffix follows every status text; the Ask panel
+// sets it to the cached label so the row count reads "2 rows, cached".
+interface Panel {
   root: HTMLElement;
-  input: HTMLTextAreaElement;
   status: HTMLElement;
   error: HTMLElement;
   results: HTMLElement;
-  executor: Executor;
-  loaded: boolean;
   inFlight: number;
+  suffix: string;
 }
 
-let ui: Ui | undefined;
+interface ConsoleUi extends Panel {
+  input: HTMLTextAreaElement;
+}
 
-function element<T extends HTMLElement>(root: HTMLElement, selector: string): T {
+interface AskUi extends Panel {
+  // The whole box: the form with its chips as well as the panel.
+  box: HTMLElement;
+  input: HTMLInputElement;
+  question: HTMLElement;
+  explanation: HTMLElement;
+  sql: HTMLElement;
+  edit: HTMLElement | null;
+  fallback: HTMLElement;
+  busy: boolean;
+}
+
+let executor: Executor | undefined;
+let loaded = false;
+let kb = '';
+let consoleUi: ConsoleUi | undefined;
+let askUi: AskUi | undefined;
+
+function element<T extends HTMLElement>(root: ParentNode, selector: string): T {
   const found = root.querySelector<T>(selector);
   if (!found) throw new Error(`console: ${selector} is missing`);
   return found;
@@ -251,27 +333,26 @@ function element<T extends HTMLElement>(root: HTMLElement, selector: string): T 
 
 // Unchanged text is left alone: replacing a text node with the same words still fires a live
 // region change, and the loading message can be written by the preload and by a click.
-function setStatus(text: string): void {
-  if (ui && ui.status.textContent !== text) ui.status.textContent = text;
+function setStatus(panel: Panel, text: string): void {
+  const full = text && panel.suffix ? `${text}, ${panel.suffix}` : text || panel.suffix;
+  if (panel.status.textContent !== full) panel.status.textContent = full;
 }
 
-function setError(text: string): void {
-  if (ui) ui.error.textContent = text;
+function setError(panel: Panel, text: string): void {
+  panel.error.textContent = text;
 }
 
 function loadingMessage(): string {
-  return `loading database, ${ui?.root.dataset.kb} KB`;
+  return `loading database, ${kb} KB`;
 }
 
-function working(delta: number): void {
-  if (!ui) return;
-  ui.inFlight += delta;
-  if (ui.inFlight > 0) ui.root.setAttribute('data-working', '');
-  else ui.root.removeAttribute('data-working');
+function working(panel: Panel, delta: number): void {
+  panel.inFlight += delta;
+  if (panel.inFlight > 0) panel.root.setAttribute('data-working', '');
+  else panel.root.removeAttribute('data-working');
 }
 
-function paint(result: Result): void {
-  if (!ui) return;
+function paint(panel: Panel, result: Result): void {
   const table = document.createElement('table');
   const head = table.createTHead().insertRow();
   for (const column of result.columns) {
@@ -305,86 +386,214 @@ function paint(result: Result): void {
   }
   // One DOM operation, so assistive technology sees a single change; the CSS row reveal does
   // the rest. The container scrolls sideways for wide results, so it must take focus.
-  ui.results.replaceChildren(table);
-  ui.results.tabIndex = 0;
+  panel.results.replaceChildren(table);
+  panel.results.tabIndex = 0;
 }
 
-async function execute(sql: string): Promise<void> {
-  if (!ui) return;
+async function execute(panel: Panel, sql: string): Promise<void> {
+  if (!executor) return;
   const problem = guard(sql);
   if (problem) {
-    setStatus(ui.inFlight > 0 ? WORKING_MESSAGE : '');
-    setError(problem);
+    setStatus(panel, panel.inFlight > 0 ? WORKING_MESSAGE : '');
+    setError(panel, problem);
     return;
   }
-  setError('');
-  setStatus(ui.loaded ? WORKING_MESSAGE : loadingMessage());
-  working(1);
+  setError(panel, '');
+  setStatus(panel, loaded ? WORKING_MESSAGE : loadingMessage());
+  working(panel, 1);
   try {
-    const result = await ui.executor.run(sql);
+    const result = await executor.run(sql);
     // A run can be the open that succeeds after the preload's open failed.
-    ui.loaded = true;
+    loaded = true;
     // An earlier query in the queue may have failed since this one was submitted.
-    setError('');
-    paint(result);
-    setStatus(summary(result));
+    setError(panel, '');
+    paint(panel, result);
+    setStatus(panel, summary(result));
   } catch (error) {
-    setStatus('');
-    setError(failure(error));
+    setStatus(panel, '');
+    setError(panel, failure(error));
   } finally {
-    working(-1);
+    working(panel, -1);
   }
 }
 
 // Runs whatever the textarea holds. Blank input is ignored, like an empty line at a prompt.
 export function run(): void {
-  if (!ui) return;
-  const sql = ui.input.value.trim();
-  if (sql !== '') void execute(sql);
+  if (!consoleUi) return;
+  const sql = consoleUi.input.value.trim();
+  if (sql !== '') void execute(consoleUi, sql);
 }
 
 function query(sql: string): void {
-  if (!ui) return;
-  ui.input.value = sql;
+  if (!consoleUi) return;
+  consoleUi.input.value = sql;
   run();
 }
 
-// The bootstrap owns every listener and forwards a click on an example or on Run here, whether
-// it landed before this module was loaded or after.
+// Clears the Ask panel for a new question and opens it, the question on its header line. The
+// panel is always in the markup so its two live regions exist before they are written to; it
+// takes its padding only once it has something to show.
+function begin(ui: AskUi, question: string): void {
+  ui.root.setAttribute('data-open', '');
+  ui.question.textContent = question;
+  ui.suffix = '';
+  ui.explanation.textContent = '';
+  ui.sql.textContent = '';
+  setError(ui, '');
+  ui.results.replaceChildren();
+  ui.results.removeAttribute('tabindex');
+  if (ui.edit) ui.edit.hidden = true;
+  ui.fallback.hidden = true;
+  setStatus(ui, WORKING_MESSAGE);
+}
+
+async function answer(ui: AskUi, sql: string): Promise<void> {
+  ui.sql.textContent = sql;
+  if (ui.edit) ui.edit.hidden = false;
+  await execute(ui, sql);
+}
+
+async function show(ui: AskUi, state: AskState): Promise<void> {
+  if (state.kind === 'failed') {
+    setStatus(ui, '');
+    setError(ui, state.message);
+    ui.fallback.hidden = !state.fallback;
+    return;
+  }
+  ui.explanation.textContent = state.explanation;
+  ui.suffix = state.cached ? CACHED_LABEL : '';
+  if (state.kind === 'refusal') setStatus(ui, '');
+  else await answer(ui, state.sql);
+}
+
+async function post(question: string): Promise<Reply | null> {
+  try {
+    const response = await fetch(ASK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    return { status: response.status, body: await response.json().catch(() => undefined) };
+  } catch {
+    return null;
+  }
+}
+
+// One question at a time: a submit or a chip while one is in flight does nothing. The cursor
+// blinks from the request to the last row painted.
+async function occupy(ui: AskUi, question: string, work: () => Promise<void>): Promise<boolean> {
+  if (ui.busy) return false;
+  ui.busy = true;
+  begin(ui, question);
+  working(ui, 1);
+  try {
+    await work();
+  } finally {
+    working(ui, -1);
+    // A question that ended without a run and without a failure would keep the word.
+    if (ui.status.textContent?.startsWith(WORKING_MESSAGE)) setStatus(ui, '');
+    ui.busy = false;
+  }
+  return true;
+}
+
+// Submits the input: the question goes to /api/ask while the worker and the database, started
+// by the focus that preceded typing, finish loading. Blank input is ignored.
+export function ask(): void {
+  if (!askUi || !executor) return;
+  const ui = askUi;
+  const question = ui.input.value.trim();
+  if (question === '') return;
+  void occupy(ui, question, async () => {
+    // A load that failed earlier is retried alongside the request; the run reports it if it
+    // fails again, and nothing is reported when there is no SQL to run.
+    executor?.ready().catch(() => undefined);
+    await show(ui, askState(await post(question), consoleUi !== undefined));
+  });
+}
+
+// A chip, or one of the six fallback examples: reviewed SQL run locally, no request made. The
+// fallback list hides as the run starts, taking the activated button with it, so focus is put
+// back afterwards: on the results when there are rows, else on the input.
+function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean): void {
+  void occupy(ui, label, () => answer(ui, sql)).then((started) => {
+    if (!started || !fromList) return;
+    const target = ui.results.hasAttribute('tabindex') ? ui.results : ui.input;
+    target.focus({ preventScroll: true });
+  });
+}
+
+// Moves the SQL into the raw console for editing and brings the console into view.
+function edit(): void {
+  if (!askUi || !consoleUi) return;
+  consoleUi.input.value = askUi.sql.textContent ?? '';
+  consoleUi.root.scrollIntoView();
+  consoleUi.input.focus({ preventScroll: true });
+}
+
+// The bootstrap owns every listener and forwards a click on an example, a chip, Run or Edit
+// this query here, whether it landed before this module was loaded or after.
 export function click(button: HTMLElement): void {
   const sql = button.dataset['sql'];
+  if (askUi?.box.contains(button)) {
+    if (button.hasAttribute('data-ask-edit')) edit();
+    else if (sql !== undefined) askQuery(askUi, sql, button.textContent?.trim() ?? '', askUi.fallback.contains(button));
+    return;
+  }
   if (sql !== undefined) query(sql);
   else run();
 }
 
-// Called once by the bootstrap's ready(): starts the worker and the database fetch, showing the
-// byte size while they load.
-export function init(): void {
-  if (ui) return;
-  const root = element<HTMLElement>(document.body, '[data-console]');
-  ui = {
+function panelOf(root: HTMLElement, prefix: string): Panel {
+  return {
     root,
-    input: element<HTMLTextAreaElement>(root, '[data-console-input]'),
-    status: element<HTMLElement>(root, '[data-console-status]'),
-    error: element<HTMLElement>(root, '[data-console-error]'),
-    results: element<HTMLElement>(root, '[data-console-results]'),
-    executor: createExecutor({
-      spawn: () => new Worker(WORKER_URL),
-      load: () => fetchDatabase(root.dataset['dbUrl']),
-    }),
-    loaded: false,
+    status: element(root, `[data-${prefix}-status]`),
+    error: element(root, `[data-${prefix}-error]`),
+    results: element(root, `[data-${prefix}-results]`),
     inFlight: 0,
+    suffix: '',
   };
-  setStatus(loadingMessage());
-  ui.executor.ready().then(
+}
+
+// Called once by the bootstrap's ready(): starts the worker and the database fetch, showing the
+// byte size in the console while they load. A page has the console, the Ask box or both; the
+// database URL and size are on whichever is there.
+export function init(): void {
+  if (executor) return;
+  const source = element<HTMLElement>(document.body, '[data-db-url]');
+  kb = source.dataset['kb'] ?? '';
+  executor = createExecutor({
+    spawn: () => new Worker(WORKER_URL),
+    load: () => fetchDatabase(source.dataset['dbUrl']),
+  });
+  const consoleRoot = document.querySelector<HTMLElement>('[data-console]');
+  if (consoleRoot) {
+    consoleUi = { ...panelOf(consoleRoot, 'console'), input: element(consoleRoot, '[data-console-input]') };
+    setStatus(consoleUi, loadingMessage());
+  }
+  const askRoot = document.querySelector<HTMLElement>('[data-ask]');
+  if (askRoot) {
+    askUi = {
+      ...panelOf(element(askRoot, '[data-ask-panel]'), 'ask'),
+      box: askRoot,
+      input: element(askRoot, '[data-ask-input]'),
+      question: element(askRoot, '[data-ask-question]'),
+      explanation: element(askRoot, '[data-ask-explanation]'),
+      sql: element(askRoot, '[data-ask-sql]'),
+      edit: askRoot.querySelector<HTMLElement>('[data-ask-edit]'),
+      fallback: element(askRoot, '[data-ask-fallback]'),
+      busy: false,
+    };
+  }
+  executor.ready().then(
     () => {
-      if (!ui) return;
-      ui.loaded = true;
-      setStatus(ui.inFlight > 0 ? WORKING_MESSAGE : '');
+      loaded = true;
+      if (consoleUi) setStatus(consoleUi, consoleUi.inFlight > 0 ? WORKING_MESSAGE : '');
     },
     (error: unknown) => {
-      setStatus('');
-      setError(failure(error));
+      if (!consoleUi) return;
+      setStatus(consoleUi, '');
+      setError(consoleUi, failure(error));
     },
   );
 }

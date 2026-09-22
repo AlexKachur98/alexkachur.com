@@ -1,10 +1,14 @@
 ---
+import AskBox from './AskBox.astro';
 ---
 
 <section class="hero grid">
   <div class="hero-lead">
     <h1>Alex Kachur</h1>
     <p class="lead">I build full-stack web apps with an AI doing real work inside them.</p>
+  </div>
+  <div class="hero-ask">
+    <AskBox editable />
   </div>
   <div class="hero-facts">
     <p class="status">Toronto, Canada. Final-year software engineering student at Centennial College. Open to full-stack and AI roles from May 2027.</p>
@@ -30,10 +34,11 @@
     margin: 0;
   }
 
-  /* The one highlight in this viewport: a 2px accent rule above the readout. */
+  /* A plain rule: the Ask button, the SQL an answer shows and the cursor while it runs are
+     already the three yellow elements this viewport may hold. */
   .hero-facts {
     padding-top: var(--space-4);
-    border-top: 2px solid var(--accent);
+    border-top: 1px solid var(--rule);
   }
 
   .status {
@@ -60,6 +65,8 @@
     min-height: var(--control);
   }
 
+  /* From 768px the facts sit beside the headline and the Ask box takes its own row under it,
+     so an answer growing in the box moves nothing beside it. */
   @media (min-width: 768px) {
     .hero {
       align-items: end;
@@ -67,11 +74,18 @@
     }
 
     .hero-lead {
+      grid-row: 1;
       grid-column: 1 / 8;
     }
 
     .hero-facts {
+      grid-row: 1;
       grid-column: 8 / 13;
+    }
+
+    .hero-ask {
+      grid-row: 2;
+      grid-column: 1 / 9;
     }
   }
 </style>
