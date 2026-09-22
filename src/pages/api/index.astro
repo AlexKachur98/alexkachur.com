@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import { tables } from '../../content/schemas.ts';
 import schema from '../../generated/schema.json';
 import { chips } from '../../data/examples.ts';
+import { endpoints } from '../../lib/endpoints.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { petRows, projectRows, projectTechnologyRows, technologyRows, timelineRows } from '../../lib/rows.ts';
 
@@ -28,72 +29,26 @@ const single = {
 const url = (path: string) => new URL(path, Astro.site).href;
 const question = chips[0]!.label;
 
-interface Endpoint {
-  method: 'GET' | 'POST';
-  path: string;
-  description: string | undefined;
-  curl: string;
-  response: string | undefined;
-}
+// A curl line and a truncated response for each path in the shared endpoint list.
+const samples: Record<string, { curl: string; response?: string }> = {
+  '/api/projects.json': { curl: `curl ${url('/api/projects.json')}`, response: previewJson(projectList, { items: 1 }) },
+  '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, response: previewJson(single) },
+  '/api/technologies.json': { curl: `curl ${url('/api/technologies.json')}`, response: previewJson(technologyList, { items: 3 }) },
+  '/api/timeline.json': { curl: `curl ${url('/api/timeline.json')}`, response: previewJson(timelineRows(timeline), { items: 2 }) },
+  '/api/pets.json': { curl: `curl ${url('/api/pets.json')}`, response: previewJson(petRows(pets), { items: 1 }) },
+  '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, response: previewJson(schema, { items: 1, chars: 60 }) },
+  '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'` },
+  '/api/stats': { curl: `curl ${url('/api/stats')}` },
+};
 
-const endpoints: Endpoint[] = [
-  {
-    method: 'GET',
-    path: '/api/projects.json',
-    description: tables.projects.description,
-    curl: `curl ${url('/api/projects.json')}`,
-    response: previewJson(projectList, { items: 1 }),
-  },
-  {
-    method: 'GET',
-    path: '/api/projects/{slug}.json',
-    description: undefined,
-    curl: `curl ${url(`/api/projects/${first.slug}.json`)}`,
-    response: previewJson(single),
-  },
-  {
-    method: 'GET',
-    path: '/api/technologies.json',
-    description: tables.technologies.description,
-    curl: `curl ${url('/api/technologies.json')}`,
-    response: previewJson(technologyList, { items: 3 }),
-  },
-  {
-    method: 'GET',
-    path: '/api/timeline.json',
-    description: tables.timeline.description,
-    curl: `curl ${url('/api/timeline.json')}`,
-    response: previewJson(timelineRows(timeline), { items: 2 }),
-  },
-  {
-    method: 'GET',
-    path: '/api/pets.json',
-    description: tables.pets.description,
-    curl: `curl ${url('/api/pets.json')}`,
-    response: previewJson(petRows(pets), { items: 1 }),
-  },
-  {
-    method: 'GET',
-    path: '/api/schema.json',
-    description: undefined,
-    curl: `curl ${url('/api/schema.json')}`,
-    response: previewJson(schema, { items: 1, chars: 60 }),
-  },
-  {
-    method: 'POST',
-    path: '/api/ask',
-    description: undefined,
-    curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'`,
-    response: undefined,
-  },
-  {
-    method: 'GET',
-    path: '/api/stats',
-    description: undefined,
-    curl: `curl ${url('/api/stats')}`,
-    response: undefined,
-  },
-];
+const docs = endpoints.map((endpoint) => {
+  const sample = samples[endpoint.path];
+  if (!sample) throw new Error(`${endpoint.path} has no example on this page`);
+  return { ...endpoint, description: endpoint.rows ? tables[endpoint.rows].description : undefined, ...sample };
+});
+for (const path of Object.keys(samples)) {
+  if (!endpoints.some((endpoint) => endpoint.path === path)) throw new Error(`${path} is not in the endpoint list`);
+}
 ---
 
 <Base title="API" description="These endpoints return the same records the pages are built from.">
@@ -101,13 +56,13 @@ const endpoints: Endpoint[] = [
     <header class="page-head">
       <h1>API</h1>
       <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per connection and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
-      <!-- TODO: write one or two sentences on the /api/ask cache and say that the monthly cap counts the UTC calendar month. -->
-      <!-- The sentence linking /api/openapi.json goes here once the document exists. -->
+      <p>A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
       <p>Try it:</p>
       <pre><code>curl {url('/api/projects.json')}</code></pre>
+      <p>The whole API as an OpenAPI 3.1 document, built from the same schema and endpoint list, for loading into any client: <a href="/api/openapi.json">/api/openapi.json</a></p>
     </header>
     {
-      endpoints.map((endpoint) => (
+      docs.map((endpoint) => (
         <section class="section endpoint" id={endpoint.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}>
           <h2>
             {endpoint.method} {endpoint.path}
@@ -124,7 +79,7 @@ const endpoints: Endpoint[] = [
             <pre><code>{endpoint.response}</code></pre>
           ) : (
             <Fragment>
-              <!-- A recorded example response for the dynamic endpoint goes here once it is live. -->
+              <!-- TODO: record an example response for this endpoint from the deployed site; its numbers cannot be baked at build without making them up. -->
             </Fragment>
           )}
         </section>

@@ -39,6 +39,12 @@ describe(`built output in ${root}`, () => {
     expect(files.filter((path) => path.endsWith('.html')).length).toBeGreaterThan(5);
   });
 
+  it('writes the OpenAPI document as a static file', () => {
+    const document = JSON.parse(readFileSync(join(root, 'api', 'openapi.json'), 'utf8')) as { openapi: string; paths: Record<string, unknown> };
+    expect(document.openapi).toBe('3.1.0');
+    expect(Object.keys(document.paths)).toContain('/api/projects.json');
+  });
+
   it('contains no HTML comment and no TODO marker in any text file', () => {
     const offenders = files
       .map((path) => ({ path, text: readFileSync(path, 'utf8') }))
