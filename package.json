@@ -9,10 +9,10 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "node scripts/build-db.ts && astro dev",
+    "build": "node scripts/build-db.ts && astro build",
     "preview": "astro preview",
-    "check": "astro check",
+    "check": "node scripts/build-db.ts && astro check",
     "test": "vitest run"
   },
   "dependencies": {
@@ -21,13 +21,16 @@
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.9.8",
-    "astro": "^7.3.3"
+    "astro": "^7.3.3",
+    "sql.js": "1.14.2"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@types/node": "^24.13.5",
+    "@types/sql.js": "^1.4.11",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "yaml": "^2.9.1"
   },
   "allowScripts": {
     "esbuild": true

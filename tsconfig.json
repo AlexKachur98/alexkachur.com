@@ -5,5 +5,5 @@
     "erasableSyntaxOnly": true
   },
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", ".vercel"]
+  "exclude": ["dist", ".vercel", "public/vendor"]
 }
