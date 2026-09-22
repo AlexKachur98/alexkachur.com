@@ -1,0 +1,61 @@
+---
+// Both labels are in the markup; CSS shows the one for the theme a click will switch to, from
+// [data-theme] and, when the attribute is absent, prefers-color-scheme (SPEC 4.3). The hidden
+// label is display:none, so exactly one accessible name is ever read. The click handler is in
+// src/scripts/bootstrap.ts.
+---
+
+<button type="button" class="theme-toggle" data-theme-toggle>
+  <span class="to-dark">
+    <span class="visually-hidden">Switch to dark theme</span>
+    <span aria-hidden="true">Dark</span>
+  </span>
+  <span class="to-light">
+    <span class="visually-hidden">Switch to light theme</span>
+    <span aria-hidden="true">Light</span>
+  </span>
+</button>
+
+<style>
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: var(--control);
+    min-height: var(--control);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .theme-toggle:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .to-light {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(html:not([data-theme="light"])) .to-dark {
+      display: none;
+    }
+
+    :global(html:not([data-theme="light"])) .to-light {
+      display: inline;
+    }
+  }
+
+  :global(html[data-theme="dark"]) .to-dark {
+    display: none;
+  }
+
+  :global(html[data-theme="dark"]) .to-light {
+    display: inline;
+  }
+</style>

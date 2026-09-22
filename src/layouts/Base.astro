@@ -12,6 +12,7 @@ import barlow600 from '@fontsource/barlow/files/barlow-latin-600-normal.woff2?ur
 import barlow700 from '@fontsource/barlow/files/barlow-latin-700-normal.woff2?url';
 import mono400 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url';
 import Analytics from '@vercel/analytics/astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
 
 interface Props {
   title: string;
@@ -37,6 +38,10 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
   </head>
   <body>
     <slot />
+    <footer class="container site-footer">
+      <ThemeToggle />
+    </footer>
+    <script src="../scripts/bootstrap.ts"></script>
     <Analytics />
   </body>
 </html>
