@@ -1,0 +1,26 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+// Every photo and screenshot (DESIGN 5): natural aspect ratio, 1px rule, muted caption, explicit
+// width and height. width is the largest CSS width the figure gets; the srcset carries that
+// width and double it for dense screens, both capped at the source so nothing is upscaled. The
+// height keeps the source ratio, so the image service scales and never crops.
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  caption?: string | undefined;
+  width: number;
+  sizes: string;
+}
+
+const { src, alt, caption, width, sizes } = Astro.props;
+const target = Math.min(width, src.width);
+const height = Math.round((target * src.height) / src.width);
+const widths = [...new Set([target, Math.min(target * 2, src.width)])];
+---
+
+<figure>
+  <Image src={src} alt={alt} width={target} height={height} widths={widths} sizes={sizes} />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>

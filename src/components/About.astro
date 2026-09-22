@@ -1,0 +1,46 @@
+---
+import bothCats from '../assets/cats/both-01.webp';
+import Figure from './Figure.astro';
+import Section from './Section.astro';
+---
+
+<Section id="about" title="About">
+  <!-- TODO-ALEX: read aloud, edit freely. Target 150 to 220 words. The draft is about 215 words; cut a sentence if it feels long. -->
+  <div class="grid">
+    <div class="about-text">
+      <p>I'm a final-year software engineering student at Centennial College in Toronto. Right now I'm building the AI assistant for SplitRoof, a group project, and this site.</p>
+      <p>I do a lot of research before I build. I'm a perfectionist about it, so I keep looking for the best way to get something done and it usually takes me a few iterations to get there. I'm comfortable with AI and I use it a lot. It's a tool, not a substitute for thinking. If you let it do all the thinking for you, you're promoting your own replacement. I run a set of agents I can reach from my phone, so when an idea hits me while I'm out, I can start on it right away instead of losing it.</p>
+      <!-- TODO-ALEX: this sentence is mine, not yours. Keep it, add what QA actually taught you, or cut it. -->
+      <p>Before this I spent three years testing Dynamics CRM workflows.</p>
+      <!-- TODO-ALEX: the Middle East history title or period -->
+      <p>I built both of my PCs and a lot of machines for friends and family, and helping people with hardware is one of my favourite things to do. I'm reading about Middle East history at the moment. I live with two cats. Simba is a two-year-old tabby, energetic, a bit crazy, and very cuddly. Moura is a twelve-year-old Norwegian Forest cat who makes you earn her love and then becomes your best friend.</p>
+      <p>The long game is a rescue ranch for animals. That takes work you can do from anywhere, which is a big part of why I chose software. Somewhere along the way I'd also like to make a game: think Project Zomboid crossed with an old-school MMO, with magical creatures instead of zombies.</p>
+    </div>
+    <!-- TODO-ALEX: photo.jpg (daylight, plain background). The photo slot stays out of the layout until the file exists. -->
+    <div class="about-photo">
+      <!-- TODO-ALEX: the caption is mine; rewrite it or keep it. -->
+      <Figure
+        src={bothCats}
+        alt="Moura on the top bed of a cat tree and Simba on the lower one, in window light"
+        caption="Moura takes the top bed and Simba takes what is left."
+        width={312}
+        sizes="(min-width: 1080px) 312px, (min-width: 768px) calc(33vw - 40px), calc(100vw - 48px)"
+      />
+    </div>
+  </div>
+</Section>
+
+<style>
+  /* The photo sits on the left from 768px while the text stays first in the source order. */
+  @media (min-width: 768px) {
+    .about-photo {
+      grid-row: 1;
+      grid-column: 1 / 5;
+    }
+
+    .about-text {
+      grid-row: 1;
+      grid-column: 6 / 13;
+    }
+  }
+</style>

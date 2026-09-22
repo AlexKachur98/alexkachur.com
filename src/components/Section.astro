@@ -1,0 +1,15 @@
+---
+// A page section (DESIGN 4): a rule on top with the title sitting on its left. The layout and
+// spacing live in base.css so markdown sections and hand-written ones look the same.
+interface Props {
+  id: string;
+  title: string;
+}
+
+const { id, title } = Astro.props;
+---
+
+<section class="section" id={id}>
+  <h2>{title}</h2>
+  <slot />
+</section>

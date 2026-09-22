@@ -1,0 +1,126 @@
+---
+import { getCollection } from 'astro:content';
+import Figure from './Figure.astro';
+import Section from './Section.astro';
+
+// Rows separated by rules, never cards (DESIGN 4): the first entry is featured with its
+// screenshot across eight columns, the others keep their screenshot to four.
+const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+const technologies = await getCollection('technologies');
+const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
+
+const featuredSizes = '(min-width: 1080px) 648px, (min-width: 768px) calc(66vw - 64px), calc(100vw - 48px)';
+const rowSizes = '(min-width: 1080px) 312px, (min-width: 768px) calc(33vw - 40px), calc(100vw - 48px)';
+---
+
+<Section id="work" title="Selected work">
+  <ol class="work" role="list">
+    {
+      projects.map((project, index) => {
+        const { name, card, role, year_start, screenshots } = project.data;
+        const shot = screenshots[0];
+        const featured = index === 0;
+        return (
+          <li class:list={['work-row', 'grid', { featured }]}>
+            <div class="work-text">
+              <h3>
+                <a href={`/work/${project.id}`}>{name}</a>
+              </h3>
+              <p>{card}</p>
+              <p class="work-meta">
+                {role} · {year_start}
+              </p>
+              <ul class="tags" role="list">
+                {project.data.technologies.map((ref) => (
+                  <li>{names.get(ref.id) ?? ref.id}</li>
+                ))}
+              </ul>
+            </div>
+            {shot && (
+              <div class="work-shot">
+                <Figure
+                  src={shot.src}
+                  alt={shot.alt}
+                  caption={shot.caption}
+                  width={featured ? 648 : 312}
+                  sizes={featured ? featuredSizes : rowSizes}
+                />
+              </div>
+            )}
+          </li>
+        );
+      })
+    }
+  </ol>
+</Section>
+
+<style>
+  .work {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* A layout row, not prose: the 68ch measure that base.css puts on li does not apply. */
+  .work-row {
+    max-width: none;
+    padding-block: var(--space-6);
+    border-top: 1px solid var(--rule);
+  }
+
+  /* The section already draws the rule the title sits on. */
+  .work-row:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  h3 {
+    margin-bottom: var(--space-2);
+  }
+
+  /* A 40px hit area (DESIGN 9) without growing the row: the margin gives back the padding. */
+  h3 a {
+    display: inline-block;
+    padding-block: calc((var(--control) - var(--leading-heading) * 1em) / 2);
+    margin-block: calc((var(--leading-heading) * 1em - var(--control)) / 2);
+  }
+
+  .work-meta {
+    margin: 0 0 var(--space-2);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-mono);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-mono);
+  }
+
+  @media (min-width: 768px) {
+    .work-text {
+      grid-column: 1 / 9;
+    }
+
+    .work-shot {
+      grid-column: 9 / 13;
+    }
+
+    .featured .work-text {
+      grid-column: 1 / 5;
+    }
+
+    .featured .work-shot {
+      grid-column: 5 / 13;
+    }
+  }
+</style>

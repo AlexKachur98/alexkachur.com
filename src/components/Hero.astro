@@ -1,0 +1,77 @@
+---
+---
+
+<section class="hero grid">
+  <div class="hero-lead">
+    <h1>Alex Kachur</h1>
+    <p class="lead">I build full-stack web apps with an AI doing real work inside them.</p>
+  </div>
+  <div class="hero-facts">
+    <p class="status">Toronto, Canada. Final-year software engineering student at Centennial College. Open to full-stack and AI roles from May 2027.</p>
+    <ul class="links" role="list">
+      <li><a href="https://github.com/AlexKachur98">GitHub</a></li>
+      <li><a href="https://linkedin.com/in/alex-kachur">LinkedIn</a></li>
+      <li><a href="mailto:alexkachur98@gmail.com">Email</a></li>
+      <li><a href="/Alex-Kachur-Resume.pdf">Resume</a></li>
+    </ul>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-top: var(--space-8);
+  }
+
+  .lead {
+    margin: 0;
+  }
+
+  /* The one highlight in this viewport: a 2px accent rule above the readout. */
+  .hero-facts {
+    padding-top: var(--space-4);
+    border-top: 2px solid var(--accent);
+  }
+
+  .status {
+    margin: 0 0 var(--space-2);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-mono);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-weight: 600;
+  }
+
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control);
+  }
+
+  @media (min-width: 768px) {
+    .hero {
+      align-items: end;
+      padding-top: var(--space-9);
+    }
+
+    .hero-lead {
+      grid-column: 1 / 8;
+    }
+
+    .hero-facts {
+      grid-column: 8 / 13;
+    }
+
+    h1 {
+      font-size: var(--text-3xl);
+    }
+  }
+</style>

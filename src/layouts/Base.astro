@@ -12,7 +12,7 @@ import barlow600 from '@fontsource/barlow/files/barlow-latin-600-normal.woff2?ur
 import barlow700 from '@fontsource/barlow/files/barlow-latin-700-normal.woff2?url';
 import mono400 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url';
 import Analytics from '@vercel/analytics/astro';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import Footer from '../components/Footer.astro';
 
 interface Props {
   title: string;
@@ -20,6 +20,9 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
+// Subpages carry the site name after the copy title; the home page is the name alone.
+const siteName = 'Alex Kachur';
+const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 const canonical = new URL(path, Astro.site);
 const preloads = [barlow400, barlow600, barlow700, mono400];
@@ -30,7 +33,7 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <script is:inline src="/theme.js"></script>
@@ -38,9 +41,7 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
   </head>
   <body>
     <slot />
-    <footer class="container site-footer">
-      <ThemeToggle />
-    </footer>
+    <Footer />
     <script src="../scripts/bootstrap.ts"></script>
     <Analytics />
   </body>
