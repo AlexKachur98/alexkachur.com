@@ -61,11 +61,37 @@ describe('photo_url cell rule', () => {
   });
 
   it('renders everything else as text, whatever the column is called or the value looks like', () => {
-    expect(renderCell('photo_url', 'https://example.com/a.webp')).toEqual({ kind: 'text', text: 'https://example.com/a.webp', empty: false });
     expect(renderCell('photo_url', 'images/pets/simba.webp')).toEqual({ kind: 'text', text: 'images/pets/simba.webp', empty: false });
     expect(renderCell('avatar', '/images/pets/simba.webp')).toEqual({ kind: 'text', text: '/images/pets/simba.webp', empty: false });
     expect(renderCell('born', 2024)).toEqual({ kind: 'text', text: '2024', empty: false });
     expect(renderCell('year_end', null)).toEqual({ kind: 'text', text: 'NULL', empty: true });
+  });
+});
+
+describe('link cell rule', () => {
+  it('turns a web address in any column into a link showing the address', () => {
+    const repo = 'https://github.com/AlexKachur98/alexkachur.com';
+    expect(renderCell('repo_url', repo)).toEqual({ kind: 'link', href: repo, text: repo });
+    expect(renderCell('value', 'http://example.com/')).toEqual({ kind: 'link', href: 'http://example.com/', text: 'http://example.com/' });
+    expect(renderCell('photo_url', 'https://example.com/a.webp')).toEqual({
+      kind: 'link',
+      href: 'https://example.com/a.webp',
+      text: 'https://example.com/a.webp',
+    });
+  });
+
+  it('turns an email address into a mailto link', () => {
+    expect(renderCell('value', 'alexkachur98@gmail.com')).toEqual({
+      kind: 'link',
+      href: 'mailto:alexkachur98@gmail.com',
+      text: 'alexkachur98@gmail.com',
+    });
+  });
+
+  it('leaves text that only contains or resembles an address alone', () => {
+    for (const value of ['see https://example.com for more', 'ftp://example.com', 'https://', 'not an@email', 'a@b', 'alexkachur.com']) {
+      expect(renderCell('value', value).kind, value).toBe('text');
+    }
   });
 });
 

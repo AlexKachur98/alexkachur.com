@@ -221,17 +221,28 @@ async function fetchDatabase(url: string | undefined): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
-// What a cell renders as. The one rule beyond plain text: a photo_url column whose
-// value is a site image becomes a 48px thumbnail linking to the image, with the alt text from
-// the pets collection and never from the shape of the query.
-export type Rendered = { kind: 'text'; text: string; empty: boolean } | { kind: 'image'; src: string; alt: string };
+// What a cell renders as. Beyond plain text: a photo_url column whose value is a site image
+// becomes a 48px thumbnail linking to the image, with the alt text from the pets collection and
+// never from the shape of the query; a value that is a web address or an email address, in any
+// column, becomes a link so a visitor can follow it straight from the results.
+export type Rendered =
+  | { kind: 'text'; text: string; empty: boolean }
+  | { kind: 'image'; src: string; alt: string }
+  | { kind: 'link'; href: string; text: string };
 
 const alts: Record<string, string> = photoAlt;
+const WEB_ADDRESS = /^https?:\/\/\S+$/;
+const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function renderCell(column: string, value: Cell, alt: Record<string, string> = alts): Rendered {
   if (column === 'photo_url' && typeof value === 'string' && value.startsWith('/images/')) {
     const file = value.slice(value.lastIndexOf('/') + 1);
     return { kind: 'image', src: value, alt: alt[value] ?? file.replace(/\.[^.]+$/, '') };
+  }
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (WEB_ADDRESS.test(text)) return { kind: 'link', href: text, text };
+    if (EMAIL_ADDRESS.test(text)) return { kind: 'link', href: `mailto:${text}`, text };
   }
   if (value === null) return { kind: 'text', text: 'NULL', empty: true };
   return { kind: 'text', text: String(value), empty: false };
@@ -377,6 +388,11 @@ function paint(panel: Panel, result: Result): void {
         img.height = THUMB;
         img.loading = 'lazy';
         link.append(img);
+        td.append(link);
+      } else if (cell.kind === 'link') {
+        const link = document.createElement('a');
+        link.href = cell.href;
+        link.textContent = cell.text;
         td.append(link);
       } else {
         td.textContent = cell.text;
