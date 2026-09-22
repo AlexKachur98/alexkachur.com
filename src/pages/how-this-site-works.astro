@@ -4,8 +4,9 @@ import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
 import { dataFile } from '../lib/data-file.ts';
 
-// Structure and intro copy only. Every measured number, the model in use and the what-broke
-// list arrive once the site is live and measured, and are marked TODO below.
+// Structure and intro copy only. Every measured number and the what-broke list arrive once the
+// site is live and measured, and are marked TODO below. The model in use is filled from
+// /api/stats after load, never baked, so the page cannot go stale when the variable changes.
 const dump = dataFile('portfolio.sql');
 ---
 
@@ -29,7 +30,7 @@ const dump = dataFile('portfolio.sql');
 
     <Section id="the-ask-pipeline" title="The ask pipeline">
       <!-- TODO: describe the nine steps of the /api/ask pipeline in prose. -->
-      <!-- The model in use renders here from /api/stats once that endpoint exists, never hard-coded, with the sentence that the model is configurable and that Anthropic publishes the running model's earliest retirement date. -->
+      <p hidden data-model-line>The model behind /api/ask right now is <span data-model></span>. It is one environment variable, and Anthropic publishes each model's earliest retirement date, so a swap is a change of that variable and a re-recorded eval.</p>
     </Section>
 
     <Section id="what-the-validator-rejects-and-why" title="What the validator rejects and why">

@@ -7,6 +7,7 @@ import type { ParsedMessage } from '@anthropic-ai/sdk/lib/parser';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import type { Database } from 'sql.js';
 import type { AskConfig } from './config.ts';
+import { counterKeys, monthOf } from './counters.ts';
 import { errorType, reasonFor } from './errors.ts';
 import { normaliseQuestion } from './normalise.ts';
 import { correctionTurn, PROMPT_VERSION, questionTurn, requestParams, schemaHash8 } from './prompt.ts';
@@ -67,11 +68,6 @@ export function cacheKey(env: string, question: string): string {
   return `ask:${env}:cache:v${PROMPT_VERSION}:${schemaHash8}:${digest}`;
 }
 
-// The UTC calendar month the counters are keyed by.
-export function monthOf(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 7);
-}
-
 export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promise<AskResult> {
   const now = deps.now ?? Date.now;
   const start = now();
@@ -89,9 +85,7 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
   try {
     if (!(await store.allow(ip))) return done(429, { error: 'rate_limited' }, 'rate_limit');
 
-    const month = monthOf(now());
-    const askedKey = `ask:${config.env}:asked:${month}`;
-    const modelKey = `ask:${config.env}:model:${month}`;
+    const { asked: askedKey, model: modelKey } = counterKeys(config.env, monthOf(now()));
     const key = cacheKey(config.env, question);
 
     // Cached answers are free, so they are served even in a used-up month.

@@ -15,6 +15,8 @@ export interface Store {
   write(key: string, entry: CacheEntry, ttlSeconds: number): Promise<void>;
   // INCR; the first call on a key also sets its TTL, so a month's counter expires on its own.
   count(key: string, ttlSeconds: number): Promise<number>;
+  // MGET of counters, one number per key; a key never incremented reads as 0.
+  counts(keys: string[]): Promise<number[]>;
 }
 
 // Wraps any Redis failure so the handler can answer 503 upstream without echoing the cause.
@@ -66,6 +68,11 @@ export function redisStore(env: string, credentials: { url: string; token: strin
         if (n === 1) await redis.expire(key, ttlSeconds);
         return n;
       }),
+    counts: (keys) =>
+      guard(async () => {
+        const values = await redis.mget<(number | string | null)[]>(...keys);
+        return values.map((value) => (typeof value === 'number' ? value : Number(value) || 0));
+      }),
   };
 }
 
@@ -76,5 +83,6 @@ export function skippedStore(): Store {
     read: async () => null,
     write: async () => {},
     count: async () => 0,
+    counts: async (keys) => keys.map(() => 0),
   };
 }

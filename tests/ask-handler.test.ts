@@ -83,6 +83,11 @@ function fakeStore(): FakeStore {
       store.counters.set(key, { value: 1, ttl });
       return 1;
     },
+    async counts(keys) {
+      store.calls.push(['counts', ...keys]);
+      throwIf('counts');
+      return keys.map((key) => store.counters.get(key)?.value ?? 0);
+    },
   };
   return store;
 }
