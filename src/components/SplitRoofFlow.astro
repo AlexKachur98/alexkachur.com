@@ -1,0 +1,103 @@
+---
+// Placeholder flow diagram for the SplitRoof case study: the question goes to the model, the
+// model can only call the three typed tool functions, the functions query the household's
+// data and hand back exact figures, and the model turns them into a sentence. The drawing
+// keeps its natural width so the text stays on the type scale; a phone scrolls it sideways.
+---
+
+<figure class="flow-figure">
+  <!-- TODO-ALEX: final wording of the labels, and a sentence describing the diagram for readers who cannot see it. -->
+  <svg class="flow" width="456" height="290" viewBox="0 0 456 290" role="img" aria-labelledby="splitroof-flow-title">
+    <title id="splitroof-flow-title">Answers questions about a household's shared expenses by calling typed tools; never does the arithmetic itself.</title>
+    <defs>
+      <marker id="splitroof-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+        <path class="head" d="M0 0 L8 4 L0 8 Z"></path>
+      </marker>
+    </defs>
+
+    <rect class="box" x="16" y="8" width="424" height="32"></rect>
+    <text class="label center" x="228" y="24">"who owes what this month"</text>
+
+    <line class="arrow" x1="84" y1="40" x2="84" y2="72"></line>
+
+    <rect class="box" x="16" y="72" width="136" height="56"></rect>
+    <text class="label center" x="84" y="92">the model</text>
+    <text class="label center" x="84" y="110">Claude Haiku 4.5</text>
+
+    <text class="note center" x="352" y="54">typed tool functions</text>
+    <rect class="group" x="264" y="66" width="176" height="124"></rect>
+    <rect class="box" x="272" y="78" width="160" height="28"></rect>
+    <text class="label center" x="352" y="92">getBalance</text>
+    <rect class="box" x="272" y="114" width="160" height="28"></rect>
+    <text class="label center" x="352" y="128">getCategorySpend</text>
+    <rect class="box" x="272" y="150" width="160" height="28"></rect>
+    <text class="label center" x="352" y="164">getBudgetStatus</text>
+
+    <line class="arrow" x1="152" y1="86" x2="264" y2="86"></line>
+    <text class="note center" x="208" y="78">call</text>
+    <line class="arrow" x1="264" y1="118" x2="152" y2="118"></line>
+    <text class="note center" x="208" y="131">exact figures</text>
+
+    <line class="arrow" x1="352" y1="190" x2="352" y2="216"></line>
+    <rect class="box" x="272" y="216" width="160" height="44"></rect>
+    <text class="label center" x="352" y="232">the household's</text>
+    <text class="label center" x="352" y="248">real data</text>
+    <text class="note center" x="352" y="276">no write path</text>
+
+    <line class="arrow" x1="84" y1="128" x2="84" y2="216"></line>
+    <rect class="box" x="16" y="216" width="136" height="32"></rect>
+    <text class="label center" x="84" y="232">a sentence</text>
+  </svg>
+</figure>
+
+<style>
+  .flow-figure {
+    margin-block: var(--space-4) var(--space-6);
+    overflow-x: auto;
+  }
+
+  .flow {
+    display: block;
+    font-family: var(--font-mono);
+  }
+
+  .box {
+    fill: var(--surface);
+    stroke: var(--muted);
+    stroke-width: 1;
+  }
+
+  .group {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+
+  .arrow {
+    stroke: var(--ink);
+    stroke-width: 1;
+    marker-end: url("#splitroof-arrow");
+  }
+
+  .head {
+    fill: var(--ink);
+  }
+
+  .label,
+  .note {
+    font-size: var(--text-xs);
+    dominant-baseline: middle;
+  }
+
+  .label {
+    fill: var(--ink);
+  }
+
+  .note {
+    fill: var(--muted);
+  }
+
+  .center {
+    text-anchor: middle;
+  }
+</style>

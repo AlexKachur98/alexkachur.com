@@ -1,0 +1,223 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
+import Figure from '../../components/Figure.astro';
+import Section from '../../components/Section.astro';
+import SplitRoofFlow from '../../components/SplitRoofFlow.astro';
+import Base from '../../layouts/Base.astro';
+import { splitSections } from '../../lib/sections.ts';
+
+type Project = CollectionEntry<'projects'>;
+
+interface Props {
+  project: Project;
+  prev: Project | undefined;
+  next: Project | undefined;
+  stack: string[];
+}
+
+export async function getStaticPaths() {
+  const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+  const technologies = await getCollection('technologies');
+  const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
+  return projects.map((project, index) => ({
+    params: { slug: project.id },
+    props: {
+      project,
+      prev: projects[index - 1],
+      next: projects[index + 1],
+      stack: project.data.technologies.map((ref) => names.get(ref.id) ?? ref.id),
+    } satisfies Props,
+  }));
+}
+
+const { project, prev, next, stack } = Astro.props;
+const { name, summary, role, year_start, year_end, client_name, team, live_url, repo_url, screenshots } = project.data;
+const year = year_end === null || year_end === year_start ? String(year_start) : `${year_start} to ${year_end}`;
+const links = [repo_url, live_url].filter((url): url is string => url !== null);
+
+// SPEC 3.2 order: the markdown sections, then Screenshots, then Credits (the last markdown
+// section). The SplitRoof flow diagram sits inside What I built.
+const sections = splitSections(project.rendered?.html ?? '');
+const creditsAt = sections.findIndex((section) => section.id === 'credits');
+const before = creditsAt === -1 ? sections : sections.slice(0, creditsAt);
+const after = creditsAt === -1 ? [] : sections.slice(creditsAt);
+const shotSizes = '(min-width: 1080px) 984px, calc(100vw - 48px)';
+---
+
+<Base title={name} description={summary}>
+  <main class="container">
+    <header class="case-head">
+      <h1>{name}</h1>
+      <p class="lead">{summary}</p>
+    </header>
+    <dl class="facts">
+      <dt>Role</dt>
+      <dd>{role}</dd>
+      <dt>Year</dt>
+      <dd>{year}</dd>
+      {
+        client_name && (
+          <Fragment>
+            <dt>Client</dt>
+            <dd>{client_name}</dd>
+          </Fragment>
+        )
+      }
+      {
+        team && (
+          <Fragment>
+            <dt>Team</dt>
+            <dd>{team}</dd>
+          </Fragment>
+        )
+      }
+      <dt>Stack</dt>
+      <dd>{stack.join(', ')}</dd>
+      {
+        links.length > 0 && (
+          <Fragment>
+            <dt>Links</dt>
+            <dd>
+              <ul class="fact-links" role="list">
+                {links.map((url) => (
+                  <li>
+                    <a href={url}>{url.replace(/^https?:\/\//, '')}</a>
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </Fragment>
+        )
+      }
+    </dl>
+
+    {
+      before.map((section) => (
+        <Section id={section.id} title={section.title}>
+          <Fragment set:html={section.body} />
+          {project.id === 'splitroof-ai-assistant' && section.id === 'what-i-built' && <SplitRoofFlow />}
+        </Section>
+      ))
+    }
+    {
+      screenshots.length > 0 && (
+        <Section id="screenshots" title="Screenshots">
+          <div class="shots">
+            {screenshots.map((shot) => (
+              <Figure src={shot.src} alt={shot.alt} caption={shot.caption} width={984} sizes={shotSizes} />
+            ))}
+          </div>
+        </Section>
+      )
+    }
+    {
+      after.map((section) => (
+        <Section id={section.id} title={section.title}>
+          <Fragment set:html={section.body} />
+        </Section>
+      ))
+    }
+
+    <nav class="pager">
+      {
+        prev && (
+          <a rel="prev" href={`/work/${prev.id}`}>
+            <span class="pager-label">Previous</span>
+            {prev.data.name}
+          </a>
+        )
+      }
+      {
+        next && (
+          <a rel="next" class="pager-next" href={`/work/${next.id}`}>
+            <span class="pager-label">Next</span>
+            {next.data.name}
+          </a>
+        )
+      }
+    </nav>
+  </main>
+</Base>
+
+<style>
+  .case-head {
+    padding-top: var(--space-8);
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-2) var(--space-5);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-mono);
+  }
+
+  .facts dt {
+    color: var(--muted);
+  }
+
+  .facts dd {
+    margin: 0;
+  }
+
+  .fact-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* A 40px hit area (DESIGN 9) without growing the row: the margin gives back the padding. */
+  .fact-links a {
+    display: inline-block;
+    padding-block: calc((var(--control) - var(--leading-mono) * 1em) / 2);
+    margin-block: calc((var(--leading-mono) * 1em - var(--control)) / 2);
+  }
+
+  .shots {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--rule);
+    font-weight: 600;
+  }
+
+  .pager a {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-height: var(--control);
+  }
+
+  .pager-next {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .pager-label {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    line-height: var(--leading-mono);
+  }
+
+  @media (min-width: 768px) {
+    .case-head {
+      padding-top: var(--space-9);
+    }
+  }
+</style>
