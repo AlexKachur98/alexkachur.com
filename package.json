@@ -23,6 +23,8 @@
     "@astrojs/vercel": "^11.0.10",
     "@fontsource/barlow": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@upstash/ratelimit": "^2.1.0",
+    "@upstash/redis": "^1.39.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.9.8",
     "astro": "^7.3.3",
