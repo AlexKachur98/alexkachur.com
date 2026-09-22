@@ -13,6 +13,7 @@
     "build": "node scripts/build-db.ts && astro build",
     "preview": "astro preview",
     "check": "node scripts/build-db.ts && astro check",
+    "pretest": "npm run build",
     "test": "vitest run"
   },
   "dependencies": {
