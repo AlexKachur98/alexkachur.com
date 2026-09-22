@@ -1,0 +1,13 @@
+import type { APIRoute } from 'astro';
+import { getCollection } from 'astro:content';
+import { projectRows } from '../lib/rows.ts';
+
+// Hand-written (SPEC 3.6): the home page, the case studies in site order, and the three
+// utility pages. The 404 page, the endpoints and the text files stay out.
+export const GET: APIRoute = async ({ site }) => {
+  const projects = projectRows(await getCollection('projects')).map((project) => `/work/${project.slug}`);
+  const paths = ['/', ...projects, '/uses', '/api', '/how-this-site-works'];
+  const urls = paths.map((path) => `  <url><loc>${new URL(path, site)}</loc></url>`).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  return new Response(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+};
