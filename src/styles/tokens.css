@@ -1,0 +1,138 @@
+/* Design tokens from DESIGN.md. Components use these and never raw values. */
+
+/* Page colours, declared once with light-dark(). A custom property is never rejected when
+   parsed, so a plain fallback line would not help a browser without light-dark(); the
+   @property registrations at the end of this file carry each token's dark value as
+   initial-value, which is what a browser with @property but without light-dark() (Safari
+   16.4 to 17.4, Chrome 85 to 122) computes instead of dropping the colour. Older Safari has
+   neither and shows unstyled colours. Registration also resolves light-dark() once, on :root,
+   so a page token must never be used inside an element that sets its own color-scheme: the
+   console panel uses its own tokens. */
+:root {
+  color-scheme: light dark;
+
+  --bg: light-dark(#F4F1EA, #0B0B0C);
+  --surface: light-dark(#FFFDF7, #141416);
+  --rule: light-dark(#D9D5CB, #2A2A2C);
+  --ink: light-dark(#111111, #F2F0E9);
+  --muted: light-dark(#6B6860, #9A9891);
+  --accent: light-dark(#F3E600, #F3E600);
+  --on-accent: light-dark(#111111, #111111);
+  --danger: light-dark(#C5003C, #FF4A57);
+  --focus: light-dark(#111111, #F3E600);
+}
+
+/* The console panel is dark in both themes. Its own set, never overrides of the page tokens,
+   so no [data-theme] selector reaches it. */
+:root {
+  --console-bg: #121212;
+  --console-ink: #E6E6E6;
+  --console-muted: #8A8A8A;
+  --console-accent: #F3E600;
+  --console-rule: #2C2C2C;
+  --console-danger: #FF4A57;
+}
+
+/* A stored choice only changes the colour scheme; the tokens above follow it. */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Type scale (DESIGN.md 3), rem on a 16px base. */
+:root {
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3rem;
+  --leading-body: 1.55;
+  --leading-heading: 1.1;
+  --leading-mono: 1.45;
+  --tracking-heading: -0.01em;
+  --tracking-label: 0.04em;
+}
+
+/* Spacing scale (DESIGN.md 4). */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+}
+
+/* Layout, shape and motion (DESIGN.md 4 to 6). Breakpoints are 480px, 768px and 1080px;
+   media queries cannot read custom properties, so they carry those values literally. */
+:root {
+  --container: 1080px;
+  --measure: 68ch;
+  --control: 40px;
+  --cut: 12px;
+  --duration: 120ms;
+  --ease: linear;
+}
+
+@property --bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0B0B0C;
+}
+
+@property --surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #141416;
+}
+
+@property --rule {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2A2A2C;
+}
+
+@property --ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F2F0E9;
+}
+
+@property --muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9A9891;
+}
+
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F3E600;
+}
+
+@property --on-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #111111;
+}
+
+@property --danger {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #FF4A57;
+}
+
+@property --focus {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F3E600;
+}
