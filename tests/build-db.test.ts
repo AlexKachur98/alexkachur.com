@@ -66,7 +66,7 @@ describe('build-db', () => {
     expect(rows.courses).toHaveLength(6);
     expect(rows.timeline).toHaveLength(8);
     expect(rows.pets).toHaveLength(2);
-    expect(rows.facts).toHaveLength(8);
+    expect(rows.facts).toHaveLength(9);
   });
 
   it('derives the DDL from the shared schemas', () => {
@@ -88,7 +88,7 @@ describe('build-db', () => {
     expect(again).toEqual(schema);
     expect(schema.hash).toMatch(/^[0-9a-f]{64}$/);
     expect(schema.hash).toBe(sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys })));
-    expect(schema.factKeys).toEqual(['available_from', 'email', 'github', 'headline', 'linkedin', 'location', 'name', 'status']);
+    expect(schema.factKeys).toEqual(['available_from', 'email', 'github', 'headline', 'linkedin', 'location', 'name', 'school', 'status']);
     expect(schema.tables.map((table) => table.name)).toEqual([
       'facts',
       'projects',
