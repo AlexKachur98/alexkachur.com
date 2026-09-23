@@ -8,6 +8,7 @@ import Section from './Section.astro';
 // 1200px, where it fills the column. Each sizes list follows the grid: fluid between 768px and
 // 1080px and again between 1200px and the 1240px container, fixed at each container width, and
 // held on a phone by the width attribute. The largest candidate is double the widest column.
+// The featured screenshot is the largest thing in a wide first screen, so it loads eagerly.
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
 const technologies = await getCollection('technologies');
 const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
@@ -52,6 +53,7 @@ const rowSizes =
                   width={featured ? 648 : 312}
                   widths={featured ? featuredWidths : rowWidths}
                   sizes={featured ? featuredSizes : rowSizes}
+                  eager={featured}
                 />
               </div>
             )}
