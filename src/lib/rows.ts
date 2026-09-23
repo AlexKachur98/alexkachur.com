@@ -61,9 +61,10 @@ export function factRows(entries: Entry<FactContent>[]): FactRow[] {
 export function projectRows(entries: Entry<ProjectInput>[]): ProjectRow[] {
   const sorted = [...entries].sort((a, b) => a.data.order - b.data.order);
   rejectRepeats(sorted, (entry) => entry.data.order, 'project order');
-  return sorted.map(({ id, data }) => {
+  // Only the project listed first is featured, so the flag can never disagree with the order.
+  return sorted.map(({ id, data }, index) => {
     const { order, card, team, technologies, screenshots, ...row } = data;
-    return { id: order, slug: id, ...row };
+    return { id: order, slug: id, ...row, featured: index === 0 ? 1 : 0 };
   });
 }
 

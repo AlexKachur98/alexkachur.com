@@ -30,7 +30,6 @@ function project(id: string, order: number, technologies: TechnologyRef[]): Entr
       uses_llm: 0,
       llm_job: null,
       paid: 0,
-      featured: 0,
       technologies,
       screenshots: [],
     },
@@ -52,6 +51,15 @@ describe('rows', () => {
     ]);
     expect(Object.keys(rows[0]!)).not.toContain('order');
     expect(Object.keys(rows[0]!)).not.toContain('technologies');
+  });
+
+  it('features the project listed first and no other, whatever order the entries arrive in', () => {
+    const rows = projectRows([project('c', 3, []), project('a', 1, []), project('b', 2, [])]);
+    expect(rows.map((row) => [row.slug, row.featured])).toEqual([
+      ['a', 1],
+      ['b', 0],
+      ['c', 0],
+    ]);
   });
 
   it('rejects two projects with the same order', () => {

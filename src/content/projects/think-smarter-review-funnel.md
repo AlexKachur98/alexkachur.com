@@ -14,7 +14,6 @@ has_live_demo: 1
 uses_llm: 0
 llm_job: null
 paid: 0
-featured: 0
 technologies: [html, css, javascript, cloudflare-pages, web3forms]
 screenshots:
   - src: ../../assets/work/think-smarter-review-funnel/think-smarter-1.jpg

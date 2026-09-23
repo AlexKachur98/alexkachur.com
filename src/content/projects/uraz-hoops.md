@@ -14,7 +14,6 @@ has_live_demo: 1
 uses_llm: 0
 llm_job: null
 paid: 1
-featured: 0
 technologies: [next-js, react, tailwind-css, framer-motion, resend, vercel]
 screenshots:
   - src: ../../assets/work/uraz-hoops/uraz-hoops-1.jpg

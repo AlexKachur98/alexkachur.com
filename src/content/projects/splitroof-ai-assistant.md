@@ -16,7 +16,6 @@ has_live_demo: 0
 uses_llm: 1
 llm_job: answers questions about a household's shared expenses by calling typed tools; never does the arithmetic itself.
 paid: 0
-featured: 1
 technologies: [react, node-js, express, firebase, anthropic-api, jest]
 screenshots:
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-1.png

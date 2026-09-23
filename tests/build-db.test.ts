@@ -122,6 +122,12 @@ describe('build-db', () => {
     expect(facts!.map((row) => row.key).sort()).toEqual(['available_from', 'location', 'status']);
   });
 
+  it('features exactly one project, the one first by order', () => {
+    expect(query('SELECT slug FROM projects WHERE featured = 1')).toEqual(query('SELECT slug FROM projects ORDER BY id LIMIT 1'));
+    expect(query('SELECT COUNT(*) AS n FROM projects WHERE featured = 1')).toEqual([{ n: 1 }]);
+    expect(query('SELECT COUNT(*) AS n FROM projects WHERE featured <> 0 AND featured <> 1')).toEqual([{ n: 0 }]);
+  });
+
   it('runs both chips, which carry examples 1 and 2 unchanged', () => {
     expect(chips).toEqual(examples.slice(0, 2));
     const [paying, llm] = chips.map((chip) => query(chip.sql));

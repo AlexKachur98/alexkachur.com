@@ -41,7 +41,7 @@ export const projectRow = z.object({
   uses_llm: flag.describe('1 if a language model does work inside the project'),
   llm_job: z.string().nullable().describe('What the language model does, NULL when uses_llm is 0'),
   paid: flag.describe('1 if the work was paid'),
-  featured: flag.describe('1 for the project featured first on the home page'),
+  featured: flag.describe('1 for the project listed first on the home page, else 0'),
 });
 
 export const technologyRow = z.object({
@@ -131,8 +131,9 @@ export const tables = {
 export type TableName = keyof typeof tables;
 
 // Content shapes: what the files under src/content hold, strict so a misspelled key fails the
-// build. Ids the build derives (projects.id from order, technologies.id from name order,
-// timeline.id from date order) are not in the files; the file loader's id is the natural key.
+// build. Values the build derives (projects.id and projects.featured from order, technologies.id
+// from name order, timeline.id from date order) are not in the files; the file loader's id is the
+// natural key.
 
 const contentId = z.string().describe('Id of this row in its file');
 
@@ -143,7 +144,7 @@ export const screenshot = z.strictObject({
 });
 
 export const projectContent = z.strictObject({
-  ...projectRow.omit({ id: true, slug: true }).shape,
+  ...projectRow.omit({ id: true, slug: true, featured: true }).shape,
   order: z.number().int().positive().describe('Site order; also drives projects.id'),
   card: z.string().describe('The one-liner under the name on the home page'),
   team: z.string().optional().describe('Team line for the facts strip, for team projects'),
