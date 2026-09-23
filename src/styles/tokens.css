@@ -42,7 +42,11 @@
   color-scheme: dark;
 }
 
-/* Type scale, rem on a 16px base. The three heading steps grow from 768px. */
+/* Type scale, rem on a 16px base; the heading and lead sizes step up at 768px, 1200px and 1600px.
+   Zooming shrinks the viewport, so a zoomed page can land on a smaller step: at the 500% most
+   browsers allow, the viewport is at most a fifth as wide. Keeping each token's largest step
+   within 2.5 times its smallest means zoomed text still reaches twice its default size. Every
+   step is in rem so it also follows the reader's default text size, which px ignores. */
 :root {
   --text-xs: 0.8125rem;
   --text-sm: 0.875rem;
@@ -66,6 +70,23 @@
   }
 }
 
+@media (min-width: 1200px) {
+  :root {
+    --text-xl: 2.5rem;
+    --text-2xl: 3.5rem;
+    --text-3xl: 5.5rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --text-lg: 1.75rem;
+    --text-xl: 3rem;
+    --text-2xl: 4rem;
+    --text-3xl: 6.5rem;
+  }
+}
+
 /* Spacing scale. */
 :root {
   --space-1: 4px;
@@ -80,8 +101,10 @@
   --space-10: 128px;
 }
 
-/* Layout, shape and motion. Breakpoints are 480px, 768px and 1080px;
-   media queries cannot read custom properties, so they carry those values literally. */
+/* Layout, shape and motion. Breakpoints are 768px, 1200px and 1600px; media queries cannot read
+   custom properties, so they carry those values literally. The container is 1080px up to
+   1200px, 1240px from there and 1440px from 1600px; image sizes conditions also name 1080px
+   and 1240px, the widths at which the container stops growing. */
 :root {
   --container: 1080px;
   --measure: 68ch;
@@ -92,6 +115,18 @@
   --ease: linear;
   --blink: 1s;
   --row-step: 30ms;
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --container: 1240px;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --container: 1440px;
+  }
 }
 
 @property --bg {

@@ -250,3 +250,10 @@
     grid-column: 1 / 8;
   }
 }
+
+/* Seven control heights, so the console stands as tall as the schema list beside it. */
+@media (min-width: 1200px) {
+  .console-input {
+    min-height: calc(var(--control) * 7);
+  }
+}

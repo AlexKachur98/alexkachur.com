@@ -24,7 +24,8 @@ import Section from './Section.astro';
         alt="Moura on the top bed of a cat tree and Simba on the lower one, in window light"
         caption="Moura takes the top bed and Simba takes what is left."
         width={312}
-        sizes="(min-width: 1080px) 312px, (min-width: 768px) calc(33vw - 40px), calc(100vw - 48px)"
+        widths={[312, 432, 624, 864]}
+        sizes="(min-width: 1600px) 432px, (min-width: 1240px) 365px, (min-width: 1200px) calc(33.33vw - 48px), (min-width: 1080px) 312px, (min-width: 768px) calc(33.33vw - 48px), (min-width: 360px) 312px, calc(100vw - 48px)"
       />
     </div>
   </div>
@@ -41,6 +42,14 @@ import Section from './Section.astro';
     .about-text {
       grid-row: 1;
       grid-column: 6 / 13;
+    }
+  }
+
+  /* From 1200px the column outgrows the photo's width attribute; the img comes from Figure, so
+     only :global reaches it. */
+  @media (min-width: 1200px) {
+    .about-photo :global(img) {
+      width: 100%;
     }
   }
 </style>
