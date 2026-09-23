@@ -412,7 +412,20 @@ describe('Ask SQL rendering', () => {
     expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML/);
   });
 
-  it('still hands Edit this query the plain SQL', () => {
-    expect(source).toContain("consoleUi.input.value = askUi.sql.textContent ?? '';");
+  it('takes the example out of the panel as the first question or chip begins', () => {
+    const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer('));
+    expect(begin).toMatch(/^function begin\(ui: AskUi, question: string\): void \{\n  ui\.example\?\.remove\(\);\n  ui\.example = null;/);
+    expect(source).toContain("example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),");
+  });
+
+  it("still hands Edit this query the plain SQL, the example's from its own button", () => {
+    expect(source).toContain("consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';");
+    // Edit is decided before the box check, so the example's button still edits once a question
+    // has taken the example off the page.
+    const click = source.slice(source.indexOf('export function click('), source.indexOf('function panelOf('));
+    expect(click.indexOf("if (button.hasAttribute('data-ask-edit')) {")).toBeGreaterThan(0);
+    expect(click.indexOf("if (button.hasAttribute('data-ask-edit')) {")).toBeLessThan(click.indexOf('if (askUi?.box.contains(button)) {'));
+    expect(click).toContain('    edit(sql);\n    return;');
+    expect(source).toContain("askRoot.querySelector<HTMLElement>('[data-ask-panel] > [data-ask-edit]')");
   });
 });

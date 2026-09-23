@@ -1,6 +1,9 @@
 ---
-import { chips, examples } from '../data/examples.ts';
+import { answerExample, chips, examples } from '../data/examples.ts';
+import { openDatabase } from '../lib/ask/db.ts';
 import { dataFile } from '../lib/data-file.ts';
+import { ROWS, THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/console.ts';
+import type { Cell, Result } from '../scripts/console.ts';
 import '../styles/console.css';
 
 // The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,
@@ -11,16 +14,37 @@ import '../styles/console.css';
 // once it holds something.
 // The six examples are the fallback listed when the AI is out of reach. A page without the raw
 // console (404) gets no Edit this query button, since there is nowhere to edit.
+// With example, the box sets the answer beside the form from 1200px, and until the first question
+// or chip that pane shows an example answer: its SQL run here at build time against the built
+// database and written into the page, so it needs no request and no script.
 interface Props {
   editable?: boolean;
+  example?: boolean;
 }
 
-const { editable = false } = Astro.props;
+const { editable = false, example = false } = Astro.props;
 const database = dataFile('portfolio.sqlite');
 const kb = Math.round(database.bytes / 1000);
+
+// The way the browser's worker runs a query: the first statement, stepped up to one row past the
+// cap, so the example shows what running its SQL in the browser would.
+async function run(sql: string): Promise<Result> {
+  const db = await openDatabase();
+  const statement = db.prepare(sql);
+  try {
+    const rows: Cell[][] = [];
+    while (rows.length < ROWS + 1 && statement.step()) rows.push(statement.get());
+    return { columns: statement.getColumnNames(), rows, truncated: rows.length === ROWS + 1 };
+  } finally {
+    statement.free();
+  }
+}
+
+const shown = example ? answerExample : undefined;
+const answer = shown ? await run(shown.sql) : undefined;
 ---
 
-<div class="console cut ask" data-ask data-kb={kb} data-db-url={database.url}>
+<div class:list={['console cut ask', { 'ask-split': example }]} data-ask data-kb={kb} data-db-url={database.url}>
   <!-- Enter submits through the form. Its method makes the browser's own submission a no-op
        (there is no dialog around it), so a question typed before the script has loaded, or
        with scripts off, never lands in the URL; the submit event still fires for the script. -->
@@ -47,6 +71,62 @@ const kb = Math.round(database.bytes / 1000);
     </p>
   </form>
   <div class="console ask-panel" data-ask-panel>
+    {
+      shown && answer && (
+        <div class="ask-example-answer" data-ask-example>
+          <p class="console-head" id="ask-example-answer-head">
+            <span>Example</span>
+            <span class="console-dot" aria-hidden="true">·</span>
+            <span>{shown.label}</span>
+            <span class="console-dot" aria-hidden="true">·</span>
+            <span>{summary(answer)}</span>
+          </p>
+          <pre class="ask-sql">{sqlTokens(shown.sql).map(({ text, keyword }) => (keyword ? <span class="sql-keyword">{text}</span> : text))}</pre>
+          {editable && (
+            <button type="button" class="console-run" data-ask-edit data-sql={shown.sql}>
+              Edit this query
+            </button>
+          )}
+          <div class="console-results" role="region" aria-labelledby="ask-example-answer-head" tabindex="0">
+            <table>
+              <thead>
+                <tr>
+                  {answer.columns.map((column) => (
+                    <th scope="col">{column}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRows(answer).map((row) => (
+                  <tr>
+                    {row.map((value, index) => {
+                      const cell = renderCell(answer.columns[index] ?? '', value);
+                      if (cell.kind === 'image') {
+                        return (
+                          <td>
+                            <a href={cell.src}>
+                              <img src={cell.src} alt={cell.alt} width={THUMB} height={THUMB} loading="lazy" />
+                            </a>
+                          </td>
+                        );
+                      }
+                      if (cell.kind === 'link') {
+                        return (
+                          <td>
+                            <a href={cell.href}>{cell.text}</a>
+                          </td>
+                        );
+                      }
+                      return <td class={cell.empty ? 'null' : undefined}>{cell.text}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
+    }
     <p class="console-head">
       <span id="ask-question" data-ask-question></span>
       <span class="console-dot" aria-hidden="true">·</span>
@@ -136,8 +216,19 @@ const kb = Math.round(database.bytes / 1000);
     margin: 0;
   }
 
-  .ask-panel:not([data-open]) .console-head {
+  .ask-panel:not([data-open]) > .console-head {
     margin: 0;
+  }
+
+  /* The example only ever stands beside the form, so it shows nowhere below 1200px, and the first
+     question or chip removes it. Its rows are part of the page, so they are there from the start
+     rather than revealed one by one. */
+  .ask-example-answer {
+    display: none;
+  }
+
+  .ask-example-answer tbody tr {
+    animation: none;
   }
 
   .ask-explanation,
@@ -217,6 +308,44 @@ const kb = Math.round(database.bytes / 1000);
   @media (min-width: 1200px) {
     .ask {
       padding: var(--space-6);
+    }
+
+    /* Beside the form, the box is a subgrid of the page's twelve columns: the form takes 1 to 8
+       and the answer 8 to 13, so the answer starts on the column line the facts above it start
+       on. The box's padding only insets the two outer tracks, so that line does not move. The
+       console rules would place any panel in 1 to 8, hence the explicit columns. A 1px rule down
+       the middle of the grid's gap parts the two panes. A browser without subgrid skips all of
+       this and keeps the box whole, its answers opening under the form, with no example. */
+    @supports (grid-template-columns: subgrid) {
+      .ask-split {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: subgrid;
+      }
+
+      .ask-split .ask-form {
+        grid-column: 1 / 8;
+      }
+
+      .ask-split .ask-panel {
+        position: relative;
+        grid-column: 8 / 13;
+        margin: 0;
+      }
+
+      .ask-split .ask-panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--space-5) / -2);
+        width: 1px;
+        background: var(--console-rule);
+      }
+
+      .ask-split .ask-example-answer {
+        display: block;
+      }
     }
   }
 </style>

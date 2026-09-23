@@ -386,6 +386,8 @@ interface AskUi extends Panel {
   sql: HTMLElement;
   edit: HTMLElement | null;
   fallback: HTMLElement;
+  // The example answer a wide screen shows before the first question, if the page has one.
+  example: HTMLElement | null;
   busy: boolean;
 }
 
@@ -507,8 +509,11 @@ function query(sql: string): void {
 
 // Clears the Ask panel for a new question and opens it, the question on its header line. The
 // panel is always in the markup so its two live regions exist before they are written to; it
-// takes up space only once it has something to show.
+// takes up space only once it has something to show. The example answer goes for good, so the
+// visitor's answer takes its place rather than appearing under it.
 function begin(ui: AskUi, question: string): void {
+  ui.example?.remove();
+  ui.example = null;
   ui.root.setAttribute('data-open', '');
   ui.question.textContent = question;
   ui.suffix = '';
@@ -598,21 +603,27 @@ function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean): voi
   });
 }
 
-// Moves the SQL into the raw console for editing and brings the console into view.
-function edit(): void {
+// Moves the SQL into the raw console for editing and brings the console into view: the answer's,
+// or the example's, which its button carries.
+function edit(sql: string | undefined): void {
   if (!askUi || !consoleUi) return;
-  consoleUi.input.value = askUi.sql.textContent ?? '';
+  consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';
   consoleUi.root.scrollIntoView();
   consoleUi.input.focus({ preventScroll: true });
 }
 
 // The bootstrap owns every listener and forwards a click on an example, a chip, Run or Edit
 // this query here, whether it landed before this module was loaded or after.
+// Edit this query is checked first: a click on the example's button can arrive after a question
+// has already taken the example off the page, and it still means edit, not run.
 export function click(button: HTMLElement): void {
   const sql = button.dataset['sql'];
+  if (button.hasAttribute('data-ask-edit')) {
+    edit(sql);
+    return;
+  }
   if (askUi?.box.contains(button)) {
-    if (button.hasAttribute('data-ask-edit')) edit();
-    else if (sql !== undefined) askQuery(askUi, sql, button.textContent?.trim() ?? '', askUi.fallback.contains(button));
+    if (sql !== undefined) askQuery(askUi, sql, button.textContent?.trim() ?? '', askUi.fallback.contains(button));
     return;
   }
   if (sql !== undefined) query(sql);
@@ -655,8 +666,10 @@ export function init(): void {
       question: element(askRoot, '[data-ask-question]'),
       explanation: element(askRoot, '[data-ask-explanation]'),
       sql: element(askRoot, '[data-ask-sql]'),
-      edit: askRoot.querySelector<HTMLElement>('[data-ask-edit]'),
+      // The answer's own button, not the example's, which sits deeper in the panel.
+      edit: askRoot.querySelector<HTMLElement>('[data-ask-panel] > [data-ask-edit]'),
       fallback: element(askRoot, '[data-ask-fallback]'),
+      example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),
       busy: false,
     };
   }

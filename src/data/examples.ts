@@ -35,3 +35,11 @@ export const examples: readonly Example[] = [
 
 // The two Ask chips carry examples 1 and 2 statically and run with no API call.
 export const chips: readonly Example[] = examples.slice(0, 2);
+
+// The answer beside the Ask box on a wide screen before anyone asks, run at build time: a
+// question the chips do not already ask. The limit ends the list where a tie in the ranking ends,
+// so no row is there only because its name sorts first; the build test checks that it still does.
+export const answerExample: Example = {
+  label: 'Which technologies does Alex use most?',
+  sql: 'SELECT t.name, COUNT(*) AS projects FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id GROUP BY t.name ORDER BY projects DESC, t.name LIMIT 4;',
+};

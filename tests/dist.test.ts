@@ -1,6 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
+import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
+import { answerExample, chips } from '../src/data/examples.ts';
+import { validateSql } from '../src/lib/ask/validate-sql.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
@@ -152,6 +155,52 @@ describe(`built output in ${root}`, () => {
     }
     expect(found.length).toBeGreaterThan(0);
     expect(unversioned).toEqual([]);
+  });
+
+  // The example beside the Ask box is answered at build time, so its SQL must be one the site's
+  // own validator accepts, and the page must show exactly the rows the built database gives.
+  it('shows the example answer with SQL the validator accepts and the rows the built database gives', async () => {
+    const home = pages.find(({ url }) => url === '/')!.html;
+    const block = home.match(/<div\b[^>]*\sclass="ask-example-answer"[^>]*>([\s\S]*?)<\/table>/)?.[1] ?? '';
+    expect(block).not.toBe('');
+    const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
+    const text = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => entities[name]!).trim();
+    const example = answerExample;
+    expect(chips.map(({ label }) => label)).not.toContain(example.label);
+
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    expect(validateSql(example.sql, db)).toMatchObject({ ok: true });
+    // The limit must end the list where a tie ends: the first row it leaves out ranks lower than
+    // the last one shown.
+    const limit = example.sql.match(/\sLIMIT (\d+);$/);
+    expect(limit).not.toBeNull();
+    const ranking = db.exec(example.sql.replace(/\sLIMIT \d+;$/, ';'))[0]!.values;
+    const shownCount = Number(limit![1]);
+    if (ranking.length > shownCount) expect(ranking[shownCount]![1]).not.toBe(ranking[shownCount - 1]![1]);
+    const statement = db.prepare(example.sql);
+    const rows: unknown[][] = [];
+    while (statement.step()) rows.push(statement.get());
+    const columns = statement.getColumnNames();
+    statement.free();
+    db.close();
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(50);
+
+    const head = block.match(/<p\b[^>]*\sid="ask-example-answer-head"[^>]*>([\s\S]*?)<\/p>/)?.[1] ?? '';
+    const parts = [...head.matchAll(/<span\b[^>]*>([^<]*)<\/span>/g)].map(([, part]) => part!.trim());
+    expect(parts).toEqual(['Example', '·', example.label, '·', rows.length === 1 ? '1 row' : `${rows.length} rows`]);
+    const sql = block.match(/<pre\b[^>]*\sclass="ask-sql"[^>]*>([\s\S]*?)<\/pre>/)?.[1] ?? '';
+    expect(text(sql)).toBe(example.sql);
+    const edit = block.match(/<button\b[^>]*\sdata-ask-edit\b[^>]*>/)?.[0] ?? '';
+    expect(text(edit.match(/\sdata-sql="([^"]*)"/)?.[1] ?? '')).toBe(example.sql);
+    expect(sql).toMatch(/<span class="sql-keyword"[^>]*>SELECT<\/span>/);
+    expect([...block.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(([, cell]) => text(cell!))).toEqual(columns);
+    const shown = [...block.matchAll(/<tbody\b[^>]*>([\s\S]*?)<\/tbody>/g)]
+      .flatMap(([, body]) => [...body!.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)])
+      .map(([, row]) => [...row!.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map(([, cell]) => text(cell!)));
+    expect(shown).toEqual(rows.map((row) => row.map((value) => (value === null ? 'NULL' : String(value)))));
   });
 
   it('makes only /_astro/, /vendor/ and /data/ immutable in vercel.json', () => {

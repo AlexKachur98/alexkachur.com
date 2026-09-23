@@ -8,7 +8,7 @@ import AskBox from './AskBox.astro';
     <p class="lead">I build full-stack web apps with an AI doing real work inside them.</p>
   </div>
   <div class="hero-ask">
-    <AskBox editable />
+    <AskBox editable example />
   </div>
   <div class="hero-facts">
     <p class="status">Toronto, Canada. Final-year software engineering student at Centennial College. Open to full-stack and AI roles from May 2027.</p>
@@ -95,11 +95,14 @@ import AskBox from './AskBox.astro';
     }
   }
 
-  /* From 1200px the Ask box under the name ends where the line does, at column 8, so the two share
-     one right edge. The first row aligns to its top, and the facts drop by the space between the
-     top of the name's line and the tops of its capitals, worked out from the name's size, its line
-     height and Barlow's metrics, so their rule is level with the capitals at every name size. The
-     box keeps the second row to itself, so an answer growing in it moves nothing beside it. */
+  /* From 1200px the Ask box spans the second row, a subgrid of all twelve columns, so its form sits
+     under the name and line in columns 1 to 8 and its answer under the facts in 8 to 13, starting
+     on the facts' column line. Until the first question or chip it shows an example. The
+     first row aligns to its top, and the facts drop by the space between the top of the name's
+     line and the tops of its capitals, worked out from the name's size, its line height and
+     Barlow's metrics, so their rule is level with the capitals at every name size. The box keeps
+     the second row to itself, so an answer growing in it moves nothing above it. A browser without
+     subgrid keeps the box under the name and line in columns 1 to 8, as one panel. */
   @media (min-width: 1200px) {
     .hero {
       align-items: start;
@@ -111,6 +114,14 @@ import AskBox from './AskBox.astro';
 
     .hero-ask {
       grid-column: 1 / 8;
+    }
+
+    @supports (grid-template-columns: subgrid) {
+      .hero-ask {
+        display: grid;
+        grid-column: 1 / 13;
+        grid-template-columns: subgrid;
+      }
     }
   }
 </style>
