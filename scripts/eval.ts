@@ -1,6 +1,8 @@
 // Runs the eval questions through the ask handler and reports what came back. With no flag the
 // model replies recorded in scripts/eval/fixtures.json stand in for the API, so the run is
-// offline and repeatable, and any change in a response is reported as drift. --record calls
+// offline and repeatable, and any change in a response is reported as drift. A replay fails on
+// drift, on a question the fixture lacks, and on any answer that misses its expectation, so CI
+// catches a wrong answer as well as a changed one. --record calls
 // the API and writes that file; --live calls the API and only reports. A fixture is tied to the
 // model id, the prompt version and the schema hash the prompt embeds, so it must be recorded
 // again when any of them changes. Runs under Node's type stripping, like build-db.ts.
@@ -192,6 +194,7 @@ async function main(): Promise<number> {
   const checks = await checkDatabase();
   const results: RecordedQuestion[] = [];
   let passed = 0;
+  const missed: number[] = [];
   let drift = 0;
   let unrecorded = 0;
   let calls = 0;
@@ -214,8 +217,10 @@ async function main(): Promise<number> {
 
     const notes: string[] = [];
     const problem = checkProblem(entry, result, checks);
-    if (problem) notes.push(problem);
-    else passed += 1;
+    if (problem) {
+      notes.push(problem);
+      missed.push(index + 1);
+    } else passed += 1;
     if (fixture && !recorded) {
       unrecorded += 1;
       notes.push('not in the fixture');
@@ -229,7 +234,9 @@ async function main(): Promise<number> {
   if (fixture) {
     const extra = unrecorded > 0 ? `, unrecorded ${unrecorded}` : '';
     console.log(`accuracy ${passed}/${questions.length}, drift ${drift}${extra}, model calls replayed ${calls}`);
-    return drift + unrecorded > 0 ? 1 : 0;
+    if (missed.length === 1) complain(`question ${missed[0]} missed its expectation`);
+    if (missed.length > 1) complain(`questions ${missed.join(', ')} missed their expectations`);
+    return drift + unrecorded + missed.length > 0 ? 1 : 0;
   }
   console.log(`accuracy ${passed}/${questions.length}`);
   printStats(config.model, results, calls);
