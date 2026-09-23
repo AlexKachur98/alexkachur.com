@@ -164,10 +164,12 @@ figcaption {
   gap: var(--space-5);
 }
 
-/* Sections: a rule on top, the title sitting on the rule's left. */
+/* Sections: a rule on top, the title sitting on the rule's left. The title rises half its line
+   above the section's edge, so a link to the section stops that much higher, plus some room. */
 .section {
   margin-top: var(--space-8);
   border-top: 1px solid var(--rule);
+  scroll-margin-top: calc(var(--text-xl) * var(--leading-heading) / 2 + var(--space-5));
 }
 
 .section > h2 {
