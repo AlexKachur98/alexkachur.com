@@ -118,6 +118,20 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  it('links back to the work list from every case study pager, between Previous and Next', () => {
+    const studies = pages.filter(({ url }) => url.startsWith('/work/'));
+    expect(studies).toHaveLength(readdirSync('src/content/projects').filter((file) => file.endsWith('.md')).length);
+    for (const { url, html } of studies) {
+      const pager = html.match(/<nav\b[^>]*\saria-label="Case studies"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? '';
+      expect(pager, url).toMatch(/<a\b[^>]*\shref="\/#work"[^>]*>All work<\/a>/);
+      const order = [...pager.matchAll(/<a\b([^>]*)>/g)].map(([, attributes]) =>
+        /\srel="prev"/.test(attributes!) ? 'prev' : /\srel="next"/.test(attributes!) ? 'next' : /\shref="\/#work"/.test(attributes!) ? 'all' : attributes,
+      );
+      expect(order.length, url).toBeGreaterThan(1);
+      expect(order, url).toEqual(['prev', 'all', 'next'].filter((step) => order.includes(step)));
+    }
+  });
+
   it('names every navigation region, each one differently', () => {
     for (const { url, html } of pages) {
       const labels = [...html.matchAll(/<nav\b[^>]*>/g)].map(([tag]) => tag.match(/\saria-label="([^"]+)"/)?.[1]);
