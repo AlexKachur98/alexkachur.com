@@ -1,15 +1,22 @@
 ---
 // A page section: a rule on top with the title sitting on its left. The layout and
-// spacing live in base.css so markdown sections and hand-written ones look the same.
+// spacing live in base.css so markdown sections and hand-written ones look the same. A section
+// whose body renders to nothing, because all it holds so far is a note to me that the build
+// strips, is left out whole, heading included, until it has copy.
 interface Props {
   id: string;
   title: string;
 }
 
 const { id, title } = Astro.props;
+const body = Astro.slots.has('default') ? (await Astro.slots.render('default')).trim() : '';
 ---
 
-<section class="section" id={id}>
-  <h2>{title}</h2>
-  <slot />
-</section>
+{
+  body !== '' && (
+    <section class="section" id={id}>
+      <h2>{title}</h2>
+      <Fragment set:html={body} />
+    </section>
+  )
+}
