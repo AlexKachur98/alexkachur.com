@@ -106,6 +106,18 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  it('starts the footer with Home and marks the link to the page it is on', () => {
+    const own: Record<string, string> = { '/': 'Home', '/uses': 'Uses', '/api': 'API', '/how-this-site-works': 'How this site works' };
+    expect(pages.map(({ url }) => url)).toEqual(expect.arrayContaining(Object.keys(own)));
+    for (const { url, html } of pages) {
+      const footer = html.match(/<nav\b[^>]*\saria-label="Footer"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? '';
+      const links = [...footer.matchAll(/<a\b([^>]*)>([^<]*)<\/a>/g)].map(([, attributes, text]) => ({ text, current: /\saria-current="page"/.test(attributes!) }));
+      expect(links[0]?.text, url).toBe('Home');
+      expect(links.filter(({ current }) => current).map(({ text }) => text), url).toEqual(own[url] ? [own[url]] : []);
+      expect(html.match(/\saria-current=/g)?.length ?? 0, url).toBe(own[url] ? 1 : 0);
+    }
+  });
+
   it('names every navigation region, each one differently', () => {
     for (const { url, html } of pages) {
       const labels = [...html.matchAll(/<nav\b[^>]*>/g)].map(([tag]) => tag.match(/\saria-label="([^"]+)"/)?.[1]);

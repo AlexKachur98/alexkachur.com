@@ -46,7 +46,7 @@ const hasHeader = path !== '/';
     <a class="skip-link" href="#main">Skip to content</a>
     {hasHeader && <Header />}
     <slot />
-    <Footer />
+    <Footer path={path} />
     <script src="../scripts/bootstrap.ts"></script>
     <Analytics />
   </body>

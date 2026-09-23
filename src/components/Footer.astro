@@ -4,18 +4,33 @@
 import buildInfo from '../generated/build-info.json';
 import ThemeToggle from './ThemeToggle.astro';
 
+interface Props {
+  path: string;
+}
+
+const { path } = Astro.props;
 const commit = buildInfo.commit.slice(0, 7);
 const deployed = buildInfo.builtAt.slice(0, 10);
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/uses', label: 'Uses' },
+  { href: '/api', label: 'API' },
+  { href: '/how-this-site-works', label: 'How this site works' },
+  { href: '/humans.txt', label: 'humans.txt' },
+];
 ---
 
 <footer class="container site-footer">
   <p class="readouts" data-readouts>build {commit} · deployed {deployed}</p>
   <nav aria-label="Footer">
     <ul class="footer-links" role="list">
-      <li><a href="/uses">Uses</a></li>
-      <li><a href="/api">API</a></li>
-      <li><a href="/how-this-site-works">How this site works</a></li>
-      <li><a href="/humans.txt">humans.txt</a></li>
+      {
+        links.map(({ href, label }) => (
+          <li>
+            <a href={href} aria-current={href === path ? 'page' : undefined}>{label}</a>
+          </li>
+        ))
+      }
       <li><ThemeToggle /></li>
     </ul>
   </nav>
