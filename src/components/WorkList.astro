@@ -7,7 +7,8 @@ import Section from './Section.astro';
 // screenshot across eight columns; the others keep their screenshot to four, and to six from
 // 1200px, where it fills the column. Each sizes list follows the grid: fluid between 768px and
 // 1080px and again between 1200px and the 1240px container, fixed at each container width, and
-// held on a phone by the width attribute. The largest candidate is double the widest column.
+// held on a phone by the width attribute. The largest candidate is double the widest column, or
+// the whole source where that is narrower.
 // The featured screenshot is the largest thing in a wide first screen, so it loads eagerly.
 // A screenshot is a second way into the case study for a pointer; hovering it or the title marks
 // both, so the two read as one link.
