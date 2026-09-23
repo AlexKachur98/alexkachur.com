@@ -93,10 +93,12 @@ for (const path of Object.keys(samples)) {
     padding-top: var(--space-8);
   }
 
-  /* A method and a path are data, so the endpoint titles are mono. */
+  /* A method and a path are data, so the endpoint titles are mono. A path has no spaces, so it
+     may break anywhere rather than run past a phone's edge. */
   .endpoint h2 {
     font-family: var(--font-mono);
     font-size: var(--text-lg);
+    overflow-wrap: anywhere;
   }
 
   @media (min-width: 768px) {
