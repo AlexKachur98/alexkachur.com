@@ -279,8 +279,11 @@ td {
 }
 
 /* The diagonal cut: only the console panel and the primary button carry .cut.
-   The fill and the clip live on ::before, so the element's own focus ring is never clipped. */
+   The fill and the clip live on ::before (a console panel moves its fill to ::after and draws
+   its edge on ::before), so the element's own focus ring is never clipped. */
 .cut {
+  --cut-shape: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+
   position: relative;
   isolation: isolate;
 }
@@ -291,7 +294,7 @@ td {
   inset: 0;
   z-index: -1;
   background: var(--cut-fill);
-  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+  clip-path: var(--cut-shape);
 }
 
 .visually-hidden {

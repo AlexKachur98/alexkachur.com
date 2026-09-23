@@ -12,6 +12,22 @@
   line-height: var(--leading-mono);
 }
 
+/* The edge follows the cut: the rule colour fills the whole shape and the panel's own fill sits
+   1px inside it with the same shape, so the diagonal is edged too. Without it the panel all but
+   disappears on the dark page. */
+.console.cut::before {
+  background: var(--console-rule);
+}
+
+.console.cut::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  background: var(--cut-fill);
+  clip-path: var(--cut-shape);
+}
+
 .console a {
   color: var(--console-ink);
 }
