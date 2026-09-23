@@ -252,6 +252,65 @@ export function visibleRows(result: Result): Cell[][] {
   return result.rows.slice(0, ROWS);
 }
 
+// The SQL an answer shows, split so its keywords can take their colour. Only syntax words count:
+// strings, quoted names, comments and numbers stay plain, and so does a word after a dot (a
+// column) or one with letters outside ASCII, which SQLite reads as a name. Left out on purpose:
+// KEY and DATE, which are columns here; COUNT and every other function, since a query often
+// names a column after one (COUNT(*) AS count); type names; words more often a name than syntax
+// (FIRST, LAST, FILTER, PLAN and the like); and EXPLAIN and every statement other than a query,
+// which the server never sends back. Some listed words (ASC, DESC, END, LEFT and others) are
+// also valid names in SQLite; they stay because a query almost always uses them as syntax, so an
+// alias spelled like one takes the colour.
+const SQL_KEYWORDS = new Set([
+  'SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY', 'HAVING', 'ORDER', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'AS', 'WITH', 'RECURSIVE',
+  'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER', 'CROSS', 'NATURAL', 'ON', 'USING',
+  'UNION', 'INTERSECT', 'EXCEPT', 'VALUES',
+  'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL', 'LIKE', 'GLOB', 'ESCAPE', 'BETWEEN', 'EXISTS', 'ISNULL', 'NOTNULL', 'COLLATE',
+  'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'CAST',
+  'OVER', 'PARTITION', 'WINDOW',
+]);
+
+// One token at a time from the start: a string with its doubled quotes, a quoted or bracketed
+// name, a comment, a number, a word (SQLite allows any character from U+0080 up in a name), or
+// any single character. An unterminated quote or comment runs to the end.
+const SQL_TOKEN =
+  /'(?:[^']|'')*'?|"(?:[^"]|"")*"?|`(?:[^`]|``)*`?|\[[^\]]*\]?|--[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[A-Za-z_\u0080-\uFFFF][\w$\u0080-\uFFFF]*|[\s\S]/gy;
+const ASCII_WORD = /^[A-Za-z]+$/;
+
+export interface SqlToken {
+  text: string;
+  keyword: boolean;
+}
+
+// Plain runs are merged, so the tokens alternate and joining their text gives the SQL back.
+export function sqlTokens(sql: string): SqlToken[] {
+  const tokens: SqlToken[] = [];
+  let plain = '';
+  for (const match of sql.matchAll(SQL_TOKEN)) {
+    const text = match[0];
+    if (ASCII_WORD.test(text) && sql[match.index - 1] !== '.' && SQL_KEYWORDS.has(text.toUpperCase())) {
+      if (plain !== '') tokens.push({ text: plain, keyword: false });
+      tokens.push({ text, keyword: true });
+      plain = '';
+    } else {
+      plain += text;
+    }
+  }
+  if (plain !== '') tokens.push({ text: plain, keyword: false });
+  return tokens;
+}
+
+// The SQL comes from the model, so it is built as text nodes and spans, never parsed as HTML.
+function sqlNodes(sql: string): Node[] {
+  return sqlTokens(sql).map(({ text, keyword }) => {
+    if (!keyword) return document.createTextNode(text);
+    const span = document.createElement('span');
+    span.className = 'sql-keyword';
+    span.textContent = text;
+    return span;
+  });
+}
+
 // The status line after a run: the row count, or the two copy strings for none and for more.
 export function summary(result: Result): string {
   if (result.rows.length === 0) return EMPTY_MESSAGE;
@@ -464,7 +523,7 @@ function begin(ui: AskUi, question: string): void {
 }
 
 async function answer(ui: AskUi, sql: string): Promise<void> {
-  ui.sql.textContent = sql;
+  ui.sql.replaceChildren(...sqlNodes(sql));
   if (ui.edit) ui.edit.hidden = false;
   await execute(ui, sql);
 }

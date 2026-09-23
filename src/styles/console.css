@@ -32,6 +32,11 @@
   color: var(--console-ink);
 }
 
+/* Keywords in the SQL an answer shows; the spans are made at run time, so this rule is global. */
+.console .sql-keyword {
+  color: var(--console-keyword);
+}
+
 /* Controls inside a panel (the Ask box's input, chips and button) take the console tokens: the
    page tokens resolve once on the root, so they would carry the light theme into this dark
    panel. Colours are set as longhands so the primary button keeps its zero border, and the
@@ -165,7 +170,7 @@
 }
 
 .console-results th {
-  color: var(--console-muted);
+  color: var(--console-keyword);
 }
 
 .console-results .null {

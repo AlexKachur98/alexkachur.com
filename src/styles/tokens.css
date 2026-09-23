@@ -20,6 +20,9 @@
   --on-accent: light-dark(#111111, #111111);
   --danger: light-dark(#C5003C, #FF4A57);
   --focus: light-dark(#111111, #F3E600);
+  /* The small marks on the page: yellow on the dark theme, ink on the light one, where yellow
+     measures 1.15:1 on the background. */
+  --mark: light-dark(#111111, #F3E600);
 }
 
 /* The console panel is dark in both themes. Its own set, never overrides of the page tokens,
@@ -31,6 +34,9 @@
   --console-accent: #F3E600;
   --console-rule: #2C2C2C;
   --console-danger: #FF4A57;
+  /* The one hue besides yellow, and only on this dark fill (8.1:1): SQL keywords and results
+     headers. */
+  --console-keyword: #56B4E9;
 }
 
 /* A stored choice only changes the colour scheme; the tokens above follow it. */
@@ -178,6 +184,12 @@
 }
 
 @property --focus {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F3E600;
+}
+
+@property --mark {
   syntax: "<color>";
   inherits: true;
   initial-value: #F3E600;

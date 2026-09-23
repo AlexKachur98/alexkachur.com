@@ -26,7 +26,8 @@ html {
     --ink var(--duration) var(--ease),
     --muted var(--duration) var(--ease),
     --danger var(--duration) var(--ease),
-    --focus var(--duration) var(--ease);
+    --focus var(--duration) var(--ease),
+    --mark var(--duration) var(--ease);
 }
 
 body {
@@ -164,6 +165,19 @@ figcaption {
   margin: calc(var(--leading-heading) * -0.5em) 0 var(--space-6);
   padding-right: var(--space-3);
   background: var(--bg);
+}
+
+/* A small square marks each section title, raised so it centres on the capitals (0.7em tall in
+   Barlow). The marks repeat one signal, so however many share a screen they count as one of
+   its yellow elements. */
+.section > h2::before {
+  content: "";
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-right: 0.35em;
+  background: var(--mark);
+  vertical-align: 0.15em;
 }
 
 .site-footer {
