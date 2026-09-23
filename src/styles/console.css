@@ -1,9 +1,12 @@
 /* The console panel: dark in both themes on its own tokens, never the page's. The
    results table is built at run time, so these rules are global rather than scoped. */
 
+/* Below 768px the raw console sits in a one-column grid, which would otherwise widen to a long
+   results table and the page with it; at zero the table scrolls inside the panel instead. */
 .console {
   --cut-fill: var(--console-bg);
 
+  min-width: 0;
   color-scheme: dark;
   padding: var(--space-4);
   color: var(--console-ink);
@@ -164,10 +167,13 @@
   }
 }
 
+/* An error can quote a long name from the query, so it breaks where it must rather than
+   widening the page. */
 .console-error {
   margin: 0;
   max-width: none;
   color: var(--console-danger);
+  overflow-wrap: anywhere;
 }
 
 .console-error:not(:empty) {
