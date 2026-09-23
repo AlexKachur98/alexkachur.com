@@ -70,6 +70,12 @@
   --leading-mono: 1.45;
   --tracking-heading: -0.02em;
   --tracking-label: 0.04em;
+  /* Barlow's vertical metrics in em, read from its font files in @fontsource/barlow (1000 units
+     per em: ascent 1000, descent 200, capital height 700). With a size and a line height they
+     give where the tops of the capitals sit in a line of Barlow. */
+  --barlow-ascent: 1;
+  --barlow-descent: 0.2;
+  --barlow-cap-height: 0.7;
 }
 
 @media (min-width: 768px) {
