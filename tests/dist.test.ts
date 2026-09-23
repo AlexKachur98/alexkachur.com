@@ -90,6 +90,22 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // The home page opens with the name in its hero instead.
+  it('gives every page but the home page a site header with one link home', () => {
+    const home = pages.find(({ url }) => url === '/');
+    expect(home).toBeDefined();
+    const sections = [...home!.html.matchAll(/<section\b[^>]*\sid="([^"]+)"/g)].map(([, id]) => id);
+    expect(sections).toEqual(expect.arrayContaining(['work', 'about', 'contact']));
+    for (const { url, html } of pages) {
+      const navs = [...html.matchAll(/<nav\b[^>]*\saria-label="Site"[^>]*>([\s\S]*?)<\/nav>/g)];
+      expect(navs, url).toHaveLength(url === '/' ? 0 : 1);
+      if (url === '/') continue;
+      expect(navs[0]![1]!.match(/<a\b[^>]*\shref="\/"[^>]*>/g), url).toHaveLength(1);
+      const links = [...navs[0]![1]!.matchAll(/<a\b[^>]*\shref="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(([, href, text]) => `${text} ${href}`);
+      expect(links, url).toEqual(['Alex Kachur /', 'Work /#work', 'About /#about', 'Contact /#contact']);
+    }
+  });
+
   it('names every navigation region, each one differently', () => {
     for (const { url, html } of pages) {
       const labels = [...html.matchAll(/<nav\b[^>]*>/g)].map(([tag]) => tag.match(/\saria-label="([^"]+)"/)?.[1]);

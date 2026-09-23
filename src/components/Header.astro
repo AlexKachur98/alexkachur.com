@@ -1,0 +1,66 @@
+<header class="container site-header">
+  <nav class="site-nav" aria-label="Site">
+    <a class="site-name" href="/">Alex Kachur</a>
+    <ul class="site-links" role="list">
+      <li><a href="/#work">Work</a></li>
+      <li><a href="/#about">About</a></li>
+      <li><a href="/#contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<style>
+  .site-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: var(--space-5);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* No underline at rest. Only the line is switched, never the shorthand, so hover still gets the
+     2px underline in the mark colour from the base link rule. */
+  .site-name {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    text-decoration-line: none;
+  }
+
+  @media (hover: hover) {
+    .site-name:hover {
+      text-decoration-line: underline;
+    }
+  }
+
+  .site-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-weight: 600;
+  }
+
+  .site-links li {
+    margin: 0;
+  }
+
+  .site-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control);
+  }
+
+  /* On a phone the links take their own line under the name; from 768px they share its row. */
+  @media (min-width: 768px) {
+    .site-nav {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+</style>

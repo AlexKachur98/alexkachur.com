@@ -13,6 +13,7 @@ import barlow700 from '@fontsource/barlow/files/barlow-latin-700-normal.woff2?ur
 import mono400 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url';
 import Analytics from '@vercel/analytics/astro';
 import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
 
 interface Props {
   title: string;
@@ -26,6 +27,8 @@ const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 const canonical = new URL(path, Astro.site);
 const preloads = [barlow400, barlow600, barlow700, mono400];
+// The home page opens with the name in its hero; every other page gets the header.
+const hasHeader = path !== '/';
 ---
 
 <!doctype html>
@@ -41,6 +44,7 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
+    {hasHeader && <Header />}
     <slot />
     <Footer />
     <script src="../scripts/bootstrap.ts"></script>
