@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createExecutor, guard, renderCell, ROWS, summary, visibleRows } from '../src/scripts/console.ts';
+import { examples } from '../src/data/examples.ts';
+import { createExecutor, guard, renderCell, ROWS, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
@@ -333,5 +335,84 @@ describe('executor', () => {
     expect(workers).toHaveLength(2);
     workers[1]!.reply({ type: 'ready' });
     await expect(ready).resolves.toBeUndefined();
+  });
+});
+
+function keywords(sql: string): string[] {
+  return sqlTokens(sql)
+    .filter((token) => token.keyword)
+    .map((token) => token.text);
+}
+
+describe('SQL keyword tokens', () => {
+  it('picks out the syntax words of the example queries and nothing else', () => {
+    expect(keywords(examples[0]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE']);
+    expect(keywords(examples[2]!.sql)).toEqual(['SELECT', 'AS', 'FROM', 'JOIN', 'ON', 'GROUP', 'BY', 'HAVING', 'ORDER', 'BY', 'DESC']);
+    expect(keywords(examples[3]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE']);
+    // key is the facts column, not the keyword.
+    expect(keywords(examples[5]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE', 'IN']);
+  });
+
+  it('matches in any case but leaves a function and a column named after it plain', () => {
+    expect(keywords('select kind, count(*) as count from projects group by kind order by count desc')).toEqual([
+      'select',
+      'as',
+      'from',
+      'group',
+      'by',
+      'order',
+      'by',
+      'desc',
+    ]);
+  });
+
+  it('never colours a table or column name of this database', () => {
+    for (const table of schema.tables) {
+      for (const name of [table.name, ...table.columns.map((column) => column.name)]) {
+        expect(keywords(name), name).toEqual([]);
+        expect(keywords(name.toUpperCase()), name).toEqual([]);
+      }
+    }
+  });
+
+  it('leaves strings, quoted names, comments, qualified names and non-ASCII look-alikes plain', () => {
+    // SQLite reads the long s and the dotless i as letters of a name, though they upper-case to
+    // SELECT and IN.
+    for (const sql of ["'It''s FROM here'", '"order"', '`group`', '[select]', '-- from the notes', '/* and */', 't.end', '\u017Felect', '\u0131n']) {
+      expect(keywords(sql), sql).toEqual([]);
+    }
+  });
+
+  it('keeps a keyword inside an unfinished string or comment, or inside a longer name, plain', () => {
+    expect(keywords("SELECT x FROM t WHERE a = 'from")).toEqual(['SELECT', 'FROM', 'WHERE']);
+    expect(keywords('SELECT 1 /* from')).toEqual(['SELECT']);
+    expect(keywords('SELECT "from')).toEqual(['SELECT']);
+    expect(keywords('SELECT x from\u00E9')).toEqual(['SELECT']);
+  });
+
+  it('gives the SQL back exactly, with no empty token and no two plain runs side by side', () => {
+    const samples = [...examples.map((example) => example.sql), "SELECT 'open", 'SELECT 1 /* open', '', 'SELECT\n  1.5e3,\t.5 FROM x'];
+    for (const sql of samples) {
+      const tokens = sqlTokens(sql);
+      expect(tokens.map((token) => token.text).join(''), sql).toBe(sql);
+      for (const [index, token] of tokens.entries()) {
+        expect(token.text, sql).not.toBe('');
+        if (index > 0) expect(token.keyword || tokens[index - 1]!.keyword, sql).toBe(true);
+      }
+    }
+  });
+});
+
+describe('Ask SQL rendering', () => {
+  const source = readFileSync('src/scripts/console.ts', 'utf8');
+
+  it('builds the SQL an answer shows from nodes, never from an HTML string', () => {
+    expect(source).toContain('ui.sql.replaceChildren(...sqlNodes(sql));');
+    expect(source).toContain('document.createTextNode(text)');
+    expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML/);
+  });
+
+  it('still hands Edit this query the plain SQL', () => {
+    expect(source).toContain("consoleUi.input.value = askUi.sql.textContent ?? '';");
   });
 });

@@ -53,6 +53,15 @@ describe(`built output in ${root}`, () => {
     expect(offenders).toEqual([]);
   });
 
+  // A section whose only content is a note to me is left out until it has copy; a heading with
+  // nothing after it means one slipped through.
+  it('renders no section heading with nothing after it', () => {
+    const bare = files
+      .filter((path) => path.endsWith('.html'))
+      .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<h2\b[^>]*>((?:(?!<\/?h2\b)[\s\S])*)<\/h2>\s*<\/section>/g)].map(([, title]) => `${path}: ${title}`));
+    expect(bare).toEqual([]);
+  });
+
   it('links /data/ and /vendor/ only through versioned URLs', () => {
     const found: string[] = [];
     const unversioned: string[] = [];
