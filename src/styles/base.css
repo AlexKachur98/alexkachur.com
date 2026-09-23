@@ -339,6 +339,41 @@ td {
   border: 0;
 }
 
+/* Hidden until a keyboard reaches it. Focused, it is a bar across the container over the
+   header's first row, its text where the name sits, so it hides that row whole rather than half
+   of the name; the inset keeps its focus ring on screen. It lies over the page, so nothing moves. */
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  inset-inline: var(--space-2);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  max-width: calc(var(--container) - 2 * var(--space-2));
+  min-height: calc(var(--space-5) - var(--space-2) + var(--control));
+  margin-inline: auto;
+  padding: calc(var(--space-5) - var(--space-2)) calc(var(--space-5) - var(--space-2)) 0;
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.skip-link:not(:focus) {
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .skip-link {
+    padding-inline: calc(var(--space-7) - var(--space-2));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration: 0ms;

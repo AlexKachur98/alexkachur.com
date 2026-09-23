@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { extname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
@@ -23,6 +23,23 @@ function vendored(path: string): boolean {
 }
 
 const files = walk(root).filter((path) => textTypes.has(extname(path)));
+
+// Each built page with the path it is served at: uses/index.html is /uses, 404.html is /404.
+const pages = files
+  .filter((path) => path.endsWith('.html'))
+  .map((path) => {
+    const file = relative(root, path).replaceAll('\\', '/');
+    return { url: `/${file.replace(/(^|\/)index\.html$/, '').replace(/\.html$/, '')}`, html: readFileSync(path, 'utf8') };
+  });
+
+// The opening tag of anything a keyboard can reach, in document order. A link needs an href, and
+// tabindex="-1", disabled, hidden and type="hidden" take an element out of the order.
+const focusableTag = /<(?:a\b[^>]*\shref=|(?:button|input|select|textarea|summary|iframe)\b|[a-z][a-z0-9-]*\b[^>]*\stabindex=")[^>]*>/g;
+const unfocusable = /\stabindex="-|\s(?:disabled|hidden)(?=[\s=>/])|\stype="hidden"/;
+
+function firstFocusable(html: string): string | undefined {
+  return [...html.slice(html.indexOf('<body')).matchAll(focusableTag)].map(([tag]) => tag).find((tag) => !unfocusable.test(tag));
+}
 
 // A URL in an attribute, a string or a url(): the quote, equals sign or bracket before it keeps
 // the plain path shown as link text out of the match.
@@ -60,6 +77,17 @@ describe(`built output in ${root}`, () => {
       .filter((path) => path.endsWith('.html'))
       .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<h2\b[^>]*>((?:(?!<\/?h2\b)[\s\S])*)<\/h2>\s*<\/section>/g)].map(([, title]) => `${path}: ${title}`));
     expect(bare).toEqual([]);
+  });
+
+  it('makes the skip link the first stop on every page, with one main for it to land on', () => {
+    for (const { url, html } of pages) {
+      const first = firstFocusable(html);
+      expect(first, url).toMatch(/\sclass="skip-link"/);
+      expect(first, url).toMatch(/\shref="#main"/);
+      expect(html, url).toMatch(/<a\b[^>]*\sclass="skip-link"[^>]*>Skip to content<\/a>/);
+      expect(html.match(/\sid="main"/g), url).toHaveLength(1);
+      expect(html, url).toMatch(/<main\b[^>]*\sid="main"/);
+    }
   });
 
   it('links /data/ and /vendor/ only through versioned URLs', () => {

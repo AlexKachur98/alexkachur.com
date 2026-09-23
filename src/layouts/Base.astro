@@ -40,6 +40,7 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
     {preloads.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <slot />
     <Footer />
     <script src="../scripts/bootstrap.ts"></script>

@@ -52,7 +52,7 @@ for (const path of Object.keys(samples)) {
 ---
 
 <Base title="API" description="These endpoints return the same records the pages are built from.">
-  <main class="container">
+  <main id="main" class="container">
     <header class="page-head">
       <h1>API</h1>
       <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per connection and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
