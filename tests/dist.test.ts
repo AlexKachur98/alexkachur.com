@@ -90,6 +90,15 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  it('names every navigation region, each one differently', () => {
+    for (const { url, html } of pages) {
+      const labels = [...html.matchAll(/<nav\b[^>]*>/g)].map(([tag]) => tag.match(/\saria-label="([^"]+)"/)?.[1]);
+      expect(labels.length, url).toBeGreaterThan(0);
+      expect(labels.every(Boolean), url).toBe(true);
+      expect(new Set(labels).size, url).toBe(labels.length);
+    }
+  });
+
   it('links /data/ and /vendor/ only through versioned URLs', () => {
     const found: string[] = [];
     const unversioned: string[] = [];
