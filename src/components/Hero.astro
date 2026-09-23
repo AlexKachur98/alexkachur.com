@@ -65,6 +65,12 @@ import AskBox from './AskBox.astro';
     min-height: var(--control);
   }
 
+  /* A grid item is never narrower than its content by default, so on a phone the input row or a
+     wide results table would push the page sideways; at zero the table scrolls inside the box. */
+  .hero-ask {
+    min-width: 0;
+  }
+
   /* From 768px the facts sit beside the headline and the Ask box takes its own row under it,
      so an answer growing in the box moves nothing beside it. */
   @media (min-width: 768px) {
@@ -86,6 +92,31 @@ import AskBox from './AskBox.astro';
     .hero-ask {
       grid-row: 2;
       grid-column: 1 / 9;
+    }
+  }
+
+  /* From 1200px the name, then the facts, stack on the left and the Ask box stands beside both.
+     Its extra height goes to the second row alone, so the facts stay under the name and an
+     answer growing in the box still moves nothing beside it. */
+  @media (min-width: 1200px) {
+    .hero {
+      grid-template-rows: auto 1fr;
+      align-items: start;
+    }
+
+    .hero-lead {
+      grid-row: 1;
+      grid-column: 1 / 7;
+    }
+
+    .hero-facts {
+      grid-row: 2;
+      grid-column: 1 / 7;
+    }
+
+    .hero-ask {
+      grid-row: 1 / 3;
+      grid-column: 7 / 13;
     }
   }
 </style>

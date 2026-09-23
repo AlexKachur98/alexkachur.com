@@ -46,6 +46,12 @@ import Base from '../layouts/Base.astro';
     min-height: var(--control);
   }
 
+  /* A grid item is never narrower than its content by default, so on a phone the input row or a
+     wide results table would push the page sideways; at zero the table scrolls inside the box. */
+  .ask-slot {
+    min-width: 0;
+  }
+
   @media (min-width: 768px) {
     .page-head {
       padding-top: var(--space-9);

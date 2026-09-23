@@ -16,6 +16,31 @@
   color: var(--console-ink);
 }
 
+/* Controls inside a panel (the Ask box's input, chips and button) take the console tokens: the
+   page tokens resolve once on the root, so they would carry the light theme into this dark
+   panel. Colours are set as longhands so the primary button keeps its zero border, and the
+   primary rule comes after the general one, which it ties with. */
+.console .input {
+  border-color: var(--console-muted);
+  background: var(--console-bg);
+  color: var(--console-ink);
+}
+
+.console .input:focus-visible {
+  border-color: var(--console-accent);
+}
+
+.console .button {
+  border-color: var(--console-ink);
+  color: var(--console-ink);
+}
+
+.console .button-primary {
+  --cut-fill: var(--console-accent);
+
+  color: var(--console-bg);
+}
+
 /* The header line: "query", the byte size, then the status region (monospace 14px, muted)
    and the cursor. */
 .console-head {

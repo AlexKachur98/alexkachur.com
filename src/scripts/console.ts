@@ -448,7 +448,7 @@ function query(sql: string): void {
 
 // Clears the Ask panel for a new question and opens it, the question on its header line. The
 // panel is always in the markup so its two live regions exist before they are written to; it
-// takes its padding only once it has something to show.
+// takes up space only once it has something to show.
 function begin(ui: AskUi, question: string): void {
   ui.root.setAttribute('data-open', '');
   ui.question.textContent = question;

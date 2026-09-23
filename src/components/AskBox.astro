@@ -4,9 +4,11 @@ import { dataFile } from '../lib/data-file.ts';
 import '../styles/console.css';
 
 // The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,
-// in the compact console panel below the chips. The two chips carry reviewed SQL and run it
-// locally with no request. The panel is always in the markup, so its status and error regions
-// exist before anything is written to them; it shows its padding only once it holds something.
+// in the answer area below the chips. The whole box is one console panel, dark in both themes
+// with one fill and one cut; the form and the answer share it. The two chips carry reviewed
+// SQL and run it locally with no request. The answer area is always in the markup, so its
+// status and error regions exist before anything is written to them; it takes up space only
+// once it holds something.
 // The six examples are the fallback listed when the AI is out of reach. A page without the raw
 // console (404) gets no Edit this query button, since there is nowhere to edit.
 interface Props {
@@ -18,11 +20,11 @@ const database = dataFile('portfolio.sqlite');
 const kb = Math.round(database.bytes / 1000);
 ---
 
-<div data-ask data-kb={kb} data-db-url={database.url}>
+<div class="console cut ask" data-ask data-kb={kb} data-db-url={database.url}>
   <!-- Enter submits through the form. Its method makes the browser's own submission a no-op
        (there is no dialog around it), so a question typed before the script has loaded, or
        with scripts off, never lands in the URL; the submit event still fires for the script. -->
-  <form method="dialog" data-ask-form>
+  <form class="ask-form" method="dialog" data-ask-form>
     <label class="ask-label" for="ask-input">Ask this site anything about me. It answers by writing SQL.</label>
     <div class="ask-row">
       <input class="input" id="ask-input" type="text" maxlength="200" autocomplete="off" data-ask-input />
@@ -44,7 +46,7 @@ const kb = Math.round(database.bytes / 1000);
       Nothing else is stored, and no question is ever logged.
     </p>
   </form>
-  <div class="console cut ask-panel" data-ask-panel>
+  <div class="console ask-panel" data-ask-panel>
     <p class="console-head">
       <span id="ask-question" data-ask-question></span>
       <span class="console-dot" aria-hidden="true">·</span>
@@ -74,6 +76,17 @@ const kb = Math.round(database.bytes / 1000);
 </div>
 
 <style>
+  .ask {
+    padding: var(--space-5);
+  }
+
+  /* The panel sets monospace for the answer; the question form keeps the page's type. */
+  .ask-form {
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    line-height: var(--leading-body);
+  }
+
   .ask-label {
     display: block;
     margin-bottom: var(--space-3);
@@ -107,18 +120,20 @@ const kb = Math.round(database.bytes / 1000);
 
   .ask-privacy {
     margin: 0;
-    color: var(--muted);
+    color: var(--console-muted);
     font-size: var(--text-sm);
   }
 
-  /* Closed, the panel has no padding and its empty lines no height, so nothing shows. */
+  /* The answer area sits inside the box's own padding, so it has none. It keeps the console
+     class for the cursor, which blinks while this element is working. Closed, its empty lines
+     have no height, so nothing shows. */
   .ask-panel {
     margin-top: var(--space-4);
+    padding: 0;
   }
 
   .ask-panel:not([data-open]) {
     margin: 0;
-    padding: 0;
   }
 
   .ask-panel:not([data-open]) .console-head {
@@ -193,5 +208,11 @@ const kb = Math.round(database.bytes / 1000);
     display: block;
     color: var(--console-muted);
     overflow-wrap: anywhere;
+  }
+
+  @media (min-width: 1200px) {
+    .ask {
+      padding: var(--space-6);
+    }
   }
 </style>
