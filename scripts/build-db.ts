@@ -68,7 +68,7 @@ function message(error: unknown): string {
 
 function readText(path: string): string {
   if (!existsSync(path)) throw new Error(`${path} is missing`);
-  return readFileSync(path, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
+  return readFileSync(path, 'utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
 }
 
 export function readContentFiles(contentDir: string): ContentFiles {

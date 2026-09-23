@@ -29,9 +29,14 @@ function git(...args: string[]): string[] {
   return execFileSync('git', ['ls-files', '-z', ...args], { encoding: 'utf8' }).split('\0').filter(Boolean);
 }
 
-const files = [...new Set([...git(), ...git('--others', '--exclude-standard')])]
-  .filter((file) => !skipped.some((pattern) => pattern.test(file)))
-  .filter((file) => !binary.has(extname(file)));
+const textFiles = [...new Set([...git(), ...git('--others', '--exclude-standard')])].filter((file) => !binary.has(extname(file)));
+const files = textFiles.filter((file) => !skipped.some((pattern) => pattern.test(file)));
+
+// Characters that draw nothing, so a reader of the file or the diff cannot see them: the two
+// noncharacters, the zero-width space and joiners, and the word joiner. A byte-order mark is
+// allowed only as the very first character of a file.
+const invisible = /[\uFFFE\uFFFF\u200B-\u200D\u2060]/;
+const byteOrderMark = '\uFEFF';
 
 describe('repository hygiene', () => {
   it('walks the tracked and addable files', () => {
@@ -51,6 +56,20 @@ describe('repository hygiene', () => {
         }
       });
     }
+    expect(offenders).toEqual([]);
+  });
+
+  it('finds no invisible character in any text file', () => {
+    const offenders: string[] = [];
+    for (const file of textFiles) {
+      const text = readFileSync(file, 'utf8');
+      if (text.includes('\0')) continue;
+      text.split('\n').forEach((line, index) => {
+        const checked = index === 0 && line.startsWith(byteOrderMark) ? line.slice(1) : line;
+        if (invisible.test(checked) || checked.includes(byteOrderMark)) offenders.push(`${file}:${index + 1}`);
+      });
+    }
+    expect(textFiles).toContain('tests/hygiene.test.ts');
     expect(offenders).toEqual([]);
   });
 });
