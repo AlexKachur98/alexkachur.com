@@ -190,7 +190,7 @@ describe(`built output in ${root}`, () => {
 
     const head = block.match(/<p\b[^>]*\sid="ask-example-answer-head"[^>]*>([\s\S]*?)<\/p>/)?.[1] ?? '';
     const parts = [...head.matchAll(/<span\b[^>]*>([^<]*)<\/span>/g)].map(([, part]) => part!.trim());
-    expect(parts).toEqual(['Example', '·', example.label, '·', rows.length === 1 ? '1 row' : `${rows.length} rows`]);
+    expect(parts).toEqual(['Example', '·', example.label, rows.length === 1 ? '1 row' : `${rows.length} rows`]);
     const sql = block.match(/<pre\b[^>]*\sclass="ask-sql"[^>]*>([\s\S]*?)<\/pre>/)?.[1] ?? '';
     expect(text(sql)).toBe(example.sql);
     const edit = block.match(/<button\b[^>]*\sdata-ask-edit\b[^>]*>/)?.[0] ?? '';

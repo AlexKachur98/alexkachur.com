@@ -75,11 +75,12 @@ const answer = shown ? await run(shown.sql) : undefined;
       shown && answer && (
         <div class="ask-example-answer" data-ask-example>
           <p class="console-head" id="ask-example-answer-head">
-            <span>Example</span>
-            <span class="console-dot" aria-hidden="true">·</span>
-            <span>{shown.label}</span>
-            <span class="console-dot" aria-hidden="true">·</span>
-            <span>{summary(answer)}</span>
+            <span class="ask-head-question">
+              <span>Example</span>{' '}
+              <span class="console-dot" aria-hidden="true">·</span>{' '}
+              <span>{shown.label}</span>
+            </span>{' '}
+            <span class="ask-head-status">{summary(answer)}</span>
           </p>
           <pre class="ask-sql">{sqlTokens(shown.sql).map(({ text, keyword }) => (keyword ? <span class="sql-keyword">{text}</span> : text))}</pre>
           {editable && (
@@ -128,10 +129,11 @@ const answer = shown ? await run(shown.sql) : undefined;
       )
     }
     <p class="console-head">
-      <span id="ask-question" data-ask-question></span>
-      <span class="console-dot" aria-hidden="true">·</span>
-      <span id="ask-status" role="status" data-ask-status></span>
-      <span class="console-cursor" aria-hidden="true"></span>
+      <span class="ask-head-question" id="ask-question" data-ask-question></span>{' '}
+      <span class="ask-head-status">
+        <span id="ask-status" role="status" data-ask-status></span>{' '}
+        <span class="console-cursor" aria-hidden="true"></span>
+      </span>
     </p>
     <!-- A refusal is answered by this line alone, with nothing on the status line, so it
          announces itself. -->
@@ -218,6 +220,31 @@ const answer = shown ? await run(shown.sql) : undefined;
 
   .ask-panel:not([data-open]) > .console-head {
     margin: 0;
+  }
+
+  /* Here the head line is the question, balanced like a heading, and under it the status with the
+     cursor on a line of its own. While the panel is open that line keeps its height even with
+     nothing on it, so the head does not grow or shrink as "working" gives way to the row count and
+     nothing below it moves. The cursor stands on the text's baseline, as in the raw console. */
+  .ask-panel .console-head {
+    display: block;
+  }
+
+  .ask-head-question {
+    display: block;
+    text-wrap: balance;
+  }
+
+  .ask-head-status {
+    display: block;
+  }
+
+  .ask-panel[data-open] .ask-head-status {
+    min-height: calc(var(--leading-mono) * 1em);
+  }
+
+  .ask-panel .console-cursor {
+    vertical-align: baseline;
   }
 
   /* The example only ever stands beside the form, so it shows nowhere below 1200px, and the first

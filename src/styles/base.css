@@ -37,6 +37,8 @@ body {
   font-size: var(--text-md);
 }
 
+/* Headings and lead paragraphs even out the lengths of their lines instead of filling each line
+   in turn; the longest leads, on a phone or tablet, keep their usual breaks. */
 h1,
 h2,
 h3 {
@@ -44,6 +46,7 @@ h3 {
   font-weight: 700;
   line-height: var(--leading-heading);
   letter-spacing: var(--tracking-heading);
+  text-wrap: balance;
 }
 
 h1 {
@@ -72,6 +75,7 @@ figcaption {
 
 .lead {
   font-size: var(--text-lg);
+  text-wrap: balance;
 }
 
 code,
