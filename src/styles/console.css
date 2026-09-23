@@ -62,6 +62,22 @@
   color: var(--console-bg);
 }
 
+@media (hover: hover) {
+  .console a:hover {
+    text-decoration-color: var(--console-accent);
+  }
+
+  .console .button:not(.button-primary):hover {
+    border-color: var(--console-accent);
+    background: transparent;
+    color: var(--console-accent);
+  }
+
+  .console .button-primary:hover {
+    --cut-fill: var(--console-ink);
+  }
+}
+
 /* The header line: "query", the byte size, then the status region (monospace 14px, muted)
    and the cursor. */
 .console-head {
@@ -112,13 +128,15 @@
   font-weight: 600;
   line-height: var(--leading-body);
   transition:
-    background-color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
     color var(--duration) var(--ease);
 }
 
-.console-run:hover {
-  background: var(--console-ink);
-  color: var(--console-bg);
+@media (hover: hover) {
+  .console-run:hover {
+    border-color: var(--console-accent);
+    color: var(--console-accent);
+  }
 }
 
 /* The cursor exists only while a query is in flight: a blink in two steps. Idle,
@@ -182,10 +200,18 @@
   width: var(--thumb);
   height: var(--thumb);
   border: 1px solid var(--console-rule);
+  transition: border-color var(--duration) var(--ease);
 }
 
 .console-results a {
   display: inline-block;
+}
+
+/* A thumbnail link has no text to underline, so its image's edge answers the pointer. */
+@media (hover: hover) {
+  .console-results a:hover img {
+    border-color: var(--console-accent);
+  }
 }
 
 /* Rows appear one after another: the whole table is inserted at once and each row

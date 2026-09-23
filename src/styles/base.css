@@ -27,7 +27,9 @@ html {
     --muted var(--duration) var(--ease),
     --danger var(--duration) var(--ease),
     --focus var(--duration) var(--ease),
-    --mark var(--duration) var(--ease);
+    --mark var(--duration) var(--ease),
+    --hover-fill var(--duration) var(--ease),
+    --hover-ink var(--duration) var(--ease);
 }
 
 body {
@@ -86,10 +88,19 @@ a {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
+  transition: text-decoration-color var(--duration) var(--ease);
 }
 
-a:hover {
-  text-decoration-thickness: 2px;
+/* Hover recolours an element's own underline or edge, and keyboard focus draws its ring outside
+   the element, so a resting pointer never reads as focus. On the light page an outlined button
+   inverts instead, because its edge is already the ink the mark colour is there. Inside the
+   console panels, dark in both themes, the hover colour is the console accent. Every hover rule
+   sits behind (hover: hover), so a tap on a touch screen leaves nothing stuck. */
+@media (hover: hover) {
+  a:hover {
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--mark);
+  }
 }
 
 :focus-visible {
@@ -226,12 +237,16 @@ button {
   text-decoration: none;
   transition:
     background-color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
     color var(--duration) var(--ease);
 }
 
-.button:not(.button-primary):hover {
-  background: var(--ink);
-  color: var(--bg);
+@media (hover: hover) {
+  .button:not(.button-primary):hover {
+    border-color: var(--mark);
+    background: var(--hover-fill);
+    color: var(--hover-ink);
+  }
 }
 
 .button-primary {
@@ -309,6 +324,7 @@ td {
   z-index: -1;
   background: var(--cut-fill);
   clip-path: var(--cut-shape);
+  transition: background-color var(--duration) var(--ease);
 }
 
 .visually-hidden {

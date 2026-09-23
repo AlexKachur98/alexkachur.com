@@ -23,6 +23,10 @@
   /* The small marks on the page: yellow on the dark theme, ink on the light one, where yellow
      measures 1.15:1 on the background. */
   --mark: light-dark(#111111, #F3E600);
+  /* An outlined button under the pointer: a yellow frame and yellow text on the dark page; on
+     the light page, where a yellow edge would not show, the ink inversion. */
+  --hover-fill: light-dark(#111111, transparent);
+  --hover-ink: light-dark(#F4F1EA, #F3E600);
 }
 
 /* The console panel is dark in both themes. Its own set, never overrides of the page tokens,
@@ -190,6 +194,18 @@
 }
 
 @property --mark {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F3E600;
+}
+
+@property --hover-fill {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --hover-ink {
   syntax: "<color>";
   inherits: true;
   initial-value: #F3E600;

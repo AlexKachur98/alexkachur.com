@@ -9,6 +9,8 @@ import Section from './Section.astro';
 // 1080px and again between 1200px and the 1240px container, fixed at each container width, and
 // held on a phone by the width attribute. The largest candidate is double the widest column.
 // The featured screenshot is the largest thing in a wide first screen, so it loads eagerly.
+// A screenshot is a second way into the case study for a pointer; hovering it or the title marks
+// both, so the two read as one link.
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
 const technologies = await getCollection('technologies');
 const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
@@ -54,6 +56,7 @@ const rowSizes =
                   widths={featured ? featuredWidths : rowWidths}
                   sizes={featured ? featuredSizes : rowSizes}
                   eager={featured}
+                  href={`/work/${project.id}`}
                 />
               </div>
             )}
@@ -103,6 +106,21 @@ const rowSizes =
     line-height: var(--leading-mono);
   }
 
+  .work-shot :global(img) {
+    transition: border-color var(--duration) var(--ease);
+  }
+
+  @media (hover: hover) {
+    .work-row:has(h3 a:hover, .work-shot :global(a):hover) h3 a {
+      text-decoration-thickness: 2px;
+      text-decoration-color: var(--mark);
+    }
+
+    .work-row:has(h3 a:hover, .work-shot :global(a):hover) .work-shot :global(img) {
+      border-color: var(--mark);
+    }
+  }
+
   .tags {
     display: flex;
     flex-wrap: wrap;
@@ -135,7 +153,7 @@ const rowSizes =
   }
 
   /* The img comes from Figure, so only :global reaches it; its width attribute would otherwise
-     stop it short of the wider column. */
+     stop it short of the wider column, and the frame around it would stay as narrow. */
   @media (min-width: 1200px) {
     .work-text {
       grid-column: 1 / 7;
@@ -143,6 +161,10 @@ const rowSizes =
 
     .work-shot {
       grid-column: 7 / 13;
+    }
+
+    .work-shot :global(.linked) {
+      width: auto;
     }
 
     .work-shot :global(img) {

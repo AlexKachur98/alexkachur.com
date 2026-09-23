@@ -198,10 +198,14 @@ const kb = Math.round(database.bytes / 1000);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.15em;
+    transition: text-decoration-color var(--duration) var(--ease);
   }
 
-  .ask-example:hover {
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .ask-example:hover {
+      text-decoration-thickness: 2px;
+      text-decoration-color: var(--console-accent);
+    }
   }
 
   .ask-fallback code {
