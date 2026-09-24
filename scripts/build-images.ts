@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import * as hb from 'harfbuzzjs';
 import sharp from 'sharp';
+import initSqlJs from 'sql.js';
 import { unpackWoff } from './woff.ts';
 
 const require = createRequire(import.meta.url);
@@ -120,15 +121,15 @@ interface Fonts {
 // corner, where X lays its own label over the image.
 const preview = { width: 1200, height: 630 };
 
-function previewSvg({ colours, trackingHeading }: ReturnType<typeof readTokens>, fonts: Fonts): string {
+function previewSvg({ colours, trackingHeading }: ReturnType<typeof readTokens>, fonts: Fonts, card: CardFacts): string {
   const left = 60;
   const nameSize = 168;
   // The hero at 1600px sets the name at 88px and the role line at 32px, 62px from baseline to baseline.
   const roleSize = (nameSize * 32) / 88;
   const roleGap = (nameSize * 62) / 88;
 
-  const name = shapeLine(fonts.bold, 'Alex Kachur', trackingHeading);
-  const role = shapeLine(fonts.regular, 'Full-stack & AI developer');
+  const name = shapeLine(fonts.bold, card.name, trackingHeading);
+  const role = shapeLine(fonts.regular, card.role);
   const capHeight = (ink(shapeLine(fonts.bold, 'H')).top / fonts.bold.face.upem) * nameSize;
 
   // The name's capitals to the role's baseline, centred on the card.
@@ -202,6 +203,27 @@ function icoFromPng(image: Uint8Array, size: number): Uint8Array {
   return file;
 }
 
+interface CardFacts {
+  name: string;
+  role: string;
+}
+
+// The name and role on the card, from the database build-db has just written.
+async function cardFacts(root: string): Promise<CardFacts> {
+  const SQL = await initSqlJs();
+  const db = new SQL.Database(readFileSync(join(root, 'public', 'data', 'portfolio.sqlite')));
+  try {
+    const rows = db.exec("SELECT key, value FROM facts WHERE key IN ('name', 'role')")[0]?.values ?? [];
+    const facts = new Map(rows.map(([key, value]) => [String(key), String(value)]));
+    const name = facts.get('name');
+    const role = facts.get('role');
+    if (!name || !role) throw new Error('the facts table has no name or role; run build-db first');
+    return { name, role };
+  } finally {
+    db.close();
+  }
+}
+
 export async function main(root = process.cwd()): Promise<void> {
   const tokens = readTokens(readFileSync(join(root, 'src', 'styles', 'tokens.css'), 'utf8'));
   const fonts: Fonts = {
@@ -211,7 +233,7 @@ export async function main(root = process.cwd()): Promise<void> {
 
   const generated = join(root, 'src', 'generated');
   mkdirSync(generated, { recursive: true });
-  writeFileSync(join(generated, 'link-preview.png'), await png(previewSvg(tokens, fonts)));
+  writeFileSync(join(generated, 'link-preview.png'), await png(previewSvg(tokens, fonts, await cardFacts(root))));
   writeFileSync(join(generated, 'icon.svg'), iconSvg(tokens, fonts));
   writeFileSync(join(generated, 'apple-touch-icon.png'), await png(iconSvg(tokens, fonts, 4, 180)));
   writeFileSync(join(root, 'public', 'favicon.ico'), icoFromPng(await png(iconSvg(tokens, fonts, 0, icon.size)), icon.size));

@@ -1,6 +1,12 @@
+---
+import { siteFacts } from '../lib/facts.ts';
+
+const { name } = await siteFacts();
+---
+
 <header class="container site-header">
   <nav class="site-nav" aria-label="Site">
-    <a class="site-name" href="/">Alex Kachur</a>
+    <a class="site-name" href="/">{name}</a>
     <ul class="site-links" role="list">
       <li><a href="/#work">Work</a></li>
       <li><a href="/#about">About</a></li>

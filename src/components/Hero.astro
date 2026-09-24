@@ -1,21 +1,27 @@
 ---
 import AskBox from './AskBox.astro';
+import { availableMonth, siteFacts } from '../lib/facts.ts';
 
 const curl = `curl ${Astro.site!.origin}`;
+const facts = await siteFacts();
+const { month, year } = availableMonth(facts);
+// The school's name inside the status stays on one line, like the date.
+const at = facts.status.indexOf(facts.school);
+const [before, school, after] = at === -1 ? [facts.status, '', ''] : [facts.status.slice(0, at), facts.school, facts.status.slice(at + facts.school.length)];
 ---
 
 <section class="hero grid">
   <div class="hero-id">
-    <h1>Alex Kachur</h1>
-    <p class="role"><strong>Full-stack &amp; AI developer.</strong> I build web apps with an AI doing real work inside them.</p>
-    <p class="status">Toronto, Canada&nbsp;· Final-year Software Engineering Technology, Centennial College&nbsp;· Available <span class="no-wrap">full-time</span> May&nbsp;2027</p>
+    <h1>{facts.name}</h1>
+    <p class="role"><strong>{facts.role}.</strong> {facts.headline}</p>
+    <p class="status">{facts.location}&nbsp;· {before}{school && <span class="no-wrap">{school}</span>}{after}&nbsp;· Available <span class="no-wrap">full-time</span> {month}&nbsp;{year}</p>
     <ul class="actions" role="list">
       <li>
         <a class="button" href="/Alex-Kachur-Resume.pdf" target="_blank" rel="noopener">Resume<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
       </li>
-      <li><a href="mailto:alexkachur98@gmail.com">Email</a></li>
-      <li><a href="https://github.com/AlexKachur98">GitHub</a></li>
-      <li><a href="https://linkedin.com/in/alex-kachur">LinkedIn</a></li>
+      <li><a href={`mailto:${facts.email}`}>Email</a></li>
+      <li><a href={`https://${facts.github}`}>GitHub</a></li>
+      <li><a href={`https://${facts.linkedin}`}>LinkedIn</a></li>
       <li><code>{curl}</code></li>
     </ul>
   </div>
@@ -47,9 +53,11 @@ const curl = `curl ${Astro.site!.origin}`;
 
   .status {
     color: var(--muted);
+    text-wrap: balance;
   }
 
-  /* A narrow phone would otherwise break the word at its hyphen. */
+  /* Kept on one line: full-time, which a narrow phone would break at its hyphen, and the school's
+     name. */
   .no-wrap {
     white-space: nowrap;
   }

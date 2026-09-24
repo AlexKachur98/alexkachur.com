@@ -17,6 +17,7 @@ import Header from '../components/Header.astro';
 import appleTouchIcon from '../generated/apple-touch-icon.png?url';
 import icon from '../generated/icon.svg?url';
 import linkPreview from '../generated/link-preview.png?url';
+import { siteFacts } from '../lib/facts.ts';
 
 interface Props {
   title: string;
@@ -31,14 +32,15 @@ interface Props {
 }
 
 const { title, description, ogTitle = title, ogImage, noindex = false, structuredData } = Astro.props;
-const siteName = 'Alex Kachur';
+const facts = await siteFacts();
+const siteName = facts.name;
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 // The home page opens with the name in its hero instead of the header, and its title starts with
 // the name; every other page's title ends with it.
 const home = path === '/';
 const fullTitle = home ? title : `${title} · ${siteName}`;
 const canonical = new URL(path, Astro.site);
-const image = ogImage ?? { src: linkPreview, width: 1200, height: 630, alt: 'Alex Kachur, Full-stack & AI developer' };
+const image = ogImage ?? { src: linkPreview, width: 1200, height: 630, alt: `${facts.name}, ${facts.role}` };
 const preloads = [barlow400, barlow600, barlow700, mono400];
 ---
 
