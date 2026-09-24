@@ -14,18 +14,19 @@ WORK
 2019-2022        Manager, IOAL Distributing. Warehouse operations.
 
 PROJECTS
-alexkachur.com   This site. Astro, TypeScript, sql.js, Vercel functions, Anthropic API
+alexkachur.com   Portfolio site. Astro, TypeScript, sql.js, Vercel functions, Anthropic API
                  (Claude). Question -> validated SQL -> your browser. A 26-question
                  eval replays in CI, alongside 300+ tests.
 SplitRoof        Read-only, tool-calling AI assistant over household data (Anthropic
                  API, Claude Haiku 4.5). 17 Jest tests before the model went in.
 
 SKILLS
-Languages        JavaScript, TypeScript, Java, C#, Python, SQL, Kotlin
+Programming      JavaScript, TypeScript, Java, C#, Python, SQL, Kotlin
 Web and apps     React, Next.js, Node.js, Express, Spring Boot, .NET
 LLM integration  Anthropic API (Claude), Gemini API, tool calling, structured output,
                  evaluation
 Data and ML      SQLite, PostgreSQL, Firebase Firestore, Entity Framework Core, ML.NET
 Testing          Jest, Vitest, Selenium, Cypress, GitHub Actions
+Spoken           English, Russian and Hebrew, all fluent
 
 Full resume (PDF): https://alexkachur.com/Alex-Kachur-Resume.pdf
