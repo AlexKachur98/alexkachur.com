@@ -127,6 +127,15 @@ export const storageRow = z.object({
   purpose: z.string().describe('Why'),
 });
 
+export const usesSections = ['Machines', 'Peripherals', 'Software', 'Learning'] as const;
+
+export const usesRow = z.object({
+  position: z.number().int().positive().describe('Order on the page, 1 first'),
+  section: z.enum(usesSections).describe('Machines, Peripherals, Software or Learning'),
+  item: z.string().describe('What it is, for example Main PC'),
+  details: z.string().describe('What Alex uses'),
+});
+
 export const sectionRow = z.object({
   page: z.string().describe("Where the text appears: /#about or /#now on the home page, /404, or /work/ and a project's slug"),
   position: z.number().int().positive().describe('Order on the page, 1 first'),
@@ -213,6 +222,12 @@ export const tables = {
     primaryKey: ['item'],
     unique: [],
   },
+  uses: {
+    row: usesRow,
+    description: 'The machines, peripherals and software Alex uses, and what he is learning, as listed on /uses',
+    primaryKey: ['position'],
+    unique: [],
+  },
   sections: {
     row: sectionRow,
     description: "The text of the site's pages and case studies, one row per section",
@@ -260,6 +275,7 @@ export const timelineContent = z.strictObject({ id: contentId, ...timelineRow.om
 export const petContent = z.strictObject({ id: contentId, ...petRow.shape });
 export const factContent = z.strictObject({ id: contentId, ...factRow.omit({ key: true }).shape });
 export const interestContent = z.strictObject({ id: contentId, ...interestRow.omit({ id: true }).shape });
+export const usesContent = z.strictObject({ id: contentId, ...usesRow.omit({ position: true }).shape });
 export const experienceContent = z.strictObject({
   id: contentId,
   ...experienceRow.omit({ id: true, highlights: true }).shape,
@@ -273,8 +289,7 @@ export const photo = z.strictObject({
 });
 
 export const pageContent = z.strictObject({
-  title: z.string().optional().describe('The heading the page or section shows'),
-  updated: z.date().optional().describe('Last-updated date shown at the top of the page'),
+  title: z.string().describe('The heading the page or section shows'),
   images: z.array(photo).optional().describe('Photos on the page, in display order'),
 });
 
@@ -287,3 +302,4 @@ export type PetContent = z.infer<typeof petContent>;
 export type ExperienceContent = z.infer<typeof experienceContent>;
 export type InterestContent = z.infer<typeof interestContent>;
 export type PageContent = z.infer<typeof pageContent>;
+export type UsesContent = z.infer<typeof usesContent>;

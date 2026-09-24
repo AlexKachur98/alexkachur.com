@@ -71,7 +71,8 @@ describe('build-db', () => {
     expect(rows.courses).toHaveLength(6);
     expect(rows.timeline).toHaveLength(8);
     expect(rows.pets).toHaveLength(2);
-    expect(rows.facts).toHaveLength(13);
+    expect(rows.facts).toHaveLength(14);
+    expect(rows.uses).toHaveLength(14);
     expect(rows.experience).toHaveLength(4);
     expect(rows.interests).toHaveLength(47);
   });
@@ -87,7 +88,7 @@ describe('build-db', () => {
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
     expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
-    expect(text.match(/CREATE TABLE/g)).toHaveLength(12);
+    expect(text.match(/CREATE TABLE/g)).toHaveLength(13);
   });
 
   it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
@@ -112,6 +113,7 @@ describe('build-db', () => {
       'role',
       'school',
       'status',
+      'uses_updated',
     ]);
     expect(schema.facts.map((fact) => fact.key)).toEqual(schema.factKeys);
     // A description says what the key means, so it never repeats the value it describes.
@@ -130,6 +132,7 @@ describe('build-db', () => {
       'experience',
       'interests',
       'storage',
+      'uses',
       'sections',
       'page_images',
     ]);
@@ -305,6 +308,14 @@ describe('build-db', () => {
     expect(() => parse(edited('pets.yaml', '/images/pets/simba.webp', '/images/pets/nope.webp'))).toThrow(
       /pets.yaml row simba: \/images\/pets\/nope.webp is not under public/,
     );
+  });
+
+  it('keeps every row of uses.yaml, word for word and in its order, and the day /uses was last updated', () => {
+    expect(query('SELECT position, section, item, details FROM uses')).toEqual(
+      content.uses.map(({ data: { id, ...row } }, index) => ({ position: index + 1, ...row })),
+    );
+    expect(query('SELECT position FROM uses')).toHaveLength(14);
+    expect(query("SELECT value FROM facts WHERE key = 'uses_updated'")[0]!.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it('holds the text of the other pages, then every case study in site order, one row per section shown', () => {

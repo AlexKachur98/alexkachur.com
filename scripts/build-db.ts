@@ -23,6 +23,7 @@ import {
   tables,
   technologyContent,
   timelineContent,
+  usesContent,
 } from '../src/content/schemas.ts';
 import type {
   CourseContent,
@@ -35,6 +36,7 @@ import type {
   TableName,
   TechnologyContent,
   TimelineContent,
+  UsesContent,
 } from '../src/content/schemas.ts';
 import {
   courseRows,
@@ -48,6 +50,7 @@ import {
   sectionRows,
   technologyRows,
   timelineRows,
+  usesRows,
 } from '../src/lib/rows.ts';
 import type { Entry } from '../src/lib/rows.ts';
 import { storageRows } from '../src/lib/ask/storage.ts';
@@ -64,6 +67,7 @@ export interface Content {
   pets: Entry<PetContent>[];
   experience: Entry<ExperienceContent>[];
   interests: Entry<InterestContent>[];
+  uses: Entry<UsesContent>[];
   pages: PageEntry[];
   // Each markdown file's body as the site renders it, keyed like ContentFiles.
   rendered: Rendered;
@@ -84,7 +88,7 @@ export interface ContentPaths {
   publicDir: string;
 }
 
-const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml', 'experience.yaml', 'interests.yaml'] as const;
+const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml', 'experience.yaml', 'interests.yaml', 'uses.yaml'] as const;
 
 // The page files whose text goes into the sections table, in the order of the tables' rows.
 export const pageFiles: Readonly<Record<string, string>> = {
@@ -200,6 +204,7 @@ export function parseContent(
     pets: yamlRows('pets.yaml', text('pets.yaml'), petContent),
     experience: yamlRows('experience.yaml', text('experience.yaml'), experienceContent),
     interests: yamlRows('interests.yaml', text('interests.yaml'), interestContent),
+    uses: yamlRows('uses.yaml', text('uses.yaml'), usesContent),
     projects: Object.keys(files)
       .filter((name) => name.startsWith('projects/'))
       .sort()
@@ -246,6 +251,7 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     interests: interestRows(content.interests),
     // Built from the lifetimes the code uses, not from the content files.
     storage: storageRows(),
+    uses: usesRows(content.uses),
     sections: sectionRows([
       ...content.pages.map((entry) => ({ page: entry.page, title: entry.data.title, html: content.rendered[entry.id]! })),
       ...[...content.projects]

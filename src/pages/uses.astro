@@ -1,14 +1,16 @@
 ---
-import { getEntry } from 'astro:content';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
-import { splitSections } from '../lib/sections.ts';
+import { select } from '../lib/query.ts';
 
-const page = await getEntry('pages', 'uses');
-if (!page) throw new Error('src/content/pages/uses.md is missing');
-const sections = splitSections(page.rendered?.html ?? '');
-// The frontmatter date is UTC midnight, so the UTC date string is the date Alex wrote.
-const updated = page.data.updated?.toISOString().slice(0, 10);
+// The page shows the uses table as a visitor's query returns it, grouped under its sections in
+// page order. A row whose details already begin with the item reads as the details alone.
+const { rows } = await select('SELECT section, item, details FROM uses ORDER BY position');
+const sections = new Map<string, string[]>();
+for (const [section, item, details] of rows as string[][]) {
+  sections.set(section!, [...(sections.get(section!) ?? []), details!.startsWith(item!) ? details! : `${item}: ${details}`]);
+}
+const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated'")).rows[0]?.[0];
 ---
 
 <Base title="Uses" description="The machines, peripherals and software Alex Kachur uses, and what he is learning.">
@@ -18,9 +20,13 @@ const updated = page.data.updated?.toISOString().slice(0, 10);
       {updated && <p class="updated">Last updated: {updated}</p>}
     </header>
     {
-      sections.map((section) => (
-        <Section id={section.id} title={section.title}>
-          <Fragment set:html={section.body} />
+      [...sections].map(([section, lines]) => (
+        <Section id={section.toLowerCase()} title={section}>
+          <ul>
+            {lines.map((line) => (
+              <li>{line}</li>
+            ))}
+          </ul>
         </Section>
       ))
     }

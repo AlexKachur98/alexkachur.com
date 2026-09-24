@@ -39,3 +39,6 @@
 - id: linkedin
   value: linkedin.com/in/alex-kachur
   description: Alex's LinkedIn profile, without https://
+- id: uses_updated
+  value: "2026-09-24"
+  description: The day the /uses page was last updated, as YYYY-MM-DD

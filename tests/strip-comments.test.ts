@@ -42,10 +42,10 @@ describe('stripComments', () => {
     expect(html).not.toContain('gone');
   });
 
-  it('strips every comment in the four project files and the uses page', async () => {
+  it('strips every comment in the four project files and the Now page', async () => {
     const files = [
       ...readdirSync('src/content/projects').map((name) => `src/content/projects/${name}`),
-      'src/content/pages/uses.md',
+      'src/content/pages/now.md',
     ];
     for (const file of files) {
       const source = readFileSync(file, 'utf8').replace(/^---[\s\S]*?\n---\n/, '');

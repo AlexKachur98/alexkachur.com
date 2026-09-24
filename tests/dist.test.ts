@@ -539,8 +539,23 @@ describe(`built output in ${root}`, () => {
 
     expect([...shown.keys()].sort()).toEqual([...rows.keys()].sort());
     for (const [page, expected] of rows) expect(shown.get(page), page).toEqual(expected);
-    // Every markdown page is in the table but /uses, whose rows have a table of their own.
+    // Every markdown page is in the table.
     const markdown = readdirSync('src/content/pages').filter((name) => name.endsWith('.md')).map((name) => `pages/${name}`);
-    expect(markdown.filter((name) => name !== 'pages/uses.md').sort()).toEqual(Object.keys(pageFiles).sort());
+    expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
+  });
+
+  it('lists on /uses every row of the uses table in order, under its section, with the day it was last updated', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const rows = db.exec('SELECT section, item, details FROM uses ORDER BY position')[0]!.values as string[][];
+    const expected = rows.map(([section, item, details]) => [section, details!.startsWith(item!) ? details : `${item}: ${details}`]);
+    const uses = pages.find((page) => page.url === '/uses')!.html;
+    const shown = [...uses.matchAll(/<section class="section"[^>]*>\s*<h2[^>]*>([^<]*)<\/h2>([\s\S]*?)<\/section>/g)].flatMap(([, section, body]) =>
+      [...body!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, line]) => [section, decode(line!)]),
+    );
+    expect(shown).toEqual(expected);
+    const updated = db.exec("SELECT value FROM facts WHERE key = 'uses_updated'")[0]!.values[0]![0];
+    expect(uses).toContain(`Last updated: ${updated}`);
   });
 });

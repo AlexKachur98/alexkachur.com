@@ -22,6 +22,8 @@ import type {
   sectionRow,
   technologyRow,
   timelineRow,
+  UsesContent,
+  usesRow,
 } from '../content/schemas.ts';
 import { blockText } from './page-text.ts';
 import { splitSections } from './sections.ts';
@@ -40,6 +42,7 @@ export type TimelineRow = z.infer<typeof timelineRow>;
 export type PetRow = z.infer<typeof petRow>;
 export type ExperienceRow = z.infer<typeof experienceRow>;
 export type InterestRow = z.infer<typeof interestRow>;
+export type UsesRow = z.infer<typeof usesRow>;
 export type SectionRow = z.infer<typeof sectionRow>;
 export type PageImageRow = z.infer<typeof pageImageRow>;
 
@@ -153,6 +156,11 @@ export function experienceRows(entries: Entry<ExperienceContent>[]): ExperienceR
 // In the order Alex listed them, which is the file's order.
 export function interestRows(entries: Entry<InterestContent>[]): InterestRow[] {
   return entries.map(({ data: { id, ...row } }, index) => ({ id: index + 1, ...row }));
+}
+
+// In the order Alex listed them, which is the file's order and the page's.
+export function usesRows(entries: Entry<UsesContent>[]): UsesRow[] {
+  return entries.map(({ data: { id, ...row } }, index) => ({ position: index + 1, ...row }));
 }
 
 // A page's rendered markdown as the sections table stores it. A page with no h2 of its own (About,

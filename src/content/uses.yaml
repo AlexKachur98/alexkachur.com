@@ -1,0 +1,58 @@
+# What Alex uses, as /uses lists it; the position in the database follows this order. The page
+# shows each row as "item: details", or the details alone when they already begin with the item.
+- id: main-pc
+  section: Machines
+  item: Main PC
+  details: ASUS ROG Astral GeForce RTX 5090, AMD Ryzen 7 9850X3D, ASUS ROG Strix X870E-E Gaming WiFi, Corsair Vengeance RGB 64GB DDR5-6000, Samsung 9100 Pro, TRYX Panorama SE 360 AIO, Corsair RM1200x SHIFT, in a Lian Li O11D EVO RGB in reverse mode. Built it myself.
+- id: second-pc
+  section: Machines
+  item: Second PC
+  details: GeForce RTX 3080, Intel Core i9-12900K. Also built myself; now mostly for testing and for friends who visit.
+- id: laptop
+  section: Machines
+  item: Laptop
+  details: MacBook Pro 16-inch with M4 Pro, for school and for working away from the desk.
+- id: mouse
+  section: Peripherals
+  item: Mouse
+  details: Pulsar ZywOo Gen 2
+- id: keyboard
+  section: Peripherals
+  item: Keyboard
+  details: Wooting 80HE
+- id: headset
+  section: Peripherals
+  item: Headset
+  details: SteelSeries Arctis Nova Pro (wired)
+- id: main-monitor
+  section: Peripherals
+  item: Main monitor
+  details: ASUS ROG Strix OLED XG32UCWMG, a 32-inch 4K OLED at 240Hz that switches to 1080p at 480Hz
+- id: competitive-monitor
+  section: Peripherals
+  item: Competitive monitor
+  details: BenQ ZOWIE XL2586X+, a 24-inch 1080p panel at 600Hz
+- id: big-screen
+  section: Peripherals
+  item: Big screen for games
+  details: LG C9, a 55-inch 4K OLED TV at 120Hz
+- id: speakers
+  section: Peripherals
+  item: Speakers
+  details: Bose Companion 2 Series III
+- id: editor
+  section: Software
+  item: Editor
+  details: "VS Code. Claude Code for agent work. GitHub. Terminal: Windows Terminal with PowerShell, and the one built into VS Code."
+- id: operating-systems
+  section: Software
+  item: Operating systems
+  details: Windows 11 on the PCs, macOS on the laptop, and I'm learning Linux so I can be flexible.
+- id: linux
+  section: Learning
+  item: Linux
+  details: Linux, properly.
+- id: history-and-culture
+  section: Learning
+  item: History and culture
+  details: History and culture, through documentaries, articles and books.
