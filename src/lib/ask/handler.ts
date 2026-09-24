@@ -1,7 +1,8 @@
 // An ask from body to response, as a function over injected pieces (model, store, database,
 // clock, deadline) so every branch can be tested with fakes. Order: input, kill switch, rate
-// limit, cache, cap, model, validation. Nothing here logs or returns the question text.
-import { createHash } from 'node:crypto';
+// limit, cache, cap, model, validation. Nothing here logs or returns the question text or the
+// visitor's address, and the address reaches the store only as limitKey's keyed hash.
+import { createHash, createHmac } from 'node:crypto';
 import { AnthropicError, APIError } from '@anthropic-ai/sdk';
 import type { ParsedMessage } from '@anthropic-ai/sdk/lib/parser';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
@@ -68,6 +69,13 @@ export function cacheKey(env: string, question: string): string {
   return `ask:${env}:cache:v${PROMPT_VERSION}:${schemaHash8}:${digest}`;
 }
 
+// The rate limiter's key for an address. A plain hash of an IPv4 address can be reversed by
+// hashing every address in turn; keyed with a secret, the stored key cannot be matched back to
+// an address without the secret.
+export function limitKey(secret: string, ip: string): string {
+  return createHmac('sha256', secret).update(ip).digest('hex');
+}
+
 export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promise<AskResult> {
   const now = deps.now ?? Date.now;
   const start = now();
@@ -81,9 +89,11 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
   const { config, store, model, db, signal } = deps;
   if (config.cap === 0) return done(503, { reason: 'budget' }, 'cap');
   if (!store) return done(503, { reason: 'config' }, 'redis');
+  // Without the secret there is no key that keeps the address out of the store, so the endpoint closes.
+  if (!config.limitSecret) return done(503, { reason: 'config' }, 'limit_secret');
 
   try {
-    if (!(await store.allow(ip))) return done(429, { error: 'rate_limited' }, 'rate_limit');
+    if (!(await store.allow(limitKey(config.limitSecret, ip)))) return done(429, { error: 'rate_limited' }, 'rate_limit');
 
     const { asked: askedKey, model: modelKey } = counterKeys(config.env, monthOf(now()));
     const key = cacheKey(config.env, question);

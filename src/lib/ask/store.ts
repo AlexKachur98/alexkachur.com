@@ -2,6 +2,7 @@
 // pair is unchanged, so a missing variable answers 503 instead of failing the module load.
 // Without the pair, development skips Redis (nothing limited, cached or counted) and says so
 // once per process; production gets null, which each endpoint answers as a configuration failure.
+import { Redis } from '@upstash/redis';
 import type { AskConfig } from './config.ts';
 import { redisStore, skippedStore } from './redis.ts';
 import type { Store } from './redis.ts';
@@ -14,7 +15,7 @@ export function storeFor(config: AskConfig, dev: boolean): Store | null {
   if (cached?.key === key) return cached.store;
   let store: Store | null = null;
   if (config.redis) {
-    store = redisStore(config.env, config.redis);
+    store = redisStore(config.env, new Redis({ url: config.redis.url, token: config.redis.token }));
   } else if (dev) {
     store = skippedStore();
     if (!warned) {

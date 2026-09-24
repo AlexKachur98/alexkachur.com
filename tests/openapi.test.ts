@@ -135,7 +135,7 @@ describe('the OpenAPI document', () => {
   });
 
   it('describes the stats body with exactly the fields the endpoint returns', async () => {
-    const config: AskConfig = { env: 'test', model: 'm', maxTokens: 512, cap: 2000, apiKey: undefined, redis: null };
+    const config: AskConfig = { env: 'test', model: 'm', maxTokens: 512, cap: 2000, apiKey: undefined, limitSecret: undefined, redis: null };
     const response = await handleStats({ config, store: skippedStore(), build: { commit: 'abc1234', builtAt: '2026-10-02T08:00:00.000Z' } });
     const body = (await response.json()) as Record<string, unknown>;
     const stats = schemas['stats'] as { properties: Record<string, unknown>; required: string[] };

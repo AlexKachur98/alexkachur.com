@@ -9,7 +9,7 @@ import { handleStats, STATS_CACHE_CONTROL } from '../src/lib/ask/stats.ts';
 // body is one substring search away.
 const SECRET = 'SECRET-DETAIL';
 
-const config: AskConfig = { env: 'test', model: 'model-under-test', maxTokens: 512, cap: 2000, apiKey: undefined, redis: null };
+const config: AskConfig = { env: 'test', model: 'model-under-test', maxTokens: 512, cap: 2000, apiKey: undefined, limitSecret: undefined, redis: null };
 const build = { commit: '3f9a2c1', builtAt: '2026-10-02T08:00:00.000Z' };
 const now = () => Date.UTC(2026, 8, 22, 12, 0, 0);
 

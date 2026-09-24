@@ -9,15 +9,17 @@ import {
   NotFoundError,
   RateLimitError,
 } from '@anthropic-ai/sdk';
+import { createHmac } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
-import { cacheKey, handleAsk } from '../src/lib/ask/handler.ts';
+import { cacheKey, handleAsk, limitKey } from '../src/lib/ask/handler.ts';
 import type { AskDeps, AskRequest, AskResult, LogEntry, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
 import { StoreError } from '../src/lib/ask/redis.ts';
 import type { CacheEntry, Store } from '../src/lib/ask/redis.ts';
 
 const IP = '203.0.113.7';
+const LIMIT_SECRET = 'test-limit-secret';
 const QUESTION = 'Which projects use a language model?';
 const ASKED_KEY = 'ask:test:asked:2026-09';
 const MODEL_KEY = 'ask:test:model:2026-09';
@@ -57,8 +59,8 @@ function fakeStore(): FakeStore {
     calls: [],
     allowed: true,
     fail: {},
-    async allow(ip) {
-      store.calls.push(['allow', ip]);
+    async allow(key) {
+      store.calls.push(['allow', key]);
       throwIf('allow');
       return store.allowed;
     },
@@ -151,6 +153,7 @@ function deps(overrides: Overrides, logs: LogEntry[]): AskDeps {
       maxTokens: 512,
       cap: 100,
       apiKey: 'k',
+      limitSecret: LIMIT_SECRET,
       redis: { url: 'u', token: 't' },
       ...overrides.config,
     },
@@ -237,8 +240,18 @@ describe('the rate limit', () => {
     const { result } = await run(QUESTION, { store, model });
     expect(result.status).toBe(429);
     expect(result.body).not.toHaveProperty('sql');
-    expect(store.calls).toEqual([['allow', IP]]);
+    expect(store.calls).toEqual([['allow', limitKey(LIMIT_SECRET, IP)]]);
     expect(model.calls).toBe(0);
+  });
+
+  // A plain hash of an IPv4 address can be reversed by trying every address; the key needs the secret.
+  it('keys the limit by a keyed hash of the address, never the address', async () => {
+    const { store } = await run(QUESTION, { model: fakeModel([GOOD]) });
+    const [[, key]] = store.calls.filter(([method]) => method === 'allow');
+    expect(key).toBe(createHmac('sha256', LIMIT_SECRET).update(IP).digest('hex'));
+    expect(limitKey('another-secret', IP)).not.toBe(key);
+    expect(limitKey(LIMIT_SECRET, '203.0.113.8')).not.toBe(key);
+    expect(JSON.stringify(store.calls)).not.toContain(IP);
   });
 });
 
@@ -247,6 +260,15 @@ describe('missing configuration', () => {
     const model = fakeModel([GOOD]);
     const { result } = await run(QUESTION, { store: null, model });
     expect(result).toEqual({ status: 503, body: { reason: 'config' } });
+    expect(model.calls).toBe(0);
+  });
+
+  it('answers 503 config without the rate-limit secret, before the store or the model', async () => {
+    const model = fakeModel([GOOD]);
+    const { result, store, logs } = await run(QUESTION, { model, config: { limitSecret: undefined } });
+    expect(result).toEqual({ status: 503, body: { reason: 'config' } });
+    expect(logs).toEqual([{ status: 503, errorType: 'limit_secret', requestId: null, latencyMs: 0 }]);
+    expect(store.calls).toEqual([]);
     expect(model.calls).toBe(0);
   });
 

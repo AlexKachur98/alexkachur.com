@@ -178,6 +178,8 @@ function printStats(model: string, results: RecordedQuestion[], calls: number): 
 
 async function main(): Promise<number> {
   const config = readConfig((name) => process.env[name]);
+  // Every mode runs on a store that never limits, so the limiter's secret only has to be present.
+  config.limitSecret ??= 'eval';
   let fixture: Fixture | null = null;
   let client: Anthropic | null = null;
   if (mode === 'replay') {

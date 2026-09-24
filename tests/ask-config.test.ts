@@ -18,6 +18,7 @@ describe('readConfig', () => {
       maxTokens: 512,
       cap: 2000,
       apiKey: undefined,
+      limitSecret: undefined,
       redis: null,
     });
   });
@@ -52,7 +53,12 @@ describe('readConfig', () => {
     expect(readConfig(env({ ANTHROPIC_API_KEY: ' sk-ant-test ' })).apiKey).toBe('sk-ant-test');
   });
 
-  it('asks the getter for exactly the eight variable names', () => {
+  it('reads the rate-limit secret, trimmed, and treats a blank one as missing', () => {
+    expect(readConfig(env({ ASK_RATE_LIMIT_SECRET: ' s3cret ' })).limitSecret).toBe('s3cret');
+    expect(readConfig(env({ ASK_RATE_LIMIT_SECRET: '  ' })).limitSecret).toBeUndefined();
+  });
+
+  it('asks the getter for exactly the nine variable names', () => {
     const asked = new Set<string>();
     readConfig((name) => {
       asked.add(name);
@@ -62,6 +68,7 @@ describe('readConfig', () => {
       'ANTHROPIC_API_KEY',
       'ANTHROPIC_MODEL',
       'ASK_MONTHLY_CAP',
+      'ASK_RATE_LIMIT_SECRET',
       'KV_REST_API_TOKEN',
       'KV_REST_API_URL',
       'UPSTASH_REDIS_REST_TOKEN',

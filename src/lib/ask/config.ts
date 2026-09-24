@@ -15,6 +15,8 @@ export interface AskConfig {
   maxTokens: number;
   cap: number;
   apiKey: string | undefined;
+  // The secret that keys the rate limiter's hash of each address; without it /api/ask answers 503 config.
+  limitSecret: string | undefined;
   redis: { url: string; token: string } | null;
 }
 
@@ -42,6 +44,7 @@ export function readConfig(get: EnvGetter): AskConfig {
     maxTokens: MODEL.maxTokens,
     cap: parseCap(get('ASK_MONTHLY_CAP')),
     apiKey: value(get('ANTHROPIC_API_KEY')),
+    limitSecret: value(get('ASK_RATE_LIMIT_SECRET')),
     // The Marketplace integration injects one of two name pairs; either is accepted, Upstash's first.
     redis: pair(get('UPSTASH_REDIS_REST_URL'), get('UPSTASH_REDIS_REST_TOKEN')) ?? pair(get('KV_REST_API_URL'), get('KV_REST_API_TOKEN')),
   };

@@ -1,7 +1,7 @@
 // The Redis side of an ask: the sliding-window rate limit, the answer cache and the two monthly
 // counters, behind one small interface so the handler can be tested with a fake.
 import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import type { Redis } from '@upstash/redis';
 
 export interface CacheEntry {
   sql: string;
@@ -9,8 +9,9 @@ export interface CacheEntry {
 }
 
 export interface Store {
-  // True while the address is inside its window.
-  allow(ip: string): Promise<boolean>;
+  // True while the key is inside its window. The key is the handler's keyed hash of the address,
+  // never the address itself.
+  allow(key: string): Promise<boolean>;
   read(key: string): Promise<CacheEntry | null>;
   write(key: string, entry: CacheEntry, ttlSeconds: number): Promise<void>;
   // INCR; the first call on a key also sets its TTL, so a month's counter expires on its own.
@@ -35,13 +36,16 @@ function isEntry(value: unknown): value is CacheEntry {
   return typeof entry.sql === 'string' && typeof entry.explanation === 'string';
 }
 
-export function redisStore(env: string, credentials: { url: string; token: string }): Store {
-  const redis = new Redis({ url: credentials.url, token: credentials.token });
+// The client comes from the caller, so a test can hand in a fake and see every key written.
+export function redisStore(env: string, redis: Redis): Store {
+  // With the sliding window each key expires two windows and a second after it is first set, and
+  // with no in-memory cache the limiter keeps no key in the function's memory between requests.
   // Analytics stay off because they would store per-address identifiers.
   const limiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, RATE_LIMIT.window),
     prefix: `ask:${env}:limit`,
+    ephemeralCache: false,
     analytics: false,
   });
   const guard = async <T>(run: () => Promise<T>): Promise<T> => {
@@ -52,7 +56,7 @@ export function redisStore(env: string, credentials: { url: string; token: strin
     }
   };
   return {
-    allow: (ip) => guard(async () => (await limiter.limit(ip)).success),
+    allow: (key) => guard(async () => (await limiter.limit(key)).success),
     read: (key) =>
       guard(async () => {
         const value = await redis.get<unknown>(key);
