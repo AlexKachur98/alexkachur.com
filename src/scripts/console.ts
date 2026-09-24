@@ -471,6 +471,7 @@ interface ConsoleUi extends Panel {
 interface AskUi extends Panel {
   // The whole box: the form with its chips as well as the panel.
   box: HTMLElement;
+  form: HTMLElement;
   input: HTMLInputElement;
   question: HTMLElement;
   explanation: HTMLElement;
@@ -485,6 +486,10 @@ interface AskUi extends Panel {
   // The example answer a wide screen shows before the first question, if the page has one.
   example: HTMLElement | null;
   busy: boolean;
+  // The answer's head line: the question, and the status line under it.
+  head: HTMLElement;
+  // Set while a question is in flight whose answer the page will scroll into sight.
+  reveal: Reveal | undefined;
 }
 
 let executor: Executor | undefined;
@@ -625,6 +630,105 @@ function query(sql: string): void {
   run();
 }
 
+// Where the answer opens under the form (below 1200px, at every width on the 404 page, and in a
+// browser without subgrid), a phone often has it below the bottom of the screen, so a question would
+// change nothing in sight. When the answer's head starts out of sight, the page moves for the
+// visitor. If the answer is not in after a tenth of a second, about as long as a response can take
+// and still feel immediate, it moves just far enough to show the question and its working line.
+// Once the answer is in, it moves far enough to show all of it, or its top when it is taller than
+// the screen, unless the visitor has scrolled since. That second move waits two frames, so the
+// answer is laid out below the screen before the page scrolls to it: made in the same frame, Chrome
+// counts it as a layout shift of everything under the answer. Focus stays where it was, and screen
+// readers hear the status line as before; a control reached by keyboard also keeps its place on
+// screen, so its focus ring stays in sight. The page jumps rather than glides, as a link to a
+// section does.
+const REVEAL_DELAY = 100;
+
+interface Reveal {
+  timer: ReturnType<typeof setTimeout>;
+  // Where the page was when it last moved on its own; anywhere else means the visitor scrolled.
+  at: number;
+}
+
+// How far to scroll so a box sits between two lines: all of it when it fits, its top when it does
+// not, nothing when it is already there. Given the top of a control that must stay in sight, a move
+// down stops before that top passes the upper line.
+export function scrollToShow(box: { top: number; bottom: number }, sight: { top: number; bottom: number }, keep?: number): number {
+  let by = 0;
+  if (box.top < sight.top || box.bottom - box.top > sight.bottom - sight.top) by = box.top - sight.top;
+  else if (box.bottom > sight.bottom) by = box.bottom - sight.bottom;
+  return keep === undefined || by <= 0 ? by : Math.min(by, Math.max(0, keep - sight.top));
+}
+
+// Where a box sits in the visual viewport, the part of the page actually on screen, given the root
+// element's top as measured with the box and how far down the page the visual viewport starts.
+// While an on-screen keyboard is up or the page is zoomed, the visual viewport is shorter than the
+// layout viewport and can sit anywhere inside it, and browsers disagree about which of the two a
+// box is measured from. Against the root element the box's place on the page comes out the same
+// either way, and the visual viewport's place on the page is its pageTop.
+export function onScreen(box: { top: number; bottom: number }, root: number, page: number): { top: number; bottom: number } {
+  return { top: box.top - root - page, bottom: box.bottom - root - page };
+}
+
+// The visual viewport never starts above the line scrollY gives, so the larger of the two is its top.
+// On an iPhone with the keyboard up, pageTop can still give the top from before a scroll the page
+// has just made itself, while scrollY and every box already have the new one.
+function place(element: Element): { top: number; bottom: number } {
+  const root = document.documentElement.getBoundingClientRect().top;
+  const top = Math.max(window.visualViewport?.pageTop ?? 0, window.scrollY);
+  return onScreen(element.getBoundingClientRect(), root, top);
+}
+
+// The visual viewport less the element's scroll margin, measured the same way.
+function sight(element: HTMLElement): { top: number; bottom: number } {
+  const style = getComputedStyle(element);
+  const height = window.visualViewport?.height ?? window.innerHeight;
+  return { top: parseFloat(style.scrollMarginTop), bottom: height - parseFloat(style.scrollMarginBottom) };
+}
+
+function distance(element: HTMLElement): number {
+  return scrollToShow(place(element), sight(element));
+}
+
+// A control in the form reached by keyboard keeps its place on screen. A text box matches
+// :focus-visible however it was focused, so it holds the page only where the main pointer is a
+// mouse or trackpad; on a phone the page moves past it to show the answer.
+function bring(ui: AskUi, element: HTMLElement): void {
+  const focused = document.activeElement;
+  const kept =
+    focused instanceof HTMLElement &&
+    ui.form.contains(focused) &&
+    focused.matches(':focus-visible') &&
+    (focused instanceof HTMLButtonElement || matchMedia('(pointer: fine)').matches);
+  window.scrollBy(0, scrollToShow(place(element), sight(element), kept ? place(focused).top : undefined));
+}
+
+function watch(ui: AskUi): void {
+  if (distance(ui.head) === 0) return;
+  const reveal: Reveal = {
+    at: window.scrollY,
+    timer: setTimeout(() => {
+      if (window.scrollY !== reveal.at) return;
+      bring(ui, ui.head);
+      reveal.at = window.scrollY;
+    }, REVEAL_DELAY),
+  };
+  ui.reveal = reveal;
+}
+
+function settle(ui: AskUi): void {
+  const reveal = ui.reveal;
+  ui.reveal = undefined;
+  if (!reveal) return;
+  clearTimeout(reveal.timer);
+  if (window.scrollY !== reveal.at) return;
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (!ui.busy) bring(ui, ui.root);
+    }),
+  );
+}
+
 // Clears the Ask panel for a new question and opens it, the question on its header line. The
 // panel is always in the markup so its two live regions exist before they are written to; it
 // takes up space only once it has something to show. The example answer goes for good, so the
@@ -654,6 +758,7 @@ function begin(ui: AskUi, question: string): void {
   ui.sendBlock.hidden = true;
   ui.sent.hidden = true;
   setStatus(ui, WORKING_MESSAGE);
+  watch(ui);
 }
 
 async function answer(ui: AskUi, sql: string): Promise<Result | undefined> {
@@ -745,6 +850,7 @@ async function occupy(ui: AskUi, question: string, work: () => Promise<void>): P
     working(ui, -1);
     // A question that ended without a run and without a failure would keep the word.
     if (ui.status.textContent?.startsWith(WORKING_MESSAGE)) setStatus(ui, '');
+    settle(ui);
     ui.busy = false;
   }
   return true;
@@ -846,6 +952,7 @@ export function init(): void {
     askUi = {
       ...panelOf(element(askRoot, '[data-ask-panel]'), 'ask'),
       box: askRoot,
+      form: element(askRoot, '[data-ask-form]'),
       input: element(askRoot, '[data-ask-input]'),
       question: element(askRoot, '[data-ask-question]'),
       explanation: element(askRoot, '[data-ask-explanation]'),
@@ -858,6 +965,8 @@ export function init(): void {
       sent: element(askRoot, '[data-ask-sent]'),
       example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),
       busy: false,
+      head: element(askRoot, '[data-ask-head]'),
+      reveal: undefined,
     };
   }
   executor.ready().then(

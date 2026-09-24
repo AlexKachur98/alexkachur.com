@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { createExecutor, guard, renderCell, ROWS, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { createExecutor, guard, onScreen, renderCell, ROWS, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
@@ -533,5 +533,73 @@ describe('results box', () => {
     const reset = paint.indexOf('panel.results.scrollTo(0, 0);');
     expect(reset).toBeGreaterThan(paint.indexOf('panel.results.replaceChildren(table);'));
     expect(reset).toBeLessThan(paint.indexOf('panel.results.tabIndex = 0;'));
+  });
+});
+
+describe('bringing the answer into sight', () => {
+  const source = readFileSync('src/scripts/console.ts', 'utf8');
+  // The visible band on a 375x667 phone, less a 16px margin at each edge.
+  const sight = { top: 16, bottom: 651 };
+
+  it('scrolls nothing for a box already in sight', () => {
+    expect(scrollToShow({ top: 100, bottom: 200 }, sight)).toBe(0);
+    expect(scrollToShow({ top: 16, bottom: 651 }, sight)).toBe(0);
+  });
+
+  it('lifts a box below the screen just far enough to show all of it', () => {
+    expect(scrollToShow({ top: 722, bottom: 783 }, sight)).toBe(132);
+    expect(scrollToShow({ top: 600, bottom: 652 }, sight)).toBe(1);
+  });
+
+  it('brings a box above the screen, or one taller than it, to its top', () => {
+    expect(scrollToShow({ top: -51, bottom: 10 }, sight)).toBe(-67);
+    expect(scrollToShow({ top: 300, bottom: 2300 }, sight)).toBe(284);
+    expect(scrollToShow({ top: 16, bottom: 2300 }, sight)).toBe(0);
+  });
+
+  // A 375x667 phone zoomed to 1.8, so the visual viewport is 370px tall, and scrolled so that it
+  // starts 296px down a layout viewport that is itself 81px down the page: the input is 542.8px down
+  // the page and so 165.8px down the screen, whichever viewport the browser measures its box from.
+  it('places a box on screen the same whichever viewport the browser measures it from', () => {
+    const fromLayout = onScreen({ top: 461.8, bottom: 501.8 }, -81, 377);
+    const fromVisual = onScreen({ top: 165.8, bottom: 205.8 }, -377, 377);
+    for (const box of [fromLayout, fromVisual]) {
+      expect(box.top).toBeCloseTo(165.8, 6);
+      expect(box.bottom).toBeCloseTo(205.8, 6);
+    }
+    expect(onScreen({ top: 100, bottom: 200 }, 0, 0)).toEqual({ top: 100, bottom: 200 });
+  });
+
+  it('stops a move down before a focused control would leave the top of the screen', () => {
+    // A chip whose top is at 100 may rise to the upper line, 84px, not the 132 the box asks for.
+    expect(scrollToShow({ top: 722, bottom: 783 }, sight, 100)).toBe(84);
+    expect(scrollToShow({ top: 722, bottom: 783 }, sight, 500)).toBe(132);
+    // A control already above the line holds the page still, and a move up is never held back.
+    expect(scrollToShow({ top: 722, bottom: 783 }, sight, -74)).toBe(0);
+    expect(scrollToShow({ top: -51, bottom: 10 }, sight, 300)).toBe(-67);
+  });
+
+  it('never moves focus and jumps as the page does, starting as a question begins and settling as it ends', () => {
+    const reveal = source.slice(source.indexOf('const REVEAL_DELAY'), source.indexOf('// Clears the Ask panel'));
+    expect(reveal).not.toContain('.focus(');
+    expect(reveal).not.toContain('behavior');
+    // The second move waits two frames, so the answer is laid out before the page scrolls to it.
+    expect(reveal).toMatch(/requestAnimationFrame\(\(\) =>\s+requestAnimationFrame\(/);
+    const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer(')).trimEnd();
+    expect(begin.endsWith('  watch(ui);\n}')).toBe(true);
+    expect(begin.indexOf('watch(ui);')).toBeGreaterThan(begin.indexOf('setStatus(ui, WORKING_MESSAGE);'));
+    const occupy = source.slice(source.indexOf('async function occupy('), source.indexOf('export function ask()'));
+    expect(occupy.indexOf('settle(ui);')).toBeGreaterThan(occupy.indexOf('working(ui, -1);'));
+    expect(occupy.indexOf('settle(ui);')).toBeLessThan(occupy.indexOf('ui.busy = false;'));
+    expect(source).toContain("head: element(askRoot, '[data-ask-head]'),");
+    expect(readFileSync('src/components/AskBox.astro', 'utf8')).toMatch(/\.ask-panel,\s*\.ask-panel > \.console-head \{\s*scroll-margin: var\(--space-4\);/);
+  });
+
+  // Only a control in the form shown as focused holds the page: a tap, or a click on a chip, leaves
+  // the page free to move.
+  it('holds the page only for a control in the form reached by keyboard', () => {
+    const bring = source.slice(source.indexOf('function bring('), source.indexOf('function watch('));
+    expect(bring).toContain('ui.form.contains(focused)');
+    expect(bring).toContain("focused.matches(':focus-visible')");
   });
 });

@@ -264,6 +264,18 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // The page scrolls the live answer's head into sight, so that head carries the hook and the
+  // build-time example's does not.
+  it("marks the live answer's head, and only it, in every Ask box", () => {
+    for (const url of ['/', '/404']) {
+      const html = pages.find((page) => page.url === url)!.html;
+      const heads = [...html.matchAll(/<p\b([^>]*\sdata-ask-head\b[^>]*)>([\s\S]*?)<\/p>/g)];
+      expect(heads, url).toHaveLength(1);
+      expect(heads[0]![1], url).toMatch(/\sclass="console-head"/);
+      expect(heads[0]![2], url).toMatch(/\sid="ask-question"/);
+    }
+  });
+
   // The resume is a document, not a page, so it alone opens a new tab and says so in words a screen
   // reader reads; every other link keeps the Back button working.
   it('opens the resume, and only the resume, in a new tab, with a warning for screen readers', () => {

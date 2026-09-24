@@ -131,7 +131,7 @@ const answer = shown ? await run(shown.sql) : undefined;
         </div>
       )
     }
-    <p class="console-head">
+    <p class="console-head" data-ask-head>
       <span class="ask-head-question" id="ask-question" data-ask-question></span>{' '}
       <span class="ask-head-status">
         <span id="ask-status" role="status" data-ask-status></span>{' '}
@@ -241,6 +241,13 @@ const answer = shown ? await run(shown.sql) : undefined;
 
   .ask-panel:not([data-open]) > .console-head {
     margin: 0;
+  }
+
+  /* The room the page leaves above or below the answer when it scrolls the answer into sight. Under
+     the form it is the panel's own gap below the privacy note, so the note is never cut through. */
+  .ask-panel,
+  .ask-panel > .console-head {
+    scroll-margin: var(--space-4);
   }
 
   /* Here the head line is the question, balanced like a heading, and under it the status with the
