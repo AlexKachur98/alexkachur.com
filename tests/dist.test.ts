@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
 import { answerExample, chips } from '../src/data/examples.ts';
@@ -194,6 +195,41 @@ describe(`built output in ${root}`, () => {
     const scripts = files.filter((path) => path.endsWith('.js') && !vendored(path));
     expect(scripts.length).toBeGreaterThan(0);
     expect(scripts.filter((path) => readFileSync(path, 'utf8').includes('_blank'))).toEqual([]);
+  });
+
+  // The CSP's script-src allows files from the site only, so a script written into the page would
+  // not run.
+  it('loads every script from a file', () => {
+    for (const { url, html } of pages) {
+      const inline = [...html.matchAll(/<script\b([^>]*)>/g)].filter(([, attributes]) => !/\ssrc=/.test(attributes!)).map(([tag]) => tag);
+      expect(inline, url).toEqual([]);
+    }
+  });
+
+  // The CSP's style-src has no inline allowance either.
+  it('sets no style attribute on any page', () => {
+    for (const { url, html } of pages) expect(html.match(/<[^>]*\sstyle=/g), url).toBeNull();
+  });
+
+  // The one script every page loads before interaction besides /theme.js and the analytics.
+  it('keeps the bootstrap under 2 KB gzipped', () => {
+    const bootstrap = files.filter((path) => /Base\.astro_astro_type_script_index_0_lang\.[\w-]+\.js$/.test(path));
+    expect(bootstrap).toHaveLength(1);
+    expect(gzipSync(readFileSync(bootstrap[0]!)).length).toBeLessThan(2048);
+  });
+
+  it('ends every page with the Vercel Analytics element and its module', () => {
+    for (const { url, html } of pages) {
+      const module = html.match(/<vercel-analytics\b[^>]*><\/vercel-analytics><script type="module" src="([^"]+)"><\/script><\/body>/)?.[1];
+      expect(module, url).toBeDefined();
+      expect(readFileSync(join(root, module!), 'utf8'), url).toContain('/_vercel/insights/script.js');
+    }
+  });
+
+  it('lists every page but the 404 in the sitemap', () => {
+    const sitemap = readFileSync(join(root, 'sitemap.xml'), 'utf8');
+    const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, loc]) => new URL(loc!).pathname).sort();
+    expect(listed).toEqual(pages.map(({ url }) => url).filter((url) => url !== '/404').sort());
   });
 
   it('links /data/ and /vendor/ only through versioned URLs', () => {
