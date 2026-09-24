@@ -32,7 +32,7 @@ export async function getStaticPaths() {
 }
 
 const { project, prev, next, stack } = Astro.props;
-const { name, summary, role, year_start, year_end, client_name, team, live_url, repo_url, screenshots } = project.data;
+const { name, summary, card, role, year_start, year_end, client_name, team, live_url, repo_url, screenshots } = project.data;
 const year = year_end === null || year_end === year_start ? String(year_start) : `${year_start} to ${year_end}`;
 const links = [repo_url, live_url].filter((url): url is string => url !== null);
 
@@ -45,7 +45,7 @@ const after = creditsAt === -1 ? [] : sections.slice(creditsAt);
 const shotSizes = '(min-width: 1080px) 984px, calc(100vw - 48px)';
 ---
 
-<Base title={name} description={summary}>
+<Base title={name} description={card}>
   <main id="main" class="container">
     <header class="case-head">
       <h1>{name}</h1>

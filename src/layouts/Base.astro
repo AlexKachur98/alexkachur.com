@@ -18,17 +18,21 @@ import Header from '../components/Header.astro';
 interface Props {
   title: string;
   description: string;
+  // Link previews print the site name or the domain beside og:title, so it carries no name: the
+  // page's own title unless the page gives another.
+  ogTitle?: string;
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
-// Subpages carry the site name after the copy title; the home page is the name alone.
+const { title, description, ogTitle = title, noindex = false } = Astro.props;
 const siteName = 'Alex Kachur';
-const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
+// The home page opens with the name in its hero instead of the header, and its title starts with
+// the name; every other page's title ends with it.
+const home = path === '/';
+const fullTitle = home ? title : `${title} · ${siteName}`;
 const canonical = new URL(path, Astro.site);
 const preloads = [barlow400, barlow600, barlow700, mono400];
-// The home page opens with the name in its hero; every other page gets the header.
-const hasHeader = path !== '/';
 ---
 
 <!doctype html>
@@ -38,7 +42,21 @@ const hasHeader = path !== '/';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {
+      noindex ? (
+        <meta name="robots" content="noindex" />
+      ) : (
+        <>
+          <link rel="canonical" href={canonical} />
+          <meta property="og:title" content={ogTitle} />
+          <meta property="og:description" content={description} />
+          <meta property="og:url" content={canonical} />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content={siteName} />
+          <meta property="og:locale" content="en_CA" />
+        </>
+      )
+    }
     <!-- TODO: put my favicon here once I have it. Until then the empty icon stops Chrome asking
          for /favicon.ico, which does not exist, and logging the 404 as a console error. -->
     <link rel="icon" href="data:," />
@@ -47,7 +65,7 @@ const hasHeader = path !== '/';
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    {hasHeader && <Header />}
+    {!home && <Header />}
     <slot />
     <Footer path={path} />
     <script src="../scripts/bootstrap.ts"></script>

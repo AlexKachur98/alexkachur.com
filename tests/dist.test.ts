@@ -55,6 +55,25 @@ interface VercelConfig {
   headers: { source: string; headers: { key: string; value: string }[] }[];
 }
 
+const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
+const decode = (value: string): string => value.replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => entities[name]!);
+
+// The title, meta and link tags in a page's head, their values decoded.
+function head(html: string) {
+  const source = html.slice(html.indexOf('<head>'), html.indexOf('</head>'));
+  const attribute = (tag: string, name: string): string | undefined => {
+    const value = tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
+    return value === undefined ? undefined : decode(value);
+  };
+  const metas = [...source.matchAll(/<meta\b[^>]*>/g)].map(([tag]) => ({ key: attribute(tag, 'name') ?? attribute(tag, 'property') ?? '', content: attribute(tag, 'content') }));
+  return {
+    titles: [...source.matchAll(/<title>([^<]*)<\/title>/g)].map(([, title]) => decode(title!)),
+    metaKeys: metas.map(({ key }) => key),
+    meta: (key: string) => metas.filter((meta) => meta.key === key).map(({ content }) => content),
+    links: [...source.matchAll(/<link\b[^>]*>/g)].map(([tag]) => ({ rel: attribute(tag, 'rel'), href: attribute(tag, 'href') ?? '', sizes: attribute(tag, 'sizes'), type: attribute(tag, 'type') })),
+  };
+}
+
 describe(`built output in ${root}`, () => {
   it('has pages to check', () => {
     expect(files.filter((path) => path.endsWith('.html')).length).toBeGreaterThan(5);
@@ -232,6 +251,37 @@ describe(`built output in ${root}`, () => {
     expect(listed).toEqual(pages.map(({ url }) => url).filter((url) => url !== '/404').sort());
   });
 
+  const indexable = pages.filter(({ url }) => url !== '/404');
+  const openGraph = ['og:title', 'og:description', 'og:url', 'og:type', 'og:site_name', 'og:locale'];
+
+  // Link previews print og:site_name or the domain beside og:title, so og:title leaves the name
+  // out; the title in the tab and in search results keeps it.
+  it('gives every page but the 404 one title, description and canonical, and the Open Graph set', () => {
+    expect(indexable).toHaveLength(pages.length - 1);
+    for (const { url, html } of indexable) {
+      const { titles, meta, links } = head(html);
+      const canonical = links.filter(({ rel }) => rel === 'canonical').map(({ href }) => href);
+      expect(titles, url).toHaveLength(1);
+      expect(meta('description'), url).toHaveLength(1);
+      expect(canonical, url).toHaveLength(1);
+      for (const key of openGraph) expect(meta(key), `${url} ${key}`).toHaveLength(1);
+      expect(meta('og:url'), url).toEqual(canonical);
+      expect(meta('og:description'), url).toEqual(meta('description'));
+      expect([meta('og:type')[0], meta('og:site_name')[0], meta('og:locale')[0]], url).toEqual(['website', 'Alex Kachur', 'en_CA']);
+      const ogTitle = meta('og:title')[0]!;
+      expect(ogTitle, url).not.toContain('Alex Kachur');
+      expect(titles[0], url).toBe(url === '/' ? 'Alex Kachur · Full-stack & AI developer' : `${ogTitle} · Alex Kachur`);
+    }
+    expect(head(pages.find(({ url }) => url === '/')!.html).meta('og:title')).toEqual(['Full-stack & AI developer']);
+  });
+
+  it('keeps the 404 out of search results and link previews', () => {
+    const { metaKeys, meta, links } = head(pages.find(({ url }) => url === '/404')!.html);
+    expect(meta('robots')).toEqual(['noindex']);
+    expect(links.filter(({ rel }) => rel === 'canonical')).toEqual([]);
+    expect(metaKeys.filter((key) => key.startsWith('og:') || key.startsWith('twitter:'))).toEqual([]);
+  });
+
   it('links /data/ and /vendor/ only through versioned URLs', () => {
     const found: string[] = [];
     const unversioned: string[] = [];
@@ -251,8 +301,7 @@ describe(`built output in ${root}`, () => {
     const home = pages.find(({ url }) => url === '/')!.html;
     const block = home.match(/<div\b[^>]*\sclass="ask-example-answer"[^>]*>([\s\S]*?)<\/table>/)?.[1] ?? '';
     expect(block).not.toBe('');
-    const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
-    const text = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => entities[name]!).trim();
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).trim();
     const example = answerExample;
     expect(chips.map(({ label }) => label)).not.toContain(example.label);
 
