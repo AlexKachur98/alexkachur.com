@@ -40,7 +40,10 @@ function isEntry(value: unknown): value is CacheEntry {
 export function redisStore(env: string, redis: Redis): Store {
   // With the sliding window each key expires two windows and a second after it is first set, and
   // with no in-memory cache the limiter keeps no key in the function's memory between requests.
-  // Analytics stay off because they would store per-address identifiers.
+  // Analytics stay off because they would store per-address identifiers. The What is stored list
+  // on /api tells visitors the rate limit keeps a counter keyed by a scrambled form of their
+  // address for about two minutes; that line rests on this window, on the cache being off and on
+  // the handler's limitKey, so a change to any of them changes the line.
   const limiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, RATE_LIMIT.window),

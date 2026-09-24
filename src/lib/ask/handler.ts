@@ -71,7 +71,8 @@ export function cacheKey(env: string, question: string): string {
 
 // The rate limiter's key for an address. A plain hash of an IPv4 address can be reversed by
 // hashing every address in turn; keyed with a secret, the stored key cannot be matched back to
-// an address without the secret.
+// an address without the secret. The What is stored list on /api relies on this, so a change
+// here changes that list.
 export function limitKey(secret: string, ip: string): string {
   return createHmac('sha256', secret).update(ip).digest('hex');
 }

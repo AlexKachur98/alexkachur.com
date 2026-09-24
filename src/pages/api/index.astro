@@ -76,6 +76,20 @@ for (const path of Object.keys(samples)) {
             </Fragment>
           )}
           <pre><code>{endpoint.curl}</code></pre>
+          {endpoint.path === '/api/ask' && (
+            <Fragment>
+              <h3 id="what-is-stored">What is stored</h3>
+              <p>The cache and the counters are held in Upstash Redis.</p>
+              <ul>
+                <li>The SQL and the model's one-line explanation for a question, cached for a month (a refusal for a day) under a SHA-256 hash of the question. The question itself is never stored, though the cached SQL can repeat words from it.</li>
+                <li>A counter keyed by a scrambled form of your address, kept for about two minutes, for the rate limit.</li>
+                <li>Two monthly totals: questions answered and model calls, for the footer and the monthly cap.</li>
+                <li>One line per failed request: status, error type, request ID and timing. Never the question or your address.</li>
+                <li>Anthropic, which runs the model, receives the question and keeps API requests for a limited time under <a href="https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data">its own policy</a>; it does not train on them, since this site's account has not opted in to share data.</li>
+                <li>Vercel, which hosts the site, keeps its own request logs.</li>
+              </ul>
+            </Fragment>
+          )}
           {endpoint.response ? (
             <pre><code>{endpoint.response}</code></pre>
           ) : (
@@ -100,6 +114,14 @@ for (const path of Object.keys(samples)) {
   .endpoint h2 {
     font-family: var(--font-mono);
     font-size: var(--text-md);
+  }
+
+  /* A heading inside an endpoint's section stays at the body size, below the endpoint title's, and a
+     link to it stops a little above it rather than at the screen's edge. */
+  .endpoint h3 {
+    margin: var(--space-5) 0 var(--space-2);
+    font-size: var(--text-md);
+    scroll-margin-top: var(--space-5);
   }
 
   @media (min-width: 768px) {

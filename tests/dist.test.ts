@@ -144,6 +144,30 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // A link to a spot on a page lands on nothing when the id is missing; the page opens at its top.
+  it('points every same-site fragment link at an id on the page it names', () => {
+    const ids = new Map(pages.map(({ url, html }) => [url, new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(([, id]) => id))]));
+    const links: string[] = [];
+    const broken: string[] = [];
+    for (const { url, html } of pages) {
+      for (const [, href] of html.matchAll(/<a\b[^>]*\shref="([^"]*#[^"]*)"/g)) {
+        const target = new URL(href!, `https://site.test${url}`);
+        if (target.host !== 'site.test') continue;
+        links.push(href!);
+        if (!ids.get(target.pathname)?.has(decodeURIComponent(target.hash.slice(1)))) broken.push(`${url}: ${href}`);
+      }
+    }
+    expect(links).toEqual(expect.arrayContaining(['#main', '/#work']));
+    expect(broken).toEqual([]);
+  });
+
+  // The list the Ask box's privacy note links to.
+  it('lists what is stored for a question under its own heading on /api', () => {
+    const api = pages.find(({ url }) => url === '/api')!.html;
+    const list = api.match(/<h3\b[^>]*\sid="what-is-stored"[^>]*>What is stored<\/h3>(?:\s*<p\b[^>]*>[^<]*<\/p>)?\s*<ul\b[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? '';
+    expect(list.match(/<li\b/g)).toHaveLength(6);
+  });
+
   it('links /data/ and /vendor/ only through versioned URLs', () => {
     const found: string[] = [];
     const unversioned: string[] = [];
