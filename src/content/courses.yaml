@@ -1,32 +1,31 @@
-# TODO: fill in the topics for each course.
 - id: comp-307
   code: COMP 307
   name: Software Security
   term: Fall 2026
-  topics: null
+  topics: Common application security flaws and how to prevent them, and building security into design, development, testing and deployment, with a focus on web applications.
 - id: comp-303
   code: COMP 303
   name: Enterprise Application Development
   term: Fall 2026
-  topics: null
+  topics: "Java enterprise apps with Spring: Spring Core, MVC, Data, Security, Spring Boot and microservices."
 - id: comp-309
   code: COMP 309
   name: Data Warehousing and Predictive Analytics
   term: Fall 2026
-  topics: null
+  topics: Cloud and on-premises data warehouses, blobs and data lakes, and machine learning on open datasets.
 - id: comp-306
   code: COMP 306
   name: API Engineering and Cloud Computing
   term: Fall 2026
-  topics: null
+  topics: Building, deploying and monitoring RESTful APIs, containers and orchestration, serverless apps, and AWS services such as EC2, IAM, storage and DynamoDB.
 - id: comp-231
   code: COMP 231
   name: Software Development Project 1
   term: Fall 2026
-  topics: null
+  topics: A team project taken from requirements to a working, tested and documented app, with planning, version control and responsible use of AI tools. My team's project is SplitRoof.
 - id: comp-255
   code: COMP 255
   name: Business and Entrepreneurship for SET
   term: Fall 2026
-  topics: null
+  topics: "How businesses are organised and run, ethics and privacy, and turning software into a business: market opportunity, feasibility, financing, legal structures and business plans."
 # TODO: add the Winter 2027 courses once I have registered.
