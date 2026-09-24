@@ -98,6 +98,11 @@ describe('systemPrompt', () => {
   it('states the refusal rule', () => {
     expect(prompt).toContain('empty string');
   });
+
+  it('states how to name result columns, keeping photo_url for the thumbnails', () => {
+    expect(prompt).toContain('lowercase snake_case without quotes');
+    expect(prompt).toContain('Never rename photo_url');
+  });
 });
 
 describe('cache key parts', () => {
@@ -129,6 +134,16 @@ describe('the worked examples', () => {
     for (const entry of workedExamples) {
       expect(validateSql(entry.sql, db), entry.question).toMatchObject({ ok: true });
       expect(db.exec(entry.sql)[0]?.values.length ?? 0, entry.question).toBeGreaterThan(0);
+    }
+  });
+
+  it('name their result columns the way the prompt asks', async () => {
+    const db = await openDatabase();
+    for (const entry of workedExamples) {
+      expect(entry.sql.replace(/'(?:[^']|'')*'/g, ''), entry.question).not.toContain('"');
+      const columns = db.exec(entry.sql)[0]!.columns;
+      expect(columns.every((name) => /^[a-z][a-z0-9_]*$/.test(name)), `${entry.question}: ${columns.join(', ')}`).toBe(true);
+      expect(new Set(columns).size, entry.question).toBe(columns.length);
     }
   });
 
