@@ -1,13 +1,13 @@
-// The prompt sent for every ask: the schema, the rules, five worked examples and the delimiter
-// convention for the question. Bump PROMPT_VERSION whenever this text, the examples or the
-// validator change, so answers cached under the old rules are not served again.
+// The prompt sent for every ask: the schema, the fact keys, the rules, the worked examples and the
+// delimiter convention for the question. Bump PROMPT_VERSION whenever this text, the examples or
+// the validator change, so answers cached under the old rules are not served again.
 import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import schema from '../../generated/schema.json' with { type: 'json' };
 import { examples } from '../../data/examples.ts';
 
-export const PROMPT_VERSION = 2;
+export const PROMPT_VERSION = 3;
 
 // The first 8 hex characters of the schema hash, part of every cache key.
 export const schemaHash8 = schema.hash.slice(0, 8);
@@ -41,6 +41,12 @@ export const workedExamples: readonly WorkedExample[] = [
   example(2, 'Counts the projects each technology appears in and keeps the ones used more than once.'),
   example(3, 'Lists the course codes and names for the Fall 2026 term.'),
   example(5, 'Reads where Alex is, what he is doing now and when he is available from the facts table.'),
+  // Here "where" is the school rather than the city, so the model sees both readings of the word.
+  {
+    question: 'What is Alex studying and where?',
+    sql: "SELECT code, name, term, (SELECT value FROM facts WHERE key = 'school') AS school FROM courses ORDER BY code",
+    explanation: 'Lists the courses Alex is taking, with each term, and the school from the facts table.',
+  },
 ];
 
 // The visitor's text goes between tags with the two tag characters escaped, so it can never
@@ -53,14 +59,18 @@ export function correctionTurn(error: string): string {
   return `SQLite rejected that statement: ${error}. Return a corrected query that follows the rules, or an empty sql with a one-sentence explanation if the question cannot be answered.`;
 }
 
+// The DDL cannot show which rows the key-value table holds, so each key is listed with what it means.
+export function factList(): string {
+  return ['The facts table has one row per key:', ...schema.facts.map((fact) => `- ${fact.key}: ${fact.description}`)].join('\n');
+}
+
 export function systemPrompt(): string {
   const shown = workedExamples
     .map((entry) => `${questionTurn(entry.question)}\n${JSON.stringify({ sql: entry.sql, explanation: entry.explanation })}`)
     .join('\n\n');
   return [
     "You turn a visitor's question about Alex Kachur into one query over the SQLite database behind alexkachur.com, which holds everything the site says about him. Answer with JSON matching the given schema: \"sql\" and \"explanation\".",
-    // The DDL cannot show which rows the key-value table holds, so the keys are named after it.
-    `Schema:\n\n${schema.ddl.trim()}\n\nThe facts table has one row per key: ${schema.factKeys.join(', ')}.`,
+    `Schema:\n\n${schema.ddl.trim()}\n\n${factList()}`,
     [
       'Rules:',
       '1. sql is one SELECT or WITH statement in the SQLite dialect: no comments, no semicolon, no second statement.',

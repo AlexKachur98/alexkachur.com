@@ -66,7 +66,7 @@ describe('build-db', () => {
     expect(rows.courses).toHaveLength(6);
     expect(rows.timeline).toHaveLength(8);
     expect(rows.pets).toHaveLength(2);
-    expect(rows.facts).toHaveLength(9);
+    expect(rows.facts).toHaveLength(13);
   });
 
   it('derives the DDL from the shared schemas', () => {
@@ -82,13 +82,35 @@ describe('build-db', () => {
     expect(text.match(/CREATE TABLE/g)).toHaveLength(7);
   });
 
-  it('writes a schema.json whose hash is stable and covers the DDL, the table list and the fact keys', () => {
+  it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
     const schema = schemaJson(content);
     const again = schemaJson(parseContent(readContentFiles('src/content')));
     expect(again).toEqual(schema);
     expect(schema.hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(schema.hash).toBe(sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys })));
-    expect(schema.factKeys).toEqual(['available_from', 'email', 'github', 'headline', 'linkedin', 'location', 'name', 'school', 'status']);
+    expect(schema.hash).toBe(
+      sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys, facts: schema.facts })),
+    );
+    expect(schema.factKeys).toEqual([
+      'available_from',
+      'email',
+      'github',
+      'gpa',
+      'headline',
+      'languages_spoken',
+      'linkedin',
+      'location',
+      'name',
+      'program',
+      'role',
+      'school',
+      'status',
+    ]);
+    expect(schema.facts.map((fact) => fact.key)).toEqual(schema.factKeys);
+    // A description says what the key means, so it never repeats the value it describes.
+    for (const fact of content.facts) {
+      expect(fact.data.description.length, fact.id).toBeGreaterThan(0);
+      expect(fact.data.description.includes(fact.data.value), fact.id).toBe(false);
+    }
     expect(schema.tables.map((table) => table.name)).toEqual([
       'facts',
       'projects',

@@ -28,6 +28,7 @@ export interface SchemaDocument {
   ddl: string;
   tables: SchemaTable[];
   factKeys: string[];
+  facts: { key: string; description: string }[];
   photoAlt: Record<string, string>;
 }
 
@@ -88,7 +89,7 @@ const shapes: Record<string, JsonSchema> = {
     type: 'object',
     description: 'The tables and columns of the database, the DDL that created it and a hash of both',
     properties: {
-      hash: { type: 'string', description: 'SHA-256 of the DDL, the table list and the fact keys' },
+      hash: { type: 'string', description: 'SHA-256 of the DDL, the table list and the fact keys with their descriptions' },
       ddl: { type: 'string', description: 'The CREATE TABLE statements, with a comment per column' },
       tables: {
         type: 'array',
@@ -118,9 +119,18 @@ const shapes: Record<string, JsonSchema> = {
         },
       },
       factKeys: { ...stringList, description: 'The keys of the facts table' },
+      facts: {
+        type: 'array',
+        description: 'The keys of the facts table, each with what it means',
+        items: {
+          type: 'object',
+          properties: { key: { type: 'string' }, description: { type: 'string' } },
+          required: ['key', 'description'],
+        },
+      },
       photoAlt: { type: 'object', additionalProperties: { type: 'string' }, description: 'Alt text by photo path, for the pets photos' },
     },
-    required: ['hash', 'ddl', 'tables', 'factKeys', 'photoAlt'],
+    required: ['hash', 'ddl', 'tables', 'factKeys', 'facts', 'photoAlt'],
   },
   ask_request: {
     type: 'object',

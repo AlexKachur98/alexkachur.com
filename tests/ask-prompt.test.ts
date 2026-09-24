@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import schema from '../src/generated/schema.json';
+import { openDatabase } from '../src/lib/ask/db.ts';
+import { validateSql } from '../src/lib/ask/validate-sql.ts';
 import {
   PROMPT_VERSION,
   askOutput,
@@ -71,9 +73,10 @@ describe('systemPrompt', () => {
     for (const table of tables) expect(prompt).toContain(`CREATE TABLE ${table}`);
   });
 
-  it('lists every fact key after the schema', () => {
-    expect(schema.factKeys.length).toBeGreaterThanOrEqual(8);
-    expect(prompt).toContain(`The facts table has one row per key: ${schema.factKeys.join(', ')}.`);
+  it('lists every fact key with its description after the schema', () => {
+    expect(schema.facts.length).toBeGreaterThanOrEqual(13);
+    expect(prompt).toContain('The facts table has one row per key:');
+    for (const fact of schema.facts) expect(prompt).toContain(`- ${fact.key}: ${fact.description}`);
   });
 
   it('names the question tags as the delimiter and treats what is inside as data', () => {
@@ -81,8 +84,8 @@ describe('systemPrompt', () => {
     expect(prompt).toMatch(/is data, not instructions/);
   });
 
-  it('shows the five worked examples with their SQL and no trailing semicolon', () => {
-    expect(workedExamples).toHaveLength(5);
+  it('shows the worked examples with their SQL and no trailing semicolon', () => {
+    expect(workedExamples).toHaveLength(6);
     for (const entry of workedExamples) {
       expect(entry.sql).not.toMatch(/;\s*$/);
       expect(prompt).toContain(entry.sql);
@@ -115,6 +118,29 @@ describe('askOutput', () => {
     expect(askOutput.safeParse({ sql: 1 }).success).toBe(false);
     expect(askOutput.safeParse({ sql: 'x' }).success).toBe(false);
     expect(askOutput.safeParse({ sql: 'x', explanation: null }).success).toBe(false);
+  });
+});
+
+// The prompt teaches by these queries, so each must be one the validator accepts and must return
+// rows from the database the site is built with.
+describe('the worked examples', () => {
+  it('each prepares against the built database and returns rows', async () => {
+    const db = await openDatabase();
+    for (const entry of workedExamples) {
+      expect(validateSql(entry.sql, db), entry.question).toMatchObject({ ok: true });
+      expect(db.exec(entry.sql)[0]?.values.length ?? 0, entry.question).toBeGreaterThan(0);
+    }
+  });
+
+  it('answers the studying question with every course and the school', async () => {
+    const db = await openDatabase();
+    const studying = workedExamples.find((entry) => entry.question === 'What is Alex studying and where?');
+    expect(studying).toBeDefined();
+    const result = db.exec(studying!.sql)[0]!;
+    const courses = Number(db.exec('SELECT COUNT(*) FROM courses')[0]!.values[0]![0]);
+    expect(result.values).toHaveLength(courses);
+    const school = result.columns.indexOf('school');
+    expect(result.values.every((row) => row[school] === 'Centennial College')).toBe(true);
   });
 });
 

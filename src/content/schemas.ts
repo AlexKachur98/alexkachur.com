@@ -23,6 +23,7 @@ export const timelineKinds = ['work', 'education', 'project', 'life'] as const;
 export const factRow = z.object({
   key: z.string().describe('Fact name, for example location or available_from'),
   value: z.string().describe('The fact as text'),
+  description: z.string().describe('What the key means'),
 });
 
 export const projectRow = z.object({

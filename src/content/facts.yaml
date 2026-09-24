@@ -1,19 +1,41 @@
-# One row per fact. The id is the key column.
+# One row per fact. The id is the key column; the description says what the key means, never
+# its value, and the ask prompt lists the keys with these descriptions.
 - id: name
   value: Alex Kachur
+  description: The name Alex goes by
+- id: role
+  value: Full-stack & AI developer
+  description: The job title Alex goes by
 - id: headline
-  value: I build full-stack web apps with an AI doing real work inside them.
+  value: I build web apps with an AI doing real work inside them.
+  description: One sentence on what Alex builds
+- id: status
+  value: Final-year Software Engineering Technology student at Centennial College
+  description: What Alex is doing now
 - id: location
   value: Toronto, Canada
-- id: status
-  value: Final-year software engineering student at Centennial College
+  description: The city Alex lives and works in
 - id: school
   value: Centennial College
+  description: The college Alex attends
+- id: program
+  value: Software Engineering Technology, Advanced Diploma
+  description: The program Alex is enrolled in, and its credential
+- id: gpa
+  value: 4.4 / 4.5
+  description: Alex's average GPA for his program, out of the scale's maximum
+- id: languages_spoken
+  value: English, Russian and Hebrew, all fluent
+  description: The languages Alex speaks, and how well
 - id: available_from
   value: "2027-05"
+  description: The month Alex can start full-time work, as YYYY-MM
 - id: email
   value: alexkachur98@gmail.com
+  description: Alex's email address
 - id: github
   value: github.com/AlexKachur98
+  description: Alex's GitHub profile, without https://
 - id: linkedin
   value: linkedin.com/in/alex-kachur
+  description: Alex's LinkedIn profile, without https://

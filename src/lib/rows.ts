@@ -55,7 +55,7 @@ function rejectRepeats<T>(rows: T[], key: (row: T) => string | number, what: str
 export function factRows(entries: Entry<FactContent>[]): FactRow[] {
   return [...entries]
     .sort((a, b) => compare(a.id, b.id))
-    .map((entry) => ({ key: entry.id, value: entry.data.value }));
+    .map((entry) => ({ key: entry.id, value: entry.data.value, description: entry.data.description }));
 }
 
 export function projectRows(entries: Entry<ProjectInput>[]): ProjectRow[] {

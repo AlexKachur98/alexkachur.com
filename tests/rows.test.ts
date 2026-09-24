@@ -107,12 +107,12 @@ describe('rows', () => {
   it('sorts facts by key, courses by code and pets by name, without the file ids', () => {
     expect(
       factRows([
-        { id: 'name', data: { id: 'name', value: 'n' } },
-        { id: 'email', data: { id: 'email', value: 'e' } },
+        { id: 'name', data: { id: 'name', value: 'n', description: 'dn' } },
+        { id: 'email', data: { id: 'email', value: 'e', description: 'de' } },
       ]),
     ).toEqual([
-      { key: 'email', value: 'e' },
-      { key: 'name', value: 'n' },
+      { key: 'email', value: 'e', description: 'de' },
+      { key: 'name', value: 'n', description: 'dn' },
     ]);
     const course = { name: '', term: '', topics: null };
     const courses = courseRows([

@@ -41,9 +41,7 @@ export const questions: readonly EvalQuestion[] = [
   { question: 'What happened in 2025?', expect: 'sql', mustInclude: ['Centennial'] },
   { question: 'Which project is featured on the home page?', expect: 'sql', mustInclude: ['SplitRoof AI assistant'] },
   { question: "What is Alex's GitHub?", expect: 'sql', mustInclude: ['github.com/AlexKachur98'] },
-  // "Where" here reads as where Alex is, as in the prompt's own worked example; question 26 asks
-  // for the school outright.
-  { question: 'What is Alex studying and where?', expect: 'sql', mustInclude: ['Toronto', 'COMP 307'] },
+  { question: 'What is Alex studying and where?', expect: 'sql', mustInclude: ['Centennial College', 'COMP 307'] },
   { question: 'Which technologies does Uraz Hoops use?', expect: 'sql', mustInclude: ['Next.js', 'Framer Motion'] },
   { question: 'What kinds of projects has Alex done, and how many of each?', expect: 'sql', mustInclude: ['client'] },
   {

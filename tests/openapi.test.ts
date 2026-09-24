@@ -143,4 +143,10 @@ describe('the OpenAPI document', () => {
     expect(stats.required.sort()).toEqual(Object.keys(body).sort());
     expect(paths['/api/stats']!['get']!.responses['200']!.content?.['application/json']?.schema).toEqual({ $ref: '#/components/schemas/stats' });
   });
+
+  it('describes /api/schema.json with exactly the fields the build writes', () => {
+    const shape = schemas['database_schema'] as { properties: Record<string, unknown>; required: string[] };
+    expect(Object.keys(shape.properties).sort()).toEqual(Object.keys(schema).sort());
+    expect([...shape.required].sort()).toEqual(Object.keys(schema).sort());
+  });
 });
