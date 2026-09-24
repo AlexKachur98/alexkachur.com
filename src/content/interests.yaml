@@ -1,0 +1,191 @@
+# Alex's hobbies and favourites, in his words, in the order he listed them; the integer id in the
+# database follows this order. A name can appear under two categories (Japan, Egypt), so ids that
+# would repeat carry their category.
+- id: counter-strike
+  category: video game
+  name: Counter-Strike
+  note: My competitive game. I was the in-game leader (IGL) for a semi-pro team and came close to going pro. Over 15,000 hours, and I reached A+ on ESEA back when ESEA mattered.
+- id: skyrim
+  category: video game
+  name: "The Elder Scrolls V: Skyrim"
+  note: Rich characters and stories, and endless ways to play. Around 3,000 hours between Skyrim and New Vegas, and every replay I still find something new.
+- id: fallout-new-vegas
+  category: video game
+  name: "Fallout: New Vegas"
+  note: Rich characters and stories, and endless ways to play. Around 3,000 hours between Skyrim and New Vegas, and every replay I still find something new.
+- id: civilization-v
+  category: video game
+  name: Civilization V
+  note: I'm a huge history and culture nerd, and I love strategy map games built on historical ideas. My most-played strategy game, around 1,500 hours.
+- id: grand-strategy
+  category: game genre
+  name: Grand strategy
+  note: Map games with strategy and history.
+- id: open-world-rpgs
+  category: game genre
+  name: Open-world RPGs
+  note: Rich stories and many ways to play.
+- id: crusader-kings-iii
+  category: playing now
+  name: Crusader Kings III
+  note: When I have more time.
+- id: cyberpunk-2077
+  category: playing now
+  name: Cyberpunk 2077
+  note: When I have more time.
+- id: casual-indie-games
+  category: playing now
+  name: Casual indie games with friends
+  note: null
+- id: catan
+  category: board game
+  name: Catan
+  note: Casual games with friends and family.
+- id: slay-the-spire-board-game
+  category: board game
+  name: "Slay the Spire: The Board Game"
+  note: Casual games with friends and family.
+- id: clank
+  category: board game
+  name: Clank!
+  note: Casual games with friends and family.
+- id: the-godfather
+  category: movie
+  name: The Godfather
+  note: null
+- id: dune
+  category: movie
+  name: Dune
+  note: Denis Villeneuve's films.
+- id: the-dark-knight
+  category: movie
+  name: The Dark Knight
+  note: The 2008 film.
+- id: game-of-thrones
+  category: TV show
+  name: Game of Thrones
+  note: I never watched the last season, so I can make up my own ending.
+- id: naruto
+  category: TV show
+  name: Naruto
+  note: null
+- id: better-call-saul
+  category: TV show
+  name: Better Call Saul
+  note: null
+- id: house-of-the-dragon
+  category: watching now
+  name: House of the Dragon
+  note: null
+- id: the-gentlemen
+  category: watching now
+  name: The Gentlemen
+  note: The Guy Ritchie series.
+- id: cyberpunk-edgerunners
+  category: watching now
+  name: "Cyberpunk: Edgerunners"
+  note: null
+- id: the-middle-east
+  category: history topic
+  name: The Middle East
+  note: null
+- id: egypt-history
+  category: history topic
+  name: Egypt
+  note: null
+- id: japan-history
+  category: history topic
+  name: Japan
+  note: null
+- id: medieval-europe
+  category: history topic
+  name: Medieval Europe
+  note: null
+- id: a-peace-to-end-all-peace
+  category: reading now
+  name: A Peace to End All Peace, by David Fromkin
+  note: I recommend it.
+- id: rap
+  category: music genre
+  name: Rap
+  note: I listen to anything really, but these are my favourites.
+- id: edm
+  category: music genre
+  name: EDM
+  note: null
+- id: heavy-metal
+  category: music genre
+  name: Heavy metal
+  note: null
+- id: wiz-khalifa
+  category: music artist
+  name: Wiz Khalifa
+  note: null
+- id: yung-lean
+  category: music artist
+  name: Yung Lean
+  note: null
+- id: dj-whipped-cream
+  category: music artist
+  name: DJ Whipped Cream
+  note: null
+- id: gamers-nexus
+  category: YouTube or podcast
+  name: Gamers Nexus
+  note: null
+- id: first-things-first
+  category: YouTube or podcast
+  name: First Things First
+  note: null
+- id: brazilian-jiu-jitsu
+  category: sport
+  name: Brazilian jiu-jitsu
+  note: Trained judo and BJJ growing up, up to purple belt in BJJ.
+- id: judo
+  category: sport
+  name: Judo
+  note: Trained judo and BJJ growing up, up to purple belt in BJJ.
+- id: basketball
+  category: sport
+  name: Basketball
+  note: For fun.
+- id: soccer
+  category: sport
+  name: Soccer
+  note: For fun.
+- id: counter-strike-esports
+  category: following
+  name: Counter-Strike esports
+  note: I've followed the scene so long I don't have a favourite team any more, just favourite players I cheer on.
+- id: toronto-raptors
+  category: following
+  name: Toronto Raptors
+  note: null
+- id: la-clippers
+  category: following
+  name: LA Clippers
+  note: null
+- id: nfl
+  category: following
+  name: NFL
+  note: Started watching two years ago, still picking a team.
+- id: ufc
+  category: following
+  name: UFC
+  note: "All-time favourite fighters: Max Holloway, Charles Oliveira, Justin Gaethje and Dustin Poirier."
+- id: mexico
+  category: travelled to
+  name: Mexico
+  note: null
+- id: jamaica
+  category: travelled to
+  name: Jamaica
+  note: null
+- id: japan-visit
+  category: wants to visit
+  name: Japan
+  note: Top of the list, and the same places I love reading about.
+- id: egypt-visit
+  category: wants to visit
+  name: Egypt
+  note: Top of the list, and the same places I love reading about.

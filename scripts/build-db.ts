@@ -16,6 +16,7 @@ import {
   courseContent,
   experienceContent,
   factContent,
+  interestContent,
   petContent,
   projectContent,
   tables,
@@ -26,6 +27,7 @@ import type {
   CourseContent,
   ExperienceContent,
   FactContent,
+  InterestContent,
   PetContent,
   ProjectContent,
   TableName,
@@ -36,6 +38,7 @@ import {
   courseRows,
   experienceRows,
   factRows,
+  interestRows,
   petRows,
   projectRows,
   projectTechnologyRows,
@@ -54,6 +57,7 @@ export interface Content {
   timeline: Entry<TimelineContent>[];
   pets: Entry<PetContent>[];
   experience: Entry<ExperienceContent>[];
+  interests: Entry<InterestContent>[];
 }
 
 // File text keyed by path relative to src/content, so tests can hand in edited copies.
@@ -64,7 +68,7 @@ export interface ContentPaths {
   publicDir: string;
 }
 
-const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml', 'experience.yaml'] as const;
+const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml', 'experience.yaml', 'interests.yaml'] as const;
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -151,6 +155,7 @@ export function parseContent(
     timeline: yamlRows('timeline.yaml', text('timeline.yaml'), timelineContent),
     pets: yamlRows('pets.yaml', text('pets.yaml'), petContent),
     experience: yamlRows('experience.yaml', text('experience.yaml'), experienceContent),
+    interests: yamlRows('interests.yaml', text('interests.yaml'), interestContent),
     projects: Object.keys(files)
       .filter((name) => name.startsWith('projects/'))
       .sort()
@@ -188,6 +193,7 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     timeline: timelineRows(content.timeline),
     pets: petRows(content.pets),
     experience: experienceRows(content.experience),
+    interests: interestRows(content.interests),
   };
 }
 

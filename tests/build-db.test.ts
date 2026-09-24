@@ -68,6 +68,7 @@ describe('build-db', () => {
     expect(rows.pets).toHaveLength(2);
     expect(rows.facts).toHaveLength(13);
     expect(rows.experience).toHaveLength(4);
+    expect(rows.interests).toHaveLength(47);
   });
 
   it('derives the DDL from the shared schemas', () => {
@@ -81,7 +82,7 @@ describe('build-db', () => {
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
     expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
-    expect(text.match(/CREATE TABLE/g)).toHaveLength(8);
+    expect(text.match(/CREATE TABLE/g)).toHaveLength(9);
   });
 
   it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
@@ -122,6 +123,7 @@ describe('build-db', () => {
       'timeline',
       'pets',
       'experience',
+      'interests',
     ]);
     expect(schema.tables.every((table) => table.columns.every((col) => col.description.length > 0))).toBe(true);
     expect(schema.photoAlt).toEqual({
@@ -207,6 +209,19 @@ describe('build-db', () => {
     expect(() => parseContent(edited('technologies.yaml', `${gemini}0`, `${gemini}1`))).toThrow(
       /technologies.yaml: Gemini API is core but no project uses it/,
     );
+  });
+
+  it('keeps the interests in the order they are listed, with every note written out', () => {
+    const rows = query('SELECT id, category, name, note FROM interests ORDER BY id');
+    expect(rows[0]).toMatchObject({ id: 1, category: 'video game', name: 'Counter-Strike' });
+    expect(rows.at(-1)).toMatchObject({ id: 47, category: 'wants to visit', name: 'Egypt' });
+    expect(new Set(rows.map((row) => row.category)).size).toBe(16);
+    const note = (name: string, category: string) => rows.find((row) => row.name === name && row.category === category)!.note;
+    expect(note('Fallout: New Vegas', 'video game')).toBe(note('The Elder Scrolls V: Skyrim', 'video game'));
+    expect(note('Clank!', 'board game')).toBe('Casual games with friends and family.');
+    expect(note('Judo', 'sport')).toBe(note('Brazilian jiu-jitsu', 'sport'));
+    expect(note('Japan', 'wants to visit')).toBe('Top of the list, and the same places I love reading about.');
+    expect(note('Japan', 'history topic')).toBeNull();
   });
 
   it('keeps every pets photo under public', () => {

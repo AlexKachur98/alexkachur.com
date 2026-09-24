@@ -19,6 +19,24 @@ export const technologyCategories = [
   'platform',
 ] as const;
 export const timelineKinds = ['work', 'education', 'project', 'life'] as const;
+export const interestCategories = [
+  'video game',
+  'game genre',
+  'playing now',
+  'board game',
+  'movie',
+  'TV show',
+  'watching now',
+  'history topic',
+  'reading now',
+  'music genre',
+  'music artist',
+  'YouTube or podcast',
+  'sport',
+  'following',
+  'travelled to',
+  'wants to visit',
+] as const;
 // In the order Alex listed the areas.
 export const skillAreas = [
   'Languages',
@@ -96,6 +114,13 @@ export const experienceRow = z.object({
   highlights: z.string().describe('What Alex did there, word for word from his resume, one per line'),
 });
 
+export const interestRow = z.object({
+  id: z.number().int().describe('Position in the list, 1 first'),
+  category: z.enum(interestCategories).describe(`${interestCategories.slice(0, -1).join(', ')}, or ${interestCategories.at(-1)}`),
+  name: z.string().describe('The game, show, team, place or other thing'),
+  note: z.string().nullable().describe("Alex's note on it, NULL if none"),
+});
+
 export const petRow = z.object({
   name: z.string().describe('The cat'),
   species: z.string().describe('Always cat so far'),
@@ -156,6 +181,12 @@ export const tables = {
     primaryKey: ['id'],
     unique: [],
   },
+  interests: {
+    row: interestRow,
+    description: "Alex's hobbies and favourites, in his words",
+    primaryKey: ['id'],
+    unique: [],
+  },
 } as const satisfies Record<
   string,
   { row: z.ZodObject; description: string; primaryKey: readonly string[]; unique: readonly string[] }
@@ -190,6 +221,7 @@ export const courseContent = z.strictObject({ id: contentId, ...courseRow.shape 
 export const timelineContent = z.strictObject({ id: contentId, ...timelineRow.omit({ id: true }).shape });
 export const petContent = z.strictObject({ id: contentId, ...petRow.shape });
 export const factContent = z.strictObject({ id: contentId, ...factRow.omit({ key: true }).shape });
+export const interestContent = z.strictObject({ id: contentId, ...interestRow.omit({ id: true }).shape });
 export const experienceContent = z.strictObject({
   id: contentId,
   ...experienceRow.omit({ id: true, highlights: true }).shape,
@@ -207,3 +239,4 @@ export type CourseContent = z.infer<typeof courseContent>;
 export type TimelineContent = z.infer<typeof timelineContent>;
 export type PetContent = z.infer<typeof petContent>;
 export type ExperienceContent = z.infer<typeof experienceContent>;
+export type InterestContent = z.infer<typeof interestContent>;

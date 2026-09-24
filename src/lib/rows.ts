@@ -6,6 +6,7 @@ import type {
   CourseContent,
   ExperienceContent,
   FactContent,
+  InterestContent,
   PetContent,
   ProjectContent,
   TechnologyContent,
@@ -13,6 +14,7 @@ import type {
   courseRow,
   experienceRow,
   factRow,
+  interestRow,
   petRow,
   projectRow,
   projectTechnologyRow,
@@ -33,6 +35,7 @@ export type CourseRow = z.infer<typeof courseRow>;
 export type TimelineRow = z.infer<typeof timelineRow>;
 export type PetRow = z.infer<typeof petRow>;
 export type ExperienceRow = z.infer<typeof experienceRow>;
+export type InterestRow = z.infer<typeof interestRow>;
 
 // Inside Astro, reference() turns each technology id into { collection, id } and image() turns
 // each screenshot src into ImageMetadata; plain Node keeps the strings. Both shapes fit here.
@@ -139,4 +142,9 @@ export function experienceRows(entries: Entry<ExperienceContent>[]): ExperienceR
     .map(({ data: { id, highlights, ...row } }) => ({ ...row, highlights: highlights.join('\n') }))
     .sort((a, b) => compare(a.start, b.start) || compare(a.title, b.title))
     .map((row, index) => ({ id: index + 1, ...row }));
+}
+
+// In the order Alex listed them, which is the file's order.
+export function interestRows(entries: Entry<InterestContent>[]): InterestRow[] {
+  return entries.map(({ data: { id, ...row } }, index) => ({ id: index + 1, ...row }));
 }
