@@ -43,7 +43,10 @@ export const THUMB = 48;
 const GUARD_MESSAGE = 'Read-only console: SELECT, WITH and EXPLAIN only.';
 const TIMEOUT_MESSAGE = 'query stopped after 3 s';
 const TRUNCATED_MESSAGE = 'showing 50 of more';
-const EMPTY_MESSAGE = 'No rows. The query ran; the data just does not have that.';
+// The empty-result sentence is split: its first words go on the status line and the rest under
+// the results, so the status line always fits on one line.
+const EMPTY_STATUS = 'No rows';
+const EMPTY_NOTE = 'The query ran; the data just does not have that.';
 const LOAD_MESSAGE = 'The database could not be loaded. Reload the page to try again.';
 const WORKING_MESSAGE = 'working';
 const CACHED_LABEL = 'cached';
@@ -313,7 +316,7 @@ function sqlNodes(sql: string): Node[] {
 
 // The status line after a run: the row count, or the two copy strings for none and for more.
 export function summary(result: Result): string {
-  if (result.rows.length === 0) return EMPTY_MESSAGE;
+  if (result.rows.length === 0) return EMPTY_STATUS;
   if (result.truncated) return TRUNCATED_MESSAGE;
   return result.rows.length === 1 ? '1 row' : `${result.rows.length} rows`;
 }
@@ -362,8 +365,9 @@ export function askState(reply: Reply | null, withConsole = true): AskState {
 }
 
 // The parts the two panels share: the working attribute for the cursor, the status and error
-// regions, and the results container. The suffix follows every status text; the Ask panel
-// sets it to the cached label so the row count reads "2 rows, cached".
+// regions, and the results container. The suffix follows the status a run ends on; the Ask
+// panel sets it to the cached label so the row count reads "2 rows, cached", while working and
+// loading stay short.
 interface Panel {
   root: HTMLElement;
   status: HTMLElement;
@@ -405,8 +409,9 @@ function element<T extends HTMLElement>(root: ParentNode, selector: string): T {
 
 // Unchanged text is left alone: replacing a text node with the same words still fires a live
 // region change, and the loading message can be written by the preload and by a click.
-function setStatus(panel: Panel, text: string): void {
-  const full = text && panel.suffix ? `${text}, ${panel.suffix}` : text || panel.suffix;
+export function setStatus(panel: Panel, text: string, final = false): void {
+  const suffix = final ? panel.suffix : '';
+  const full = text && suffix ? `${text}, ${suffix}` : text || suffix;
   if (panel.status.textContent !== full) panel.status.textContent = full;
 }
 
@@ -463,12 +468,27 @@ function paint(panel: Panel, result: Result): void {
   }
   // One DOM operation, so assistive technology sees a single change; the CSS row reveal does
   // the rest. The container scrolls sideways for wide results, so it must take focus.
-  panel.results.replaceChildren(table);
+  if (result.rows.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'console-empty';
+    note.textContent = EMPTY_NOTE;
+    panel.results.replaceChildren(table, note);
+  } else {
+    panel.results.replaceChildren(table);
+  }
   panel.results.tabIndex = 0;
+}
+
+// The rest of an empty result's sentence belongs to the "No rows" it follows. A run removes it
+// when it starts, and again if it fails, since an earlier run ahead of it in the queue may have
+// painted one while it waited.
+function dropNote(panel: Panel): void {
+  panel.results.querySelector('.console-empty')?.remove();
 }
 
 async function execute(panel: Panel, sql: string): Promise<void> {
   if (!executor) return;
+  dropNote(panel);
   const problem = guard(sql);
   if (problem) {
     setStatus(panel, panel.inFlight > 0 ? WORKING_MESSAGE : '');
@@ -485,9 +505,10 @@ async function execute(panel: Panel, sql: string): Promise<void> {
     // An earlier query in the queue may have failed since this one was submitted.
     setError(panel, '');
     paint(panel, result);
-    setStatus(panel, summary(result));
+    setStatus(panel, summary(result), true);
   } catch (error) {
-    setStatus(panel, '');
+    dropNote(panel);
+    setStatus(panel, '', true);
     setError(panel, failure(error));
   } finally {
     working(panel, -1);
@@ -542,7 +563,7 @@ async function show(ui: AskUi, state: AskState): Promise<void> {
   }
   ui.explanation.textContent = state.explanation;
   ui.suffix = state.cached ? CACHED_LABEL : '';
-  if (state.kind === 'refusal') setStatus(ui, '');
+  if (state.kind === 'refusal') setStatus(ui, '', true);
   else await answer(ui, state.sql);
 }
 

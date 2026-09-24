@@ -201,6 +201,13 @@
   color: var(--console-muted);
 }
 
+/* The rest of the empty-result sentence, under the column headers; the status line says "No rows". */
+.console-results .console-empty {
+  margin: var(--space-3) 0 0;
+  max-width: none;
+  color: var(--console-muted);
+}
+
 /* The one image shown at a fixed size and without a caption: the thumbnail in a results cell. */
 .console-results img {
   width: var(--thumb);

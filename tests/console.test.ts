@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { createExecutor, guard, renderCell, ROWS, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { createExecutor, guard, renderCell, ROWS, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
@@ -43,7 +43,49 @@ describe('truncation', () => {
     expect(visibleRows(result(50))).toHaveLength(50);
     expect(summary(result(12))).toBe('12 rows');
     expect(summary(result(1))).toBe('1 row');
-    expect(summary(result(0))).toBe('No rows. The query ran; the data just does not have that.');
+    expect(summary(result(0))).toBe('No rows');
+  });
+});
+
+describe('status line', () => {
+  const source = readFileSync('src/scripts/console.ts', 'utf8');
+
+  it('says "No rows" and writes the rest of the empty-result sentence under the results', () => {
+    expect(source).toContain("const EMPTY_NOTE = 'The query ran; the data just does not have that.';");
+    expect(source).toContain('note.textContent = EMPTY_NOTE;');
+    expect(source).toContain('panel.results.replaceChildren(table, note);');
+  });
+
+  it('takes the rest of the sentence away when a run starts and when a run fails', () => {
+    const run = source.slice(source.indexOf('async function execute('), source.indexOf('export function run()'));
+    const start = run.indexOf('dropNote(panel);');
+    expect(start).toBeGreaterThan(-1);
+    expect(start).toBeLessThan(run.indexOf('const problem = guard(sql);'));
+    const failed = run.slice(run.indexOf('} catch (error) {'));
+    const again = failed.indexOf('dropNote(panel);');
+    expect(again).toBeGreaterThan(-1);
+    expect(again).toBeLessThan(failed.indexOf('setError(panel, failure(error));'));
+  });
+
+  it('adds the cached label only when asked for the status a run ends on', () => {
+    const status = { textContent: '' };
+    const panel = { status, suffix: 'cached' } as unknown as Parameters<typeof setStatus>[0];
+    setStatus(panel, 'working');
+    expect(status.textContent).toBe('working');
+    setStatus(panel, 'loading database, 57 KB');
+    expect(status.textContent).toBe('loading database, 57 KB');
+    setStatus(panel, 'No rows', true);
+    expect(status.textContent).toBe('No rows, cached');
+    setStatus(panel, '', true);
+    expect(status.textContent).toBe('cached');
+  });
+
+  it('asks for it after a result, an error and a refusal, never for working or loading', () => {
+    expect(source).toContain('setStatus(panel, summary(result), true);');
+    expect(source).toContain("setStatus(panel, '', true);");
+    expect(source).toContain("if (state.kind === 'refusal') setStatus(ui, '', true);");
+    expect(source).toContain('setStatus(panel, loaded ? WORKING_MESSAGE : loadingMessage());');
+    expect(source).toContain('setStatus(ui, WORKING_MESSAGE);');
   });
 });
 
