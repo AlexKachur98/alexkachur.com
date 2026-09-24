@@ -6,6 +6,7 @@ import {
   factContent,
   pageContent,
   petContent,
+  photo,
   projectContent,
   screenshot,
   technologyContent,
@@ -50,7 +51,13 @@ const facts = defineCollection({
 
 const pages = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/pages' }),
-  schema: pageContent,
+  schema: ({ image }) =>
+    pageContent.extend({
+      images: z
+        .array(photo.extend({ src: image().describe(photo.shape.src.description ?? '') }))
+        .optional()
+        .describe(pageContent.shape.images.description ?? ''),
+    }),
 });
 
 export const collections = { projects, technologies, courses, timeline, pets, facts, pages };

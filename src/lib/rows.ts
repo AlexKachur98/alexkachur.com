@@ -15,12 +15,16 @@ import type {
   experienceRow,
   factRow,
   interestRow,
+  pageImageRow,
   petRow,
   projectRow,
   projectTechnologyRow,
+  sectionRow,
   technologyRow,
   timelineRow,
 } from '../content/schemas.ts';
+import { blockText } from './page-text.ts';
+import { splitSections } from './sections.ts';
 
 export interface Entry<T> {
   id: string;
@@ -36,6 +40,8 @@ export type TimelineRow = z.infer<typeof timelineRow>;
 export type PetRow = z.infer<typeof petRow>;
 export type ExperienceRow = z.infer<typeof experienceRow>;
 export type InterestRow = z.infer<typeof interestRow>;
+export type SectionRow = z.infer<typeof sectionRow>;
+export type PageImageRow = z.infer<typeof pageImageRow>;
 
 // Inside Astro, reference() turns each technology id into { collection, id } and image() turns
 // each screenshot src into ImageMetadata; plain Node keeps the strings. Both shapes fit here.
@@ -147,4 +153,33 @@ export function experienceRows(entries: Entry<ExperienceContent>[]): ExperienceR
 // In the order Alex listed them, which is the file's order.
 export function interestRows(entries: Entry<InterestContent>[]): InterestRow[] {
   return entries.map(({ data: { id, ...row } }, index) => ({ id: index + 1, ...row }));
+}
+
+// A page's rendered markdown as the sections table stores it. A page with no h2 of its own (About,
+// Now, the 404) is one section under its title; a section whose text renders to nothing is left
+// out, as the page leaves it out.
+export interface PageText {
+  page: string;
+  title?: string | undefined;
+  html: string;
+}
+
+export function sectionRows(pages: readonly PageText[]): SectionRow[] {
+  return pages.flatMap(({ page, title, html }) =>
+    splitSections(html, { lead: title })
+      .map((section) => ({ heading: section.title, body: blockText(section.body) }))
+      .filter((section) => section.body !== '')
+      .map((section, index) => ({ page, position: index + 1, ...section })),
+  );
+}
+
+export interface PagePhotos {
+  page: string;
+  images: readonly { alt: string; caption?: string | undefined }[];
+}
+
+export function pageImageRows(pages: readonly PagePhotos[]): PageImageRow[] {
+  return pages.flatMap(({ page, images }) =>
+    images.map((image, index) => ({ page, position: index + 1, alt: image.alt, caption: image.caption ?? null })),
+  );
 }

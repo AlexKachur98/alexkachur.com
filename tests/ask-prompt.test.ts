@@ -14,7 +14,7 @@ import {
   workedExamples,
 } from '../src/lib/ask/prompt.ts';
 
-const tables = ['facts', 'projects', 'technologies', 'project_technologies', 'courses', 'timeline', 'pets', 'experience', 'interests', 'storage'];
+const tables = ['facts', 'projects', 'technologies', 'project_technologies', 'courses', 'timeline', 'pets', 'experience', 'interests', 'storage', 'sections', 'page_images'];
 
 describe('outputFormat', () => {
   it('puts the two string fields and nothing else on the wire', () => {

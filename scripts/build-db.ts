@@ -17,6 +17,7 @@ import {
   experienceContent,
   factContent,
   interestContent,
+  pageContent,
   petContent,
   projectContent,
   tables,
@@ -28,6 +29,7 @@ import type {
   ExperienceContent,
   FactContent,
   InterestContent,
+  PageContent,
   PetContent,
   ProjectContent,
   TableName,
@@ -39,14 +41,17 @@ import {
   experienceRows,
   factRows,
   interestRows,
+  pageImageRows,
   petRows,
   projectRows,
   projectTechnologyRows,
+  sectionRows,
   technologyRows,
   timelineRows,
 } from '../src/lib/rows.ts';
 import type { Entry } from '../src/lib/rows.ts';
 import { storageRows } from '../src/lib/ask/storage.ts';
+import { renderBody } from '../src/lib/markdown.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -59,7 +64,17 @@ export interface Content {
   pets: Entry<PetContent>[];
   experience: Entry<ExperienceContent>[];
   interests: Entry<InterestContent>[];
+  pages: PageEntry[];
+  // Each markdown file's body as the site renders it, keyed like ContentFiles.
+  rendered: Rendered;
 }
+
+// A page file and the address its text appears at.
+export interface PageEntry extends Entry<PageContent> {
+  page: string;
+}
+
+export type Rendered = Record<string, string>;
 
 // File text keyed by path relative to src/content, so tests can hand in edited copies.
 export type ContentFiles = Record<string, string>;
@@ -70,6 +85,13 @@ export interface ContentPaths {
 }
 
 const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml', 'experience.yaml', 'interests.yaml'] as const;
+
+// The page files whose text goes into the sections table, in the order of the tables' rows.
+export const pageFiles: Readonly<Record<string, string>> = {
+  'pages/about.md': '/#about',
+  'pages/now.md': '/#now',
+  'pages/404.md': '/404',
+};
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -83,6 +105,7 @@ function readText(path: string): string {
 export function readContentFiles(contentDir: string): ContentFiles {
   const files: ContentFiles = {};
   for (const name of yamlFiles) files[name] = readText(join(contentDir, name));
+  for (const name of Object.keys(pageFiles)) files[name] = readText(join(contentDir, name));
   const projectDir = join(contentDir, 'projects');
   if (!existsSync(projectDir)) throw new Error(`${projectDir} is missing`);
   for (const name of readdirSync(projectDir).filter((entry) => entry.endsWith('.md')).sort()) {
@@ -124,12 +147,31 @@ function yamlRows<T>(name: string, text: string, schema: z.ZodType<T>): Entry<T>
   });
 }
 
+const frontmatter = /^---\n([\s\S]*?)\n---(?:\n|$)/;
+
+// Every markdown file rendered as Astro renders it, so the sections table holds the text the pages show.
+export async function renderMarkdown(files: ContentFiles): Promise<Rendered> {
+  const rendered: Rendered = {};
+  for (const name of Object.keys(files).filter((key) => key.endsWith('.md'))) rendered[name] = await renderBody(files[name]!);
+  return rendered;
+}
+
+function pageEntry(name: string, text: string, contentDir: string): PageEntry {
+  const match = frontmatter.exec(text);
+  if (!match) throw new Error(`${name}: no frontmatter`);
+  const data = validate(pageContent, parseYamlText(name, match[1]!) ?? {}, name);
+  for (const image of data.images ?? []) {
+    if (!existsSync(resolve(contentDir, dirname(name), image.src))) throw new Error(`${name}: image ${image.src} does not exist`);
+  }
+  return { id: name, page: pageFiles[name]!, data };
+}
+
 function projectEntry(name: string, text: string, contentDir: string): Entry<ProjectContent> {
   const id = basename(name, '.md');
   // Astro slugifies the file name for its entry id; a name that is not already a slug would give
   // the database a different slug from the endpoints and pages.
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error(`${name}: file name is not a slug`);
-  const match = /^---\n([\s\S]*?)\n---(?:\n|$)/.exec(text);
+  const match = frontmatter.exec(text);
   if (!match) throw new Error(`${name}: no frontmatter`);
   const data = validate(projectContent, parseYamlText(name, match[1]!), name);
   for (const shot of data.screenshots) {
@@ -143,6 +185,7 @@ function projectEntry(name: string, text: string, contentDir: string): Entry<Pro
 export function parseContent(
   files: ContentFiles,
   paths: ContentPaths = { contentDir: 'src/content', publicDir: 'public' },
+  rendered: Rendered = {},
 ): Content {
   const text = (name: string): string => {
     const value = files[name];
@@ -161,6 +204,8 @@ export function parseContent(
       .filter((name) => name.startsWith('projects/'))
       .sort()
       .map((name) => projectEntry(name, files[name]!, paths.contentDir)),
+    pages: Object.keys(pageFiles).map((name) => pageEntry(name, text(name), paths.contentDir)),
+    rendered,
   };
   if (content.projects.length === 0) throw new Error('projects: no project files');
   // A core skill is described as backed by a project on this site, so each needs one.
@@ -175,11 +220,15 @@ export function parseContent(
       throw new Error(`pets.yaml row ${pet.id}: ${pet.data.photo_url} is not under ${paths.publicDir}`);
     }
   }
+  for (const name of Object.keys(files).filter((key) => key.endsWith('.md'))) {
+    if (rendered[name] === undefined) throw new Error(`${name}: not rendered`);
+  }
   return content;
 }
 
-export function loadContent(paths: ContentPaths = { contentDir: 'src/content', publicDir: 'public' }): Content {
-  return parseContent(readContentFiles(paths.contentDir), paths);
+export async function loadContent(paths: ContentPaths = { contentDir: 'src/content', publicDir: 'public' }): Promise<Content> {
+  const files = readContentFiles(paths.contentDir);
+  return parseContent(files, paths, await renderMarkdown(files));
 }
 
 export type Row = Record<string, string | number | null>;
@@ -197,6 +246,13 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     interests: interestRows(content.interests),
     // Built from the lifetimes the code uses, not from the content files.
     storage: storageRows(),
+    sections: sectionRows([
+      ...content.pages.map((entry) => ({ page: entry.page, title: entry.data.title, html: content.rendered[entry.id]! })),
+      ...[...content.projects]
+        .sort((a, b) => a.data.order - b.data.order)
+        .map((entry) => ({ page: `/work/${entry.id}`, html: content.rendered[`projects/${entry.id}.md`]! })),
+    ]),
+    page_images: pageImageRows(content.pages.map((entry) => ({ page: entry.page, images: entry.data.images ?? [] }))),
   };
 }
 
@@ -389,7 +445,7 @@ export async function main(root = process.cwd()): Promise<void> {
   copyFileSync(require.resolve('sql.js/dist/sql-wasm.js'), join(vendorTarget, 'sql-wasm.js'));
   copyFileSync(wasmPath(), join(vendorTarget, 'sql-wasm.wasm'));
 
-  const content = loadContent({ contentDir: join(root, 'src', 'content'), publicDir: join(root, 'public') });
+  const content = await loadContent({ contentDir: join(root, 'src', 'content'), publicDir: join(root, 'public') });
   const sql = dumpSql(content);
   const bytes = buildDatabase(await loadSqlJs(), sql);
 

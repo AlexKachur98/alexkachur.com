@@ -15,7 +15,7 @@ const version = (
 ).version;
 const source = readFileSync('public/console-worker.js', 'utf8');
 const SQL = await loadSqlJs();
-const bytes = buildDatabase(SQL, dumpSql(loadContent()));
+const bytes = buildDatabase(SQL, dumpSql(await loadContent()));
 
 interface Reply {
   type: string;

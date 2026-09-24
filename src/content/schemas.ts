@@ -127,6 +127,20 @@ export const storageRow = z.object({
   purpose: z.string().describe('Why'),
 });
 
+export const sectionRow = z.object({
+  page: z.string().describe("Where the text appears: /#about or /#now on the home page, /404, or /work/ and a project's slug"),
+  position: z.number().int().positive().describe('Order on the page, 1 first'),
+  heading: z.string().describe("The section's heading as the page shows it"),
+  body: z.string().describe('The section\'s text as the page shows it; a blank line between paragraphs, list items starting with "- "'),
+});
+
+export const pageImageRow = z.object({
+  page: z.string().describe('Where the photo appears, as in sections.page'),
+  position: z.number().int().positive().describe('Order on the page, 1 first'),
+  alt: z.string().describe('What the photo shows'),
+  caption: z.string().nullable().describe('Caption under the photo, NULL if none'),
+});
+
 export const petRow = z.object({
   name: z.string().describe('The cat'),
   species: z.string().describe('Always cat so far'),
@@ -199,6 +213,18 @@ export const tables = {
     primaryKey: ['item'],
     unique: [],
   },
+  sections: {
+    row: sectionRow,
+    description: "The text of the site's pages and case studies, one row per section",
+    primaryKey: ['page', 'position'],
+    unique: [],
+  },
+  page_images: {
+    row: pageImageRow,
+    description: "The photos on the site's other pages",
+    primaryKey: ['page', 'position'],
+    unique: [],
+  },
 } as const satisfies Record<
   string,
   { row: z.ZodObject; description: string; primaryKey: readonly string[]; unique: readonly string[] }
@@ -240,8 +266,16 @@ export const experienceContent = z.strictObject({
   highlights: z.array(z.string().min(1)).min(1).describe('The resume bullets, word for word'),
 });
 
+export const photo = z.strictObject({
+  src: z.string().describe('Path of the photo, relative to the page file'),
+  alt: z.string().describe('What the photo shows'),
+  caption: z.string().optional().describe('Caption under the photo'),
+});
+
 export const pageContent = z.strictObject({
+  title: z.string().optional().describe('The heading the page or section shows'),
   updated: z.date().optional().describe('Last-updated date shown at the top of the page'),
+  images: z.array(photo).optional().describe('Photos on the page, in display order'),
 });
 
 export type FactContent = z.infer<typeof factContent>;
@@ -252,3 +286,4 @@ export type TimelineContent = z.infer<typeof timelineContent>;
 export type PetContent = z.infer<typeof petContent>;
 export type ExperienceContent = z.infer<typeof experienceContent>;
 export type InterestContent = z.infer<typeof interestContent>;
+export type PageContent = z.infer<typeof pageContent>;

@@ -1,29 +1,33 @@
 ---
-import simba from '../assets/cats/simba-05.webp';
+import { getEntry } from 'astro:content';
 import AskBox from '../components/AskBox.astro';
 import Figure from '../components/Figure.astro';
 import Base from '../layouts/Base.astro';
+import { blockText } from '../lib/page-text.ts';
+
+const page = await getEntry('pages', '404');
+if (!page?.data.title) throw new Error('src/content/pages/404.md is missing, or has no title');
+const lead = page.rendered?.html ?? '';
+const photo = page.data.images?.[0];
 ---
 
-<Base title="Nothing at this address." description="The database does not have that page either. Try asking it something instead." noindex>
+<Base title={page.data.title} description={blockText(lead)} noindex>
   <main id="main" class="container">
     <header class="page-head">
-      <h1>Nothing at this address.</h1>
-      <p class="lead">The database does not have that page either. Try asking it something instead.</p>
+      <h1>{page.data.title}</h1>
+      <div class="lead"><Fragment set:html={lead} /></div>
     </header>
     <div class="grid">
       <div class="ask-slot">
         <AskBox />
       </div>
-      <div class="photo">
-        <Figure
-          src={simba}
-          alt="Simba mid-meow on a patterned rug, mouth wide open"
-          caption="Simba, reacting to the URL you typed."
-          width={480}
-          sizes="(min-width: 768px) 480px, calc(100vw - 48px)"
-        />
-      </div>
+      {
+        photo && (
+          <div class="photo">
+            <Figure src={photo.src} alt={photo.alt} caption={photo.caption} width={480} sizes="(min-width: 768px) 480px, calc(100vw - 48px)" />
+          </div>
+        )
+      }
     </div>
     <p class="home"><a href="/">Back to the home page</a></p>
   </main>

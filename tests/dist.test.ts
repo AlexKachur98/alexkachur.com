@@ -6,6 +6,8 @@ import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
 import { answerExample, chips, examples, storageQuery } from '../src/data/examples.ts';
 import { validateSql } from '../src/lib/ask/validate-sql.ts';
+import { blockText, inlineText } from '../src/lib/page-text.ts';
+import { pageFiles } from '../scripts/build-db.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
@@ -499,5 +501,46 @@ describe(`built output in ${root}`, () => {
       .map((rule) => rule.source)
       .sort();
     expect(immutable).toEqual(['/_astro/(.*)', '/data/(.*)', '/vendor/(.*)']);
+  });
+
+  // The sections table holds each page's text as the page shows it: every section of every case
+  // study but Screenshots, which is the page's own, with the flow diagram inside What I built left
+  // out; the About and Now text on the home page; and the 404's heading and lead.
+  it('shows on every page exactly the text its rows in the sections table hold', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const rows = new Map<string, { heading: string; body: string }[]>();
+    for (const [page, heading, body] of db.exec('SELECT page, heading, body FROM sections ORDER BY page, position')[0]!.values as string[][]) {
+      rows.set(page!, [...(rows.get(page!) ?? []), { heading: heading!, body: body! }]);
+    }
+    const html = (url: string) => pages.find((page) => page.url === url)!.html;
+    const sections = (source: string) =>
+      [...source.matchAll(/<section class="section"[^>]*\sid="([^"]*)"[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)<\/section>/g)].map(
+        ([, id, heading, body]) => ({ id: id!, heading: inlineText(heading!), body: body!.replace(/<figure\b[\s\S]*?<\/figure>/g, '') }),
+      );
+    const shown = new Map<string, { heading: string; body: string }[]>();
+    for (const page of pages.filter(({ url }) => url.startsWith('/work/'))) {
+      shown.set(
+        page.url,
+        sections(page.html)
+          .filter((section) => section.id !== 'screenshots')
+          .map((section) => ({ heading: section.heading, body: blockText(section.body) })),
+      );
+    }
+    const home = sections(html('/'));
+    const about = html('/').match(/<div class="about-text"[^>]*>([\s\S]*?)<\/div>/)![1]!;
+    shown.set('/#about', [{ heading: home.find((section) => section.id === 'about')!.heading, body: blockText(about) }]);
+    const now = home.find((section) => section.id === 'now')!;
+    shown.set('/#now', [{ heading: now.heading, body: blockText(now.body) }]);
+    const missing = html('/404');
+    const lead = missing.match(/<div class="lead"[^>]*>([\s\S]*?)<\/div>/)![1]!;
+    shown.set('/404', [{ heading: inlineText(missing.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)![1]!), body: blockText(lead) }]);
+
+    expect([...shown.keys()].sort()).toEqual([...rows.keys()].sort());
+    for (const [page, expected] of rows) expect(shown.get(page), page).toEqual(expected);
+    // Every markdown page is in the table but /uses, whose rows have a table of their own.
+    const markdown = readdirSync('src/content/pages').filter((name) => name.endsWith('.md')).map((name) => `pages/${name}`);
+    expect(markdown.filter((name) => name !== 'pages/uses.md').sort()).toEqual(Object.keys(pageFiles).sort());
   });
 });

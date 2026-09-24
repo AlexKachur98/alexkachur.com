@@ -15,14 +15,19 @@ import {
   main,
   parseContent,
   readContentFiles,
+  renderMarkdown,
   schemaJson,
   tableRows,
 } from '../scripts/build-db.ts';
+import type { ContentFiles } from '../scripts/build-db.ts';
 import { chips, examples } from '../src/data/examples.ts';
 
 const require = createRequire(import.meta.url);
 const files = readContentFiles('src/content');
-const content = parseContent(files);
+// Rendering is async and the edits below only touch frontmatter or YAML, so one render serves every parse.
+const rendered = await renderMarkdown(files);
+const parse = (edited: ContentFiles) => parseContent(edited, undefined, rendered);
+const content = parse(files);
 const sql = dumpSql(content);
 const SQL = await loadSqlJs();
 const bytes = buildDatabase(SQL, sql);
@@ -52,7 +57,7 @@ function sha256(text: string): string {
 
 describe('build-db', () => {
   it('builds byte-identical databases from the same content', () => {
-    const again = buildDatabase(SQL, dumpSql(parseContent(readContentFiles('src/content'))));
+    const again = buildDatabase(SQL, dumpSql(parse(readContentFiles('src/content'))));
     expect(Buffer.from(again).equals(Buffer.from(bytes))).toBe(true);
   });
 
@@ -82,12 +87,12 @@ describe('build-db', () => {
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
     expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
-    expect(text.match(/CREATE TABLE/g)).toHaveLength(10);
+    expect(text.match(/CREATE TABLE/g)).toHaveLength(12);
   });
 
   it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
     const schema = schemaJson(content);
-    const again = schemaJson(parseContent(readContentFiles('src/content')));
+    const again = schemaJson(parse(readContentFiles('src/content')));
     expect(again).toEqual(schema);
     expect(schema.hash).toMatch(/^[0-9a-f]{64}$/);
     expect(schema.hash).toBe(
@@ -125,6 +130,8 @@ describe('build-db', () => {
       'experience',
       'interests',
       'storage',
+      'sections',
+      'page_images',
     ]);
     expect(schema.tables.every((table) => table.columns.every((col) => col.description.length > 0))).toBe(true);
     expect(schema.photoAlt).toEqual({
@@ -179,13 +186,13 @@ describe('build-db', () => {
   });
 
   it('fails hard on an experience date that is not YYYY-MM or YYYY', () => {
-    expect(() => parseContent(edited('experience.yaml', 'start: "2019-08"', 'start: "Aug 2019"'))).toThrow(
+    expect(() => parse(edited('experience.yaml', 'start: "2019-08"', 'start: "Aug 2019"'))).toThrow(
       /experience.yaml row manager: start: Invalid string/,
     );
-    expect(() => parseContent(edited('experience.yaml', 'end: "2022-01"', 'end: "2022-13"'))).toThrow(
+    expect(() => parse(edited('experience.yaml', 'end: "2022-01"', 'end: "2022-13"'))).toThrow(
       /experience.yaml row manager: end: Invalid string/,
     );
-    expect(() => parseContent(edited('experience.yaml', 'start: "2019-08"', 'start: 2019'))).toThrow(
+    expect(() => parse(edited('experience.yaml', 'start: "2019-08"', 'start: 2019'))).toThrow(
       /experience.yaml row manager: start: Invalid input: expected string/,
     );
   });
@@ -210,7 +217,7 @@ describe('build-db', () => {
 
   it('fails hard on a core skill that no project uses', () => {
     const gemini = 'name: Gemini API\n  category: ai\n  core: ';
-    expect(() => parseContent(edited('technologies.yaml', `${gemini}0`, `${gemini}1`))).toThrow(
+    expect(() => parse(edited('technologies.yaml', `${gemini}0`, `${gemini}1`))).toThrow(
       /technologies.yaml: Gemini API is core but no project uses it/,
     );
   });
@@ -233,52 +240,52 @@ describe('build-db', () => {
   });
 
   it('fails hard on a YAML row without an id', () => {
-    expect(() => parseContent(edited('technologies.yaml', '- id: react\n  name: React', '- name: React'))).toThrow(
+    expect(() => parse(edited('technologies.yaml', '- id: react\n  name: React', '- name: React'))).toThrow(
       /technologies.yaml: row 11 has no id/,
     );
   });
 
   it('fails hard on a repeated id', () => {
-    expect(() => parseContent(edited('technologies.yaml', '- id: astro\n', '- id: react\n'))).toThrow(
+    expect(() => parse(edited('technologies.yaml', '- id: astro\n', '- id: react\n'))).toThrow(
       /technologies.yaml: id react appears twice/,
     );
   });
 
   it('fails hard on a project naming an unknown technology', () => {
-    expect(() => parseContent(edited('projects/uraz-hoops.md', 'framer-motion', 'vue'))).toThrow(
+    expect(() => parse(edited('projects/uraz-hoops.md', 'framer-motion', 'vue'))).toThrow(
       /project uraz-hoops names unknown technology vue/,
     );
   });
 
   it('fails hard on a schema violation: bad enum value, wrong type, unknown key', () => {
-    expect(() => parseContent(edited('projects/uraz-hoops.md', 'kind: client', 'kind: hobby'))).toThrow(
+    expect(() => parse(edited('projects/uraz-hoops.md', 'kind: client', 'kind: hobby'))).toThrow(
       /projects\/uraz-hoops.md: kind: Invalid option/,
     );
-    expect(() => parseContent(edited('pets.yaml', 'born: 2024', 'born: "2024"'))).toThrow(
+    expect(() => parse(edited('pets.yaml', 'born: 2024', 'born: "2024"'))).toThrow(
       /pets.yaml row simba: born: Invalid input: expected number/,
     );
-    expect(() => parseContent(edited('projects/this-site.md', 'role: everything', 'rol: everything'))).toThrow(
+    expect(() => parse(edited('projects/this-site.md', 'role: everything', 'rol: everything'))).toThrow(
       /projects\/this-site.md: .*Unrecognized key/,
     );
   });
 
   it('fails hard on a file that is empty, not a list, broken, missing or without frontmatter', () => {
-    expect(() => parseContent({ ...files, 'facts.yaml': '' })).toThrow(/facts.yaml: expected a non-empty list/);
-    expect(() => parseContent({ ...files, 'facts.yaml': 'id: name\nvalue: Alex\n' })).toThrow(
+    expect(() => parse({ ...files, 'facts.yaml': '' })).toThrow(/facts.yaml: expected a non-empty list/);
+    expect(() => parse({ ...files, 'facts.yaml': 'id: name\nvalue: Alex\n' })).toThrow(
       /facts.yaml: expected a non-empty list/,
     );
-    expect(() => parseContent({ ...files, 'facts.yaml': '- name\n' })).toThrow(/facts.yaml: row 1 is not a mapping/);
-    expect(() => parseContent({ ...files, 'pets.yaml': 'name: [unclosed' })).toThrow(/pets.yaml:/);
+    expect(() => parse({ ...files, 'facts.yaml': '- name\n' })).toThrow(/facts.yaml: row 1 is not a mapping/);
+    expect(() => parse({ ...files, 'pets.yaml': 'name: [unclosed' })).toThrow(/pets.yaml:/);
     const { 'courses.yaml': _courses, ...missing } = files;
-    expect(() => parseContent(missing)).toThrow(/courses.yaml is missing/);
-    expect(() => parseContent({ ...files, 'projects/this-site.md': '## The problem\n' })).toThrow(
+    expect(() => parse(missing)).toThrow(/courses.yaml is missing/);
+    expect(() => parse({ ...files, 'projects/this-site.md': '## The problem\n' })).toThrow(
       /projects\/this-site.md: no frontmatter/,
     );
   });
 
   it('fails hard on a project file whose name is not already a slug', () => {
     const { 'projects/uraz-hoops.md': text, ...rest } = files;
-    expect(() => parseContent({ ...rest, 'projects/Uraz Hoops.md': text! })).toThrow(
+    expect(() => parse({ ...rest, 'projects/Uraz Hoops.md': text! })).toThrow(
       /projects\/Uraz Hoops.md: file name is not a slug/,
     );
   });
@@ -292,12 +299,48 @@ describe('build-db', () => {
   });
 
   it('fails hard on a screenshot or pet photo that does not exist', () => {
-    expect(() => parseContent(edited('projects/uraz-hoops.md', 'uraz-hoops-4.jpg', 'uraz-hoops-9.jpg'))).toThrow(
+    expect(() => parse(edited('projects/uraz-hoops.md', 'uraz-hoops-4.jpg', 'uraz-hoops-9.jpg'))).toThrow(
       /screenshot .*uraz-hoops-9.jpg does not exist/,
     );
-    expect(() => parseContent(edited('pets.yaml', '/images/pets/simba.webp', '/images/pets/nope.webp'))).toThrow(
+    expect(() => parse(edited('pets.yaml', '/images/pets/simba.webp', '/images/pets/nope.webp'))).toThrow(
       /pets.yaml row simba: \/images\/pets\/nope.webp is not under public/,
     );
+  });
+
+  it('holds the text of the other pages, then every case study in site order, one row per section shown', () => {
+    const rows = query('SELECT page, position, heading, body FROM sections');
+    expect(rows.slice(0, 3).map(({ page, position, heading }) => [page, position, heading])).toEqual([
+      ['/#about', 1, 'About'],
+      ['/#now', 1, 'Now'],
+      ['/404', 1, 'Nothing at this address.'],
+    ]);
+    const projects = query('SELECT slug FROM projects ORDER BY id').map((row) => `/work/${row.slug}`);
+    expect([...new Set(rows.slice(3).map((row) => row.page))]).toEqual(projects);
+    for (const row of rows) expect(row.body, `${row.page} ${row.heading}`).not.toBe('');
+  });
+
+  it('keeps the photos of the other pages with the alt text and captions their files give', () => {
+    expect(query('SELECT page, position, alt, caption FROM page_images')).toEqual(
+      content.pages.flatMap((entry) =>
+        (entry.data.images ?? []).map((image, index) => ({ page: entry.page, position: index + 1, alt: image.alt, caption: image.caption ?? null })),
+      ),
+    );
+    expect(query('SELECT page FROM page_images').map((row) => row.page)).toEqual(['/#about', '/404']);
+  });
+
+  // The Now text is Alex's prose, but it repeats a fact, so the two must agree.
+  it('names in the Now text the month the facts table says Alex is available from', () => {
+    const available = query("SELECT value FROM facts WHERE key = 'available_from'")[0]!.value as string;
+    const month = new Date(`${available}-01T00:00:00Z`).toLocaleString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    expect(query("SELECT body FROM sections WHERE page = '/#now'")[0]!.body).toContain(`from ${month}.`);
+  });
+
+  it('fails hard on a page file that is missing, has no frontmatter, names a missing photo or was not rendered', () => {
+    const { 'pages/now.md': _now, ...missing } = files;
+    expect(() => parse(missing)).toThrow(/pages\/now.md is missing/);
+    expect(() => parse({ ...files, 'pages/about.md': 'No frontmatter.\n' })).toThrow(/pages\/about.md: no frontmatter/);
+    expect(() => parse(edited('pages/404.md', 'simba-05.webp', 'simba-99.webp'))).toThrow(/pages\/404.md: image .*simba-99.webp does not exist/);
+    expect(() => parseContent(files)).toThrow(/not rendered/);
   });
 
   describe('main', () => {
