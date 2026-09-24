@@ -9,8 +9,8 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "node scripts/build-db.ts && astro dev",
-    "build": "node scripts/build-db.ts && astro build",
+    "dev": "node scripts/build-db.ts && node scripts/build-images.ts && astro dev",
+    "build": "node scripts/build-db.ts && node scripts/build-images.ts && astro build",
     "preview": "astro preview",
     "check": "node scripts/build-db.ts && astro check",
     "prepare": "node scripts/install-hooks.ts",
@@ -38,6 +38,8 @@
     "@astrojs/check": "^0.9.10",
     "@types/node": "^24.13.5",
     "@types/sql.js": "^1.4.11",
+    "harfbuzzjs": "1.6.2",
+    "sharp": "^0.35.4",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1",
     "yaml": "^2.9.1"

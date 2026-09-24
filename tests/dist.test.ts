@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { gzipSync } from 'node:zlib';
+import sharp from 'sharp';
 import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
 import { answerExample, chips } from '../src/data/examples.ts';
@@ -252,19 +253,21 @@ describe(`built output in ${root}`, () => {
   });
 
   const indexable = pages.filter(({ url }) => url !== '/404');
-  const openGraph = ['og:title', 'og:description', 'og:url', 'og:type', 'og:site_name', 'og:locale'];
+  const openGraph = ['og:title', 'og:description', 'og:url', 'og:type', 'og:site_name', 'og:locale', 'og:image', 'og:image:width', 'og:image:height', 'og:image:alt'];
 
   // Link previews print og:site_name or the domain beside og:title, so og:title leaves the name
   // out; the title in the tab and in search results keeps it.
   it('gives every page but the 404 one title, description and canonical, and the Open Graph set', () => {
     expect(indexable).toHaveLength(pages.length - 1);
     for (const { url, html } of indexable) {
-      const { titles, meta, links } = head(html);
+      const { titles, metaKeys, meta, links } = head(html);
       const canonical = links.filter(({ rel }) => rel === 'canonical').map(({ href }) => href);
       expect(titles, url).toHaveLength(1);
       expect(meta('description'), url).toHaveLength(1);
       expect(canonical, url).toHaveLength(1);
       for (const key of openGraph) expect(meta(key), `${url} ${key}`).toHaveLength(1);
+      expect(metaKeys.filter((key) => key.startsWith('twitter:')), url).toEqual(['twitter:card']);
+      expect(meta('twitter:card'), url).toEqual(['summary_large_image']);
       expect(meta('og:url'), url).toEqual(canonical);
       expect(meta('og:description'), url).toEqual(meta('description'));
       expect([meta('og:type')[0], meta('og:site_name')[0], meta('og:locale')[0]], url).toEqual(['website', 'Alex Kachur', 'en_CA']);
@@ -280,6 +283,35 @@ describe(`built output in ${root}`, () => {
     expect(meta('robots')).toEqual(['noindex']);
     expect(links.filter(({ rel }) => rel === 'canonical')).toEqual([]);
     expect(metaKeys.filter((key) => key.startsWith('og:') || key.startsWith('twitter:'))).toEqual([]);
+  });
+
+  // A case study previews its first screenshot, with that screenshot's alt text; every other page,
+  // and a case study with no screenshot yet, previews the site's card.
+  it('points every preview at a 1200 by 630 image in the build, on the canonical host', async () => {
+    let screenshots = 0;
+    for (const { url, html } of indexable) {
+      const { meta, links } = head(html);
+      const image = new URL(meta('og:image')[0]!);
+      expect(image.origin, url).toBe('https://alexkachur.com');
+      expect(image.origin, url).toBe(new URL(links.find(({ rel }) => rel === 'canonical')!.href).origin);
+      const file = readFileSync(join(root, image.pathname));
+      const { width, height, format } = await sharp(file).metadata();
+      expect([width, height, meta('og:image:width')[0], meta('og:image:height')[0]], url).toEqual([1200, 630, '1200', '630']);
+      expect(file.length, url).toBeLessThan(300 * 1024);
+
+      const shot = url.startsWith('/work/') ? html.slice(html.indexOf('<main')).match(/<img\b[^>]*\ssrc="\/_astro\/([^"]+)"[^>]*\salt="([^"]*)"/) : null;
+      if (shot) {
+        screenshots++;
+        const original = shot[1]!.slice(0, shot[1]!.lastIndexOf('_'));
+        expect(image.pathname, url).toMatch(new RegExp(`^/_astro/${original.replace(/[.-]/g, '\\$&')}_`));
+        expect(meta('og:image:alt'), url).toEqual([decode(shot[2]!)]);
+      } else {
+        expect(image.pathname, url).toMatch(/^\/_astro\/link-preview\.[\w-]+\.png$/);
+        expect(format, url).toBe('png');
+        expect(meta('og:image:alt'), url).toEqual(['Alex Kachur, Full-stack & AI developer']);
+      }
+    }
+    expect(screenshots).toBeGreaterThan(0);
   });
 
   it('links /data/ and /vendor/ only through versioned URLs', () => {

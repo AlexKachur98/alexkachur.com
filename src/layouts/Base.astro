@@ -14,6 +14,7 @@ import mono400 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-n
 import Analytics from '@vercel/analytics/astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import linkPreview from '../generated/link-preview.png?url';
 
 interface Props {
   title: string;
@@ -21,10 +22,12 @@ interface Props {
   // Link previews print the site name or the domain beside og:title, so it carries no name: the
   // page's own title unless the page gives another.
   ogTitle?: string;
+  // A page's own preview image; without one, the site's card.
+  ogImage?: { src: string; width: number; height: number; alt: string };
   noindex?: boolean;
 }
 
-const { title, description, ogTitle = title, noindex = false } = Astro.props;
+const { title, description, ogTitle = title, ogImage, noindex = false } = Astro.props;
 const siteName = 'Alex Kachur';
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 // The home page opens with the name in its hero instead of the header, and its title starts with
@@ -32,6 +35,7 @@ const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 const home = path === '/';
 const fullTitle = home ? title : `${title} · ${siteName}`;
 const canonical = new URL(path, Astro.site);
+const image = ogImage ?? { src: linkPreview, width: 1200, height: 630, alt: 'Alex Kachur, Full-stack & AI developer' };
 const preloads = [barlow400, barlow600, barlow700, mono400];
 ---
 
@@ -54,6 +58,11 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
           <meta property="og:type" content="website" />
           <meta property="og:site_name" content={siteName} />
           <meta property="og:locale" content="en_CA" />
+          <meta property="og:image" content={new URL(image.src, Astro.site)} />
+          <meta property="og:image:width" content={String(image.width)} />
+          <meta property="og:image:height" content={String(image.height)} />
+          <meta property="og:image:alt" content={image.alt} />
+          <meta name="twitter:card" content="summary_large_image" />
         </>
       )
     }

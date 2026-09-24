@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { getImage } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import Figure from '../../components/Figure.astro';
 import Section from '../../components/Section.astro';
@@ -43,9 +44,15 @@ const creditsAt = sections.findIndex((section) => section.id === 'credits');
 const before = creditsAt === -1 ? sections : sections.slice(0, creditsAt);
 const after = creditsAt === -1 ? [] : sections.slice(creditsAt);
 const shotSizes = '(min-width: 1080px) 984px, calc(100vw - 48px)';
+
+// A link preview shows the first screenshot, cut to the 1200 by 630 frame the apps use. Each
+// screenshot's content starts at its left edge, so the cut takes from the right.
+const shot = screenshots[0];
+const preview = shot && (await getImage({ src: shot.src, width: 1200, height: 630, fit: 'cover', position: 'left', format: shot.src.format === 'png' ? 'png' : 'jpeg' }));
+const ogImage = shot && preview ? { src: preview.src, width: 1200, height: 630, alt: shot.alt } : undefined;
 ---
 
-<Base title={name} description={card}>
+<Base title={name} description={card} ogImage={ogImage}>
   <main id="main" class="container">
     <header class="case-head">
       <h1>{name}</h1>
