@@ -1,6 +1,6 @@
 ---
 order: 4
-name: This site
+name: Portfolio site
 kind: personal
 summary: A portfolio that compiles to a SQLite database, answers questions by writing SQL, exposes a public API, and caps its own AI spending.
 card: A portfolio that compiles to a database, answers questions by writing SQL, and caps its own AI bill. 2026.

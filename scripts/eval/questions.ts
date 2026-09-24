@@ -13,7 +13,7 @@ export const questions: readonly EvalQuestion[] = [
     question: 'which projects were for paying clients',
     expect: 'sql',
     mustInclude: ['Uraz Hoops'],
-    mustExclude: ['SplitRoof', 'Think Smarter', 'This site'],
+    mustExclude: ['SplitRoof', 'Think Smarter', 'Portfolio site'],
   },
   { question: "What is Alex's email address?", expect: 'sql', mustInclude: ['alexkachur98@gmail.com'] },
   { question: 'Where does Alex live?', expect: 'sql', mustInclude: ['Toronto'] },
@@ -21,7 +21,7 @@ export const questions: readonly EvalQuestion[] = [
   {
     question: 'Which projects use an LLM, and what does it do?',
     expect: 'sql',
-    mustInclude: ['SplitRoof AI assistant', 'This site'],
+    mustInclude: ['SplitRoof AI assistant', 'Portfolio site'],
   },
   {
     question: 'Which technologies has Alex used on more than one project?',
@@ -34,7 +34,7 @@ export const questions: readonly EvalQuestion[] = [
   {
     question: 'Which projects have something live to look at?',
     expect: 'sql',
-    mustInclude: ['Uraz Hoops', 'This site', 'Think Smarter Insurance review funnel'],
+    mustInclude: ['Uraz Hoops', 'Portfolio site', 'Think Smarter Insurance review funnel'],
   },
   { question: "What are the names of Alex's cats?", expect: 'sql', mustInclude: ['Simba', 'Moura'] },
   { question: 'How old is Simba?', expect: 'sql' },
@@ -47,7 +47,7 @@ export const questions: readonly EvalQuestion[] = [
   {
     question: 'Which projects are still ongoing?',
     expect: 'sql',
-    mustInclude: ['SplitRoof AI assistant', 'This site'],
+    mustInclude: ['SplitRoof AI assistant', 'Portfolio site'],
     mustExclude: ['Uraz Hoops'],
   },
   { question: 'Who was the client for the review funnel?', expect: 'sql', mustInclude: ['Think Smarter Insurance'] },

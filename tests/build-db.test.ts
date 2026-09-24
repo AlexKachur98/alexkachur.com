@@ -149,7 +149,7 @@ describe('build-db', () => {
     expect(paying).toEqual([
       { name: 'Uraz Hoops', client_name: 'Uraz Hoops', year_start: 2026, live_url: 'https://urazhoops.com' },
     ]);
-    expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'This site']);
+    expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'Portfolio site']);
     expect(llm!.every((row) => typeof row.llm_job === 'string' && row.llm_job.length > 0)).toBe(true);
     expect(before!.map((row) => row.title)).toEqual(['Manager', 'QA Tester']);
     expect(stored!.map((row) => Object.keys(row))[0]).toEqual(['item', 'kept_for', 'purpose']);
@@ -174,7 +174,7 @@ describe('build-db', () => {
     expect(chips).toEqual(examples.slice(0, 4));
     const [paying, llm] = chips.map((chip) => query(chip.sql));
     expect(paying!.map((row) => row.name)).toEqual(['Uraz Hoops']);
-    expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'This site']);
+    expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'Portfolio site']);
   });
 
   it('orders experience by start date and keeps each resume bullet on a line of its own', () => {
