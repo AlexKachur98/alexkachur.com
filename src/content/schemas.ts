@@ -19,6 +19,16 @@ export const technologyCategories = [
   'platform',
 ] as const;
 export const timelineKinds = ['work', 'education', 'project', 'life'] as const;
+// In the order Alex listed the areas.
+export const skillAreas = [
+  'Languages',
+  'Frontend',
+  'Backend',
+  'Data',
+  'LLM integration',
+  'Testing',
+  'Platforms and services',
+] as const;
 
 export const factRow = z.object({
   key: z.string().describe('Fact name, for example location or available_from'),
@@ -49,6 +59,8 @@ export const technologyRow = z.object({
   id: z.number().int().describe('Position in case-insensitive name order, 1 first'),
   name: z.string().describe('Canonical, unversioned name, for example React'),
   category: z.enum(technologyCategories).describe(technologyCategories.join(', ')),
+  core: flag.describe('Skills Alex considers core, each backed by a project on this site'),
+  skill_area: z.enum(skillAreas).describe(`${skillAreas.slice(0, -1).join(', ')}, or ${skillAreas.at(-1)}`),
 });
 
 export const projectTechnologyRow = z.object({

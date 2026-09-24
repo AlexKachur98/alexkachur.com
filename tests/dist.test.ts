@@ -394,13 +394,15 @@ describe(`built output in ${root}`, () => {
     const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
     const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
     expect(validateSql(example.sql, db)).toMatchObject({ ok: true });
-    // The limit must end the list where a tie ends: the first row it leaves out ranks lower than
-    // the last one shown.
-    const limit = example.sql.match(/\sLIMIT (\d+);$/);
-    expect(limit).not.toBeNull();
-    const ranking = db.exec(example.sql.replace(/\sLIMIT \d+;$/, ';'))[0]!.values;
-    const shownCount = Number(limit![1]);
-    if (ranking.length > shownCount) expect(ranking[shownCount]![1]).not.toBe(ranking[shownCount - 1]![1]);
+    // One row per skill area that has a core skill, each listing exactly that area's core skills.
+    const core = db.exec('SELECT skill_area, name FROM technologies WHERE core = 1')[0]!.values as string[][];
+    const areas = new Map<string, string[]>();
+    for (const [area, name] of core) areas.set(area!, [...(areas.get(area!) ?? []), name!]);
+    const grouped = [...areas]
+      .map(([area, names]) => [area, names.sort((a, b) => a.localeCompare(b, 'en')).join(', ')])
+      .sort(([a], [b]) => a!.toLowerCase().localeCompare(b!.toLowerCase(), 'en'));
+    expect(db.exec(example.sql)[0]!.values).toEqual(grouped);
+    expect(grouped).toHaveLength(5);
     const statement = db.prepare(example.sql);
     const rows: unknown[][] = [];
     while (statement.step()) rows.push(statement.get());
@@ -411,7 +413,7 @@ describe(`built output in ${root}`, () => {
     expect(rows.length).toBeLessThanOrEqual(50);
 
     const head = block.match(/<p\b[^>]*\sid="ask-example-answer-head"[^>]*>([\s\S]*?)<\/p>/)?.[1] ?? '';
-    const parts = [...head.matchAll(/<span\b[^>]*>([^<]*)<\/span>/g)].map(([, part]) => part!.trim());
+    const parts = [...head.matchAll(/<span\b[^>]*>([^<]*)<\/span>/g)].map(([, part]) => decode(part!).trim());
     expect(parts).toEqual(['Example', '·', example.label, rows.length === 1 ? '1 row' : `${rows.length} rows`]);
     const sql = block.match(/<pre\b[^>]*\sclass="ask-sql"[^>]*>([\s\S]*?)<\/pre>/)?.[1] ?? '';
     expect(text(sql)).toBe(example.sql);

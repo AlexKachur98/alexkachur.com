@@ -37,7 +37,7 @@ function project(id: string, order: number, technologies: TechnologyRef[]): Entr
 }
 
 function technology(id: string, name: string): Entry<TechnologyContent> {
-  return { id, data: { id, name, category: 'library' } };
+  return { id, data: { id, name, category: 'library', core: 0, skill_area: 'Frontend' } };
 }
 
 const technologies = [technology('sql-js', 'sql.js'), technology('react', 'React'), technology('astro', 'Astro')];
@@ -69,7 +69,7 @@ describe('rows', () => {
   it('numbers technologies in case-insensitive name order, upper case first on a tie', () => {
     const rows = technologyRows([...technologies, technology('sql', 'SQL'), technology('sql-lower', 'sql')]);
     expect(rows.map((row) => `${row.id} ${row.name}`)).toEqual(['1 Astro', '2 React', '3 SQL', '4 sql', '5 sql.js']);
-    expect(Object.keys(rows[0]!)).toEqual(['id', 'name', 'category']);
+    expect(Object.keys(rows[0]!)).toEqual(['id', 'name', 'category', 'core', 'skill_area']);
   });
 
   it('rejects two technologies with the same name', () => {

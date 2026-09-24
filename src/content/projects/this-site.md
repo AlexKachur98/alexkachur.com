@@ -14,7 +14,7 @@ has_live_demo: 1
 uses_llm: 1
 llm_job: turns a visitor's question into one validated SQL statement that runs in their browser.
 paid: 0
-technologies: [astro, typescript, css, sql-js, vercel, anthropic-api, upstash-redis]
+technologies: [astro, typescript, css, sql, sql-js, sqlite, vercel, anthropic-api, upstash-redis, vitest]
 # TODO: add screenshots of this site after the build.
 screenshots: []
 ---

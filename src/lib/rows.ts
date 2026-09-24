@@ -78,7 +78,13 @@ export function technologyRows(entries: Entry<TechnologyContent>[]): TechnologyR
       compare(a.data.name.toLowerCase(), b.data.name.toLowerCase()) || compare(a.data.name, b.data.name),
   );
   rejectRepeats(sorted, (entry) => entry.data.name, 'technology name');
-  return sorted.map((entry, index) => ({ id: index + 1, name: entry.data.name, category: entry.data.category }));
+  return sorted.map((entry, index) => ({
+    id: index + 1,
+    name: entry.data.name,
+    category: entry.data.category,
+    core: entry.data.core,
+    skill_area: entry.data.skill_area,
+  }));
 }
 
 export function projectTechnologyRows(

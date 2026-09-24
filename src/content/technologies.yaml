@@ -1,80 +1,233 @@
 # Canonical, unversioned names. Projects reference the id. The integer id in the database
-# follows name order, so this list can stay grouped by category.
+# follows name order, so this list can stay grouped by skill area. core marks the skills Alex
+# considers core; the build fails if one of them has no project on this site.
 - id: typescript
   name: TypeScript
   category: language
-- id: javascript
-  name: JavaScript
-  category: language
-- id: html
-  name: HTML
-  category: language
-- id: css
-  name: CSS
-  category: language
-- id: java
-  name: Java
-  category: language
-- id: c-sharp
-  name: "C#"
-  category: language
-- id: python
-  name: Python
-  category: language
+  core: 1
+  skill_area: Languages
 - id: sql
   name: SQL
   category: language
+  core: 1
+  skill_area: Languages
+- id: javascript
+  name: JavaScript
+  category: language
+  core: 0
+  skill_area: Languages
+- id: java
+  name: Java
+  category: language
+  core: 0
+  skill_area: Languages
+- id: c-sharp
+  name: "C#"
+  category: language
+  core: 0
+  skill_area: Languages
+- id: python
+  name: Python
+  category: language
+  core: 0
+  skill_area: Languages
 - id: kotlin
   name: Kotlin
   category: language
+  core: 0
+  skill_area: Languages
+- id: html
+  name: HTML
+  category: language
+  core: 0
+  skill_area: Languages
+- id: css
+  name: CSS
+  category: language
+  core: 0
+  skill_area: Languages
+- id: t-sql
+  name: T-SQL
+  category: language
+  core: 0
+  skill_area: Languages
 - id: react
   name: React
   category: library
+  core: 1
+  skill_area: Frontend
 - id: next-js
   name: Next.js
   category: framework
-- id: express
-  name: Express
-  category: framework
+  core: 1
+  skill_area: Frontend
 - id: astro
   name: Astro
   category: framework
+  core: 0
+  skill_area: Frontend
 - id: tailwind-css
   name: Tailwind CSS
   category: framework
-- id: spring-boot
-  name: Spring Boot
-  category: framework
+  core: 0
+  skill_area: Frontend
 - id: framer-motion
   name: Framer Motion
   category: library
-- id: sql-js
-  name: sql.js
-  category: library
+  core: 0
+  skill_area: Frontend
+- id: wpf
+  name: WPF
+  category: framework
+  core: 0
+  skill_area: Frontend
+- id: jetpack-compose
+  name: Jetpack Compose
+  category: framework
+  core: 0
+  skill_area: Frontend
 - id: node-js
   name: Node.js
   category: runtime
-- id: firebase
-  name: Firebase
-  category: platform
-- id: cloudflare-pages
-  name: Cloudflare Pages
-  category: platform
-- id: vercel
-  name: Vercel
-  category: platform
+  core: 1
+  skill_area: Backend
+- id: express
+  name: Express
+  category: framework
+  core: 0
+  skill_area: Backend
+- id: spring-boot
+  name: Spring Boot
+  category: framework
+  core: 0
+  skill_area: Backend
+- id: dot-net
+  name: .NET
+  category: framework
+  core: 0
+  skill_area: Backend
+- id: sqlite
+  name: SQLite
+  category: database
+  core: 0
+  skill_area: Data
+- id: postgresql
+  name: PostgreSQL
+  category: database
+  core: 0
+  skill_area: Data
+- id: oracle-database
+  name: Oracle Database
+  category: database
+  core: 0
+  skill_area: Data
 - id: upstash-redis
   name: Upstash Redis
   category: database
+  core: 0
+  skill_area: Data
+- id: firebase
+  name: Firebase
+  category: platform
+  core: 0
+  skill_area: Data
+- id: sql-js
+  name: sql.js
+  category: library
+  core: 0
+  skill_area: Data
+- id: entity-framework-core
+  name: Entity Framework Core
+  category: library
+  core: 0
+  skill_area: Data
+- id: ml-net
+  name: ML.NET
+  category: framework
+  core: 0
+  skill_area: Data
+- id: power-bi
+  name: Power BI
+  category: tooling
+  core: 0
+  skill_area: Data
 - id: anthropic-api
   name: Anthropic API
   category: ai
-- id: resend
-  name: Resend
-  category: service
-- id: web3forms
-  name: Web3Forms
-  category: service
+  core: 1
+  skill_area: LLM integration
+- id: gemini-api
+  name: Gemini API
+  category: ai
+  core: 0
+  skill_area: LLM integration
 - id: jest
   name: Jest
   category: testing
+  core: 1
+  skill_area: Testing
+- id: vitest
+  name: Vitest
+  category: testing
+  core: 0
+  skill_area: Testing
+- id: selenium
+  name: Selenium
+  category: testing
+  core: 0
+  skill_area: Testing
+- id: cypress
+  name: Cypress
+  category: testing
+  core: 0
+  skill_area: Testing
+- id: vercel
+  name: Vercel
+  category: platform
+  core: 0
+  skill_area: Platforms and services
+- id: cloudflare-pages
+  name: Cloudflare Pages
+  category: platform
+  core: 0
+  skill_area: Platforms and services
+- id: github
+  name: GitHub
+  category: platform
+  core: 0
+  skill_area: Platforms and services
+- id: linux
+  name: Linux
+  category: platform
+  core: 0
+  skill_area: Platforms and services
+- id: github-actions
+  name: GitHub Actions
+  category: service
+  core: 0
+  skill_area: Platforms and services
+- id: resend
+  name: Resend
+  category: service
+  core: 0
+  skill_area: Platforms and services
+- id: web3forms
+  name: Web3Forms
+  category: service
+  core: 0
+  skill_area: Platforms and services
+- id: git
+  name: Git
+  category: tooling
+  core: 0
+  skill_area: Platforms and services
+- id: jira
+  name: Jira
+  category: tooling
+  core: 0
+  skill_area: Platforms and services
+- id: claude-code
+  name: Claude Code
+  category: tooling
+  core: 0
+  skill_area: Platforms and services

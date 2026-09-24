@@ -62,7 +62,7 @@ describe('build-db', () => {
       expect(query(`SELECT COUNT(*) AS n FROM ${table}`)[0]!.n, table).toBe(expected.length);
     }
     expect(rows.projects).toHaveLength(4);
-    expect(rows.technologies).toHaveLength(26);
+    expect(rows.technologies).toHaveLength(46);
     expect(rows.courses).toHaveLength(6);
     expect(rows.timeline).toHaveLength(8);
     expect(rows.pets).toHaveLength(2);
@@ -184,13 +184,38 @@ describe('build-db', () => {
     );
   });
 
+  it('marks exactly the seven core skills, each used by a project, and gives every technology a skill area', () => {
+    expect(query('SELECT name FROM technologies WHERE core = 1 ORDER BY name').map((row) => row.name)).toEqual([
+      'Anthropic API',
+      'Jest',
+      'Next.js',
+      'Node.js',
+      'React',
+      'SQL',
+      'TypeScript',
+    ]);
+    expect(
+      query(
+        'SELECT COUNT(*) AS n FROM technologies t WHERE core = 1 AND NOT EXISTS (SELECT 1 FROM project_technologies pt WHERE pt.technology_id = t.id)',
+      ),
+    ).toEqual([{ n: 0 }]);
+    expect(query('SELECT COUNT(*) AS n FROM technologies WHERE skill_area IS NULL')).toEqual([{ n: 0 }]);
+  });
+
+  it('fails hard on a core skill that no project uses', () => {
+    const gemini = 'name: Gemini API\n  category: ai\n  core: ';
+    expect(() => parseContent(edited('technologies.yaml', `${gemini}0`, `${gemini}1`))).toThrow(
+      /technologies.yaml: Gemini API is core but no project uses it/,
+    );
+  });
+
   it('keeps every pets photo under public', () => {
     for (const pet of content.pets) expect(existsSync(join('public', pet.data.photo_url)), pet.id).toBe(true);
   });
 
   it('fails hard on a YAML row without an id', () => {
     expect(() => parseContent(edited('technologies.yaml', '- id: react\n  name: React', '- name: React'))).toThrow(
-      /technologies.yaml: row 10 has no id/,
+      /technologies.yaml: row 11 has no id/,
     );
   });
 

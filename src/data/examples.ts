@@ -37,9 +37,9 @@ export const examples: readonly Example[] = [
 export const chips: readonly Example[] = examples.slice(0, 2);
 
 // The answer beside the Ask box on a wide screen before anyone asks, run at build time: a
-// question the chips do not already ask. The limit ends the list where a tie in the ranking ends,
-// so no row is there only because its name sorts first; the build test checks that it still does.
+// question the chips do not already ask. One row per skill area of the core skills, the areas and
+// the names inside each in alphabetical order, so the rows never depend on insertion order.
 export const answerExample: Example = {
-  label: 'Which technologies does Alex use most?',
-  sql: 'SELECT t.name, COUNT(*) AS projects FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id GROUP BY t.name ORDER BY projects DESC, t.name LIMIT 4;',
+  label: "What are Alex's core skills?",
+  sql: "SELECT skill_area, GROUP_CONCAT(name, ', ' ORDER BY name) AS skills FROM technologies WHERE core = 1 GROUP BY skill_area ORDER BY lower(skill_area);",
 };

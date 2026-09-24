@@ -157,7 +157,13 @@ export function parseContent(
       .map((name) => projectEntry(name, files[name]!, paths.contentDir)),
   };
   if (content.projects.length === 0) throw new Error('projects: no project files');
-  projectTechnologyRows(content.projects, content.technologies);
+  // A core skill is described as backed by a project on this site, so each needs one.
+  const used = new Set(projectTechnologyRows(content.projects, content.technologies).map((link) => link.technology_id));
+  for (const technology of technologyRows(content.technologies)) {
+    if (technology.core === 1 && !used.has(technology.id)) {
+      throw new Error(`technologies.yaml: ${technology.name} is core but no project uses it`);
+    }
+  }
   for (const pet of content.pets) {
     if (!existsSync(join(paths.publicDir, pet.data.photo_url))) {
       throw new Error(`pets.yaml row ${pet.id}: ${pet.data.photo_url} is not under ${paths.publicDir}`);
