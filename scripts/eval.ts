@@ -110,15 +110,32 @@ async function checkDatabase(): Promise<Database> {
   return db;
 }
 
-function rows(db: Database, sql: string): unknown[][] {
+function rows(db: Database, sql: string): { columns: string[]; values: unknown[][] } {
   const statement = db.prepare(sql);
   try {
-    const out: unknown[][] = [];
-    while (out.length < ROW_LIMIT && statement.step()) out.push(statement.get());
-    return out;
+    const values: unknown[][] = [];
+    while (values.length < ROW_LIMIT && statement.step()) values.push(statement.get());
+    return { columns: statement.getColumnNames(), values };
   } finally {
     statement.free();
   }
+}
+
+// The console turns a column named photo_url into thumbnails, and SQLite reads a mistyped
+// double-quoted name as a string instead of failing, so every answer keeps plain lowercase names.
+function columnProblem(sql: string, columns: string[], values: unknown[][]): string | null {
+  if (sql.replace(/'(?:[^']|'')*'/g, '').includes('"')) return 'uses a double-quoted name';
+  const seen = new Set<string>();
+  for (const name of columns) {
+    if (!/^[a-z][a-z0-9_]*$/.test(name)) return `column ${name} is not a plain lowercase name`;
+    if (seen.has(name)) return `column ${name} appears twice`;
+    seen.add(name);
+  }
+  for (const row of values) {
+    const index = row.findIndex((value) => typeof value === 'string' && value.startsWith('/images/'));
+    if (index >= 0 && columns[index] !== 'photo_url') return `image paths sit under ${columns[index]}, not photo_url`;
+  }
+  return null;
 }
 
 function kindOf(result: AskResult): Kind {
@@ -130,16 +147,19 @@ function kindOf(result: AskResult): Kind {
 // null when the result meets the question's expectation, otherwise the reason it does not.
 function checkProblem(entry: EvalQuestion, result: AskResult, db: Database): string | null {
   if (result.status !== 200) return `status ${result.status}: ${String(result.body.reason ?? result.body.error ?? '')}`;
-  if (entry.expect === 'either') return null;
   const kind = kindOf(result);
-  if (kind !== entry.expect) return `expected ${entry.expect}, got ${kind}`;
-  if (kind !== 'sql' || (!entry.mustInclude && !entry.mustExclude)) return null;
-  let text: string;
+  if (entry.expect !== 'either' && kind !== entry.expect) return `expected ${entry.expect}, got ${kind}`;
+  if (kind !== 'sql') return null;
+  const sql = result.body.sql as string;
+  let found: { columns: string[]; values: unknown[][] };
   try {
-    text = JSON.stringify(rows(db, result.body.sql as string));
+    found = rows(db, sql);
   } catch (error) {
     return `query failed: ${error instanceof Error ? error.message : String(error)}`;
   }
+  const naming = columnProblem(sql, found.columns, found.values);
+  if (naming) return naming;
+  const text = JSON.stringify(found.values);
   const quoted = (values: string[]) => values.map((value) => JSON.stringify(value)).join(', ');
   const missing = (entry.mustInclude ?? []).filter((needle) => !text.includes(needle));
   if (missing.length > 0) return `rows lack ${quoted(missing)}`;
