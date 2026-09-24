@@ -226,11 +226,12 @@ describe(`built output in ${root}`, () => {
   });
 
   // The CSP's script-src allows files from the site only, so a script written into the page would
-  // not run.
+  // not run. The home page's structured data is the one exception: a JSON data block, which the
+  // browser never runs.
   it('loads every script from a file', () => {
     for (const { url, html } of pages) {
       const inline = [...html.matchAll(/<script\b([^>]*)>/g)].filter(([, attributes]) => !/\ssrc=/.test(attributes!)).map(([tag]) => tag);
-      expect(inline, url).toEqual([]);
+      expect(inline, url).toEqual(url === '/' ? ['<script type="application/ld+json">'] : []);
     }
   });
 
@@ -348,6 +349,22 @@ describe(`built output in ${root}`, () => {
     // iOS paints a transparent pixel black, so the touch icon has no alpha channel.
     const { width, height, colour } = pngHeader(readFileSync(join(root, touch!.href)));
     expect([width, height, colour]).toEqual([180, 180, 2]);
+  });
+
+  it('describes the home page, and only the home page, with structured data', () => {
+    for (const { url, html } of pages) {
+      const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(([, json]) => json!);
+      expect(blocks, url).toHaveLength(url === '/' ? 1 : 0);
+      if (url !== '/') continue;
+      const { '@context': context, '@graph': graph } = JSON.parse(blocks[0]!) as { '@context': string; '@graph': Record<string, unknown>[] };
+      expect(context).toBe('https://schema.org');
+      expect(graph.find((node) => node['@type'] === 'WebSite')).toMatchObject({ name: head(html).meta('og:site_name')[0], url: 'https://alexkachur.com/' });
+      const person = graph.find((node) => node['@type'] === 'ProfilePage')?.mainEntity as Record<string, unknown>;
+      expect(person).toMatchObject({ '@type': 'Person', name: 'Alex Kachur', url: 'https://alexkachur.com/', jobTitle: 'Full-stack & AI developer' });
+      expect(Object.keys(person)).not.toEqual(expect.arrayContaining(['image']));
+      const profiles = ['GitHub', 'LinkedIn'].map((label) => html.match(new RegExp(`<a href="([^"]+)"[^>]*>${label}</a>`))?.[1]);
+      expect(person.sameAs).toEqual(profiles);
+    }
   });
 
   it('links /data/ and /vendor/ only through versioned URLs', () => {

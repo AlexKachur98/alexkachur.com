@@ -27,9 +27,10 @@ interface Props {
   // A page's own preview image; without one, the site's card.
   ogImage?: { src: string; width: number; height: number; alt: string };
   noindex?: boolean;
+  structuredData?: Record<string, unknown>;
 }
 
-const { title, description, ogTitle = title, ogImage, noindex = false } = Astro.props;
+const { title, description, ogTitle = title, ogImage, noindex = false, structuredData } = Astro.props;
 const siteName = 'Alex Kachur';
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 // The home page opens with the name in its hero instead of the header, and its title starts with
@@ -71,6 +72,7 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href={icon} type="image/svg+xml" />
     <link rel="apple-touch-icon" href={appleTouchIcon} />
+    {structuredData && <script type="application/ld+json" set:html={JSON.stringify(structuredData).replaceAll('<', '\\u003c')} />}
     <script is:inline src="/theme.js"></script>
     {preloads.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
   </head>

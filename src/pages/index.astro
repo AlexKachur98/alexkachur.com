@@ -10,12 +10,34 @@ import Section from '../components/Section.astro';
 import WorkList from '../components/WorkList.astro';
 import Base from '../layouts/Base.astro';
 
+const home = new URL('/', Astro.site).href;
+// The WebSite node gives search results the site's name; the ProfilePage says the home page is
+// about one person. The GitHub and LinkedIn addresses are the hero's links.
+// TODO: add my photo as the Person image once I have it.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'WebSite', name: 'Alex Kachur', alternateName: new URL(home).host, url: home },
+    {
+      '@type': 'ProfilePage',
+      mainEntity: {
+        '@type': 'Person',
+        name: 'Alex Kachur',
+        url: home,
+        jobTitle: 'Full-stack & AI developer',
+        description: 'Full-stack & AI developer. I build web apps with an AI doing real work inside them.',
+        sameAs: ['https://github.com/AlexKachur98', 'https://linkedin.com/in/alex-kachur'],
+      },
+    },
+  ],
+};
 ---
 
 <Base
   title="Alex Kachur · Full-stack & AI developer"
   description="Full-stack & AI developer in Toronto. I build web apps with an AI doing real work inside them. Available full-time from May 2027."
   ogTitle="Full-stack & AI developer"
+  structuredData={structuredData}
 >
   <main id="main" class="container">
     <Hero />
