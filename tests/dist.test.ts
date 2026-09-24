@@ -75,6 +75,14 @@ function head(html: string) {
   };
 }
 
+// A PNG's width, height, bit depth and colour type, from its header chunk.
+function pngHeader(bytes: Uint8Array) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  expect(view.getUint32(0)).toBe(0x89504e47);
+  expect(String.fromCharCode(...bytes.subarray(12, 16))).toBe('IHDR');
+  return { width: view.getUint32(16), height: view.getUint32(20), depth: bytes[24], colour: bytes[25] };
+}
+
 describe(`built output in ${root}`, () => {
   it('has pages to check', () => {
     expect(files.filter((path) => path.endsWith('.html')).length).toBeGreaterThan(5);
@@ -312,6 +320,34 @@ describe(`built output in ${root}`, () => {
       }
     }
     expect(screenshots).toBeGreaterThan(0);
+  });
+
+  it('links the favicon set from every page, each file the size its link says', async () => {
+    for (const { url, html } of pages) {
+      const icons = head(html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
+      expect(icons.map(({ rel, href, sizes, type }) => `${rel} ${href.replace(/\.[\w-]+\.(svg|png)$/, '.$1')} ${sizes ?? ''} ${type ?? ''}`), url).toEqual([
+        'icon /favicon.ico 32x32 ',
+        'icon /_astro/icon.svg  image/svg+xml',
+        'apple-touch-icon /_astro/apple-touch-icon.png  ',
+      ]);
+    }
+    const [, svg, touch] = head(pages[0]!.html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
+
+    // An ICO header, one directory entry, and the PNG it points at.
+    const ico = readFileSync(join(root, 'favicon.ico'));
+    const view = new DataView(ico.buffer, ico.byteOffset, ico.byteLength);
+    expect([view.getUint16(0, true), view.getUint16(2, true), view.getUint16(4, true), ico[6], ico[7]]).toEqual([0, 1, 1, 32, 32]);
+    const offset = view.getUint32(18, true);
+    const embedded = pngHeader(ico.subarray(offset, offset + view.getUint32(14, true)));
+    expect([embedded.width, embedded.height, embedded.depth]).toEqual([32, 32, 8]);
+    expect([2, 6]).toContain(embedded.colour);
+
+    const icon = readFileSync(join(root, svg!.href), 'utf8');
+    expect(icon).toMatch(/^<svg\b[^>]*\sviewBox="0 0 32 32"/);
+    expect(icon).not.toMatch(/<text\b/);
+    // iOS paints a transparent pixel black, so the touch icon has no alpha channel.
+    const { width, height, colour } = pngHeader(readFileSync(join(root, touch!.href)));
+    expect([width, height, colour]).toEqual([180, 180, 2]);
   });
 
   it('links /data/ and /vendor/ only through versioned URLs', () => {

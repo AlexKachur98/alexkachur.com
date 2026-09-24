@@ -4,6 +4,7 @@ dist/
 .astro/
 public/vendor/
 public/data/
+public/favicon.ico
 src/generated/
 npm-debug.log*
 yarn-debug.log*

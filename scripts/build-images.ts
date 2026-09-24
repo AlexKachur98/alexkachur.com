@@ -1,6 +1,7 @@
-// Draws the link-preview image from the site's own colour tokens and fonts. The SVG renderer used
-// here (librsvg inside sharp) cannot load web fonts, so every letter is shaped with HarfBuzz, the
-// shaping engine Chrome and Firefox use, and written out as path data.
+// Draws the link-preview image and the favicon set from the site's own colour tokens and fonts.
+// A browser draws an SVG favicon as an image, which cannot load web fonts, and the SVG renderer
+// used here (librsvg inside sharp) cannot load them either, so every letter is shaped with
+// HarfBuzz, the shaping engine Chrome and Firefox use, and written out as path data.
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -11,7 +12,7 @@ import { unpackWoff } from './woff.ts';
 
 const require = createRequire(import.meta.url);
 
-const colourNames = ['bg', 'ink', 'mark'] as const;
+const colourNames = ['bg', 'ink', 'mark', 'accent'] as const;
 type Colours = Record<(typeof colourNames)[number], string>;
 
 // The dark theme's value of each colour, from its light-dark() pair. Each token is also registered
@@ -154,9 +155,51 @@ function previewSvg({ colours, trackingHeading }: ReturnType<typeof readTokens>,
   );
 }
 
+// The favicon, on a 32-unit square so 16 and 32 pixels land on whole units: the dark page colour,
+// "AK", and in the top-right corner the triangle the site's diagonal cut removes, in yellow. A and
+// K are placed one by one rather than at the font's spacing: at 16 pixels the font's 0.9px gap
+// between them fills in, so K's stem starts on a whole pixel with a clear pixel column before it.
+const icon = { size: 32, corner: 10, letterSize: 20, baseline: 24, aLeft: 3, kStem: 18 };
+
+function iconSvg({ colours }: ReturnType<typeof readTokens>, fonts: Fonts, margin = 0, pixels?: number): string {
+  const scale = icon.letterSize / fonts.bold.face.upem;
+  const a = shapeLine(fonts.bold, 'A');
+  const k = shapeLine(fonts.bold, 'K');
+  const aX = icon.aLeft - ink(a).left * scale;
+  const kX = icon.kStem - ink(k).left * scale;
+  const corner = `M${icon.size - icon.corner} 0H${icon.size}V${icon.corner}Z`;
+  const box = icon.size + 2 * margin;
+  return svg(
+    `${-margin} ${-margin} ${box} ${box}`,
+    [
+      `<rect x="${-margin}" y="${-margin}" width="${box}" height="${box}" fill="${colours.bg}"/>`,
+      `<path d="${corner}" fill="${colours.accent}"/>`,
+      `<path d="${linePath(a, icon.letterSize, aX, icon.baseline)}${linePath(k, icon.letterSize, kX, icon.baseline)}" fill="${colours.ink}"/>`,
+    ].join(''),
+    pixels,
+    pixels,
+  );
+}
+
 // Every raster is drawn straight at its own size and saved without an alpha channel.
 function png(image: string): Promise<Buffer> {
   return sharp(Buffer.from(image)).removeAlpha().png({ compressionLevel: 9 }).toBuffer();
+}
+
+// An ICO file holding one PNG: a 6-byte header and one 16-byte directory entry, little-endian.
+function icoFromPng(image: Uint8Array, size: number): Uint8Array {
+  const file = new Uint8Array(22 + image.length);
+  const view = new DataView(file.buffer);
+  view.setUint16(2, 1, true);
+  view.setUint16(4, 1, true);
+  view.setUint8(6, size);
+  view.setUint8(7, size);
+  view.setUint16(10, 1, true);
+  view.setUint16(12, 24, true);
+  view.setUint32(14, image.length, true);
+  view.setUint32(18, 22, true);
+  file.set(image, 22);
+  return file;
 }
 
 export async function main(root = process.cwd()): Promise<void> {
@@ -169,6 +212,9 @@ export async function main(root = process.cwd()): Promise<void> {
   const generated = join(root, 'src', 'generated');
   mkdirSync(generated, { recursive: true });
   writeFileSync(join(generated, 'link-preview.png'), await png(previewSvg(tokens, fonts)));
+  writeFileSync(join(generated, 'icon.svg'), iconSvg(tokens, fonts));
+  writeFileSync(join(generated, 'apple-touch-icon.png'), await png(iconSvg(tokens, fonts, 4, 180)));
+  writeFileSync(join(root, 'public', 'favicon.ico'), icoFromPng(await png(iconSvg(tokens, fonts, 0, icon.size)), icon.size));
 }
 
 // Node resolves the entry module through its real path, so a symlinked checkout must compare the same way.
