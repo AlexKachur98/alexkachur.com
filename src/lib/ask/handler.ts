@@ -14,6 +14,7 @@ import { normaliseQuestion } from './normalise.ts';
 import { correctionTurn, PROMPT_VERSION, questionTurn, requestParams, schemaHash8 } from './prompt.ts';
 import type { AskOutput } from './prompt.ts';
 import { StoreError } from './redis.ts';
+import { TTL } from './storage.ts';
 import type { Store } from './redis.ts';
 import { explanationProblem, validateSql } from './validate-sql.ts';
 
@@ -22,8 +23,6 @@ export const DEADLINE_MS = 27_000;
 // A corrective retry is a second attempt with its own timeout, so it only starts with this much left.
 export const RETRY_NEEDS_MS = 16_000;
 
-const DAY = 86_400;
-export const TTL = { counter: 40 * DAY, answer: 30 * DAY, refusal: DAY } as const;
 export const QUESTION_LENGTH = { min: 3, max: 200 } as const;
 
 export type AskRequest = ReturnType<typeof requestParams>;
@@ -71,8 +70,8 @@ export function cacheKey(env: string, question: string): string {
 
 // The rate limiter's key for an address. A plain hash of an IPv4 address can be reversed by
 // hashing every address in turn; keyed with a secret, the stored key cannot be matched back to
-// an address without the secret. The What is stored list on /api relies on this, so a change
-// here changes that list.
+// an address without the secret. The storage table's "scrambled form of your address" relies on
+// this, so a change here changes that row.
 export function limitKey(secret: string, ip: string): string {
   return createHmac('sha256', secret).update(ip).digest('hex');
 }

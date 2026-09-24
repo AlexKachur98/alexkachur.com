@@ -10,13 +10,14 @@ import {
   RateLimitError,
 } from '@anthropic-ai/sdk';
 import { createHmac } from 'node:crypto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { cacheKey, handleAsk, limitKey } from '../src/lib/ask/handler.ts';
 import type { AskDeps, AskRequest, AskResult, LogEntry, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
 import { StoreError } from '../src/lib/ask/redis.ts';
 import type { CacheEntry, Store } from '../src/lib/ask/redis.ts';
+import { stored } from '../src/lib/ask/storage.ts';
 
 const IP = '203.0.113.7';
 const LIMIT_SECRET = 'test-limit-secret';
@@ -48,6 +49,21 @@ interface FakeStore extends Store {
   fail: Partial<Record<keyof Store, Error>>;
 }
 
+// Every write in every scenario below must be a row of the storage table, by key and lifetime,
+// so a branch that starts storing something new fails here until the table lists it. A write is
+// noted rather than thrown, since the handler would turn a throw into a 500 and lose the reason.
+const unlisted: string[] = [];
+
+function listed(key: string, ttl: number): void {
+  if (!stored.some((row) => row.where === 'redis' && row.key.test(key) && row.keep === ttl)) {
+    unlisted.push(`${key} kept ${ttl} s is not in the storage table`);
+  }
+}
+
+afterEach(() => {
+  expect(unlisted.splice(0)).toEqual([]);
+});
+
 function fakeStore(): FakeStore {
   const throwIf = (method: keyof Store) => {
     const error = store.fail[method];
@@ -72,11 +88,13 @@ function fakeStore(): FakeStore {
     async write(key, entry, ttl) {
       store.calls.push(['write', key, ttl]);
       throwIf('write');
+      listed(key, ttl);
       store.entries.set(key, { entry, ttl });
     },
     async count(key, ttl) {
       store.calls.push(['count', key, ttl]);
       throwIf('count');
+      listed(key, ttl);
       const counter = store.counters.get(key);
       if (counter) {
         counter.value += 1;

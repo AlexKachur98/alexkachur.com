@@ -52,19 +52,25 @@ const WORKING_MESSAGE = 'working';
 const CACHED_LABEL = 'cached';
 const UNUSABLE_MESSAGE = 'I could not turn that into a safe query. Try rephrasing, or write the SQL yourself.';
 // The three sentences that point at the raw console, and the same sentences cut for a page that
-// has no console (404), where the six examples run in the Ask panel instead.
+// has no console (404), where the examples run in the Ask panel instead. Two of them name how
+// many examples follow, as a word taken from the list the panel shows.
 const RATE_LIMITED_MESSAGE = {
   console: 'Too many questions from your connection. Try again in a minute, or type SQL directly below.',
   alone: 'Too many questions from your connection. Try again in a minute.',
 };
 const BUDGET_MESSAGE = {
-  console: 'The AI budget for this month is used up. The raw console still works, and here are six questions with their SQL.',
-  alone: 'The AI budget for this month is used up. Here are six questions with their SQL.',
+  console: (count: string) => `The AI budget for this month is used up. The raw console still works, and here are ${count} questions with their SQL.`,
+  alone: (count: string) => `The AI budget for this month is used up. Here are ${count} questions with their SQL.`,
 };
 const UPSTREAM_MESSAGE = {
-  console: 'The AI service is not responding right now. The raw console still works, and here are six questions with their SQL.',
-  alone: 'The AI service is not responding right now. Here are six questions with their SQL.',
+  console: (count: string) => `The AI service is not responding right now. The raw console still works, and here are ${count} questions with their SQL.`,
+  alone: (count: string) => `The AI service is not responding right now. Here are ${count} questions with their SQL.`,
 };
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+
+export function countWord(n: number): string {
+  return NUMBER_WORDS[n] ?? String(n);
+}
 const TIMEOUT_MS = 3000;
 const WORKER_URL = '/console-worker.js';
 const ASK_URL = '/api/ask';
@@ -344,8 +350,8 @@ export interface Reply {
 }
 
 // What the Ask panel shows for a reply. An answer runs its SQL; a refusal shows only the model's
-// sentence; a failure shows one of the copy sentences, with the six example queries listed when
-// the AI is out of reach and the console is the way forward.
+// sentence; a failure shows one of the copy sentences, with the example queries listed when the
+// AI is out of reach and the console is the way forward.
 export type AskState =
   | { kind: 'answer'; sql: string; explanation: string; cached: boolean }
   | { kind: 'refusal'; explanation: string; cached: boolean }
@@ -355,10 +361,12 @@ function field(body: unknown, name: string): unknown {
   return body !== null && typeof body === 'object' ? (body as Record<string, unknown>)[name] : undefined;
 }
 
-// withConsole says whether the page also has the raw console the sentences point at.
-export function askState(reply: Reply | null, withConsole = true): AskState {
+// withConsole says whether the page also has the raw console the sentences point at; listed is
+// how many examples the fallback list holds.
+export function askState(reply: Reply | null, withConsole: boolean, listed: number): AskState {
   const wording = withConsole ? 'console' : 'alone';
-  const upstream: AskState = { kind: 'failed', message: UPSTREAM_MESSAGE[wording], fallback: true };
+  const count = countWord(listed);
+  const upstream: AskState = { kind: 'failed', message: UPSTREAM_MESSAGE[wording](count), fallback: true };
   if (!reply) return upstream;
   const { status, body } = reply;
   if (status === 200) {
@@ -375,7 +383,7 @@ export function askState(reply: Reply | null, withConsole = true): AskState {
   // A missing variable in production reads the same as a used-up month to the visitor.
   const reason = field(body, 'reason');
   if (status === 503 && (reason === 'budget' || reason === 'config')) {
-    return { kind: 'failed', message: BUDGET_MESSAGE[wording], fallback: true };
+    return { kind: 'failed', message: BUDGET_MESSAGE[wording](count), fallback: true };
   }
   return upstream;
 }
@@ -406,6 +414,8 @@ interface AskUi extends Panel {
   sql: HTMLElement;
   edit: HTMLElement | null;
   fallback: HTMLElement;
+  // The lines an example can show under its table, hidden until that example runs.
+  more: HTMLElement[];
   // The example answer a wide screen shows before the first question, if the page has one.
   example: HTMLElement | null;
   busy: boolean;
@@ -502,14 +512,15 @@ function dropNote(panel: Panel): void {
   panel.results.querySelector('.console-empty')?.remove();
 }
 
-async function execute(panel: Panel, sql: string): Promise<void> {
-  if (!executor) return;
+// The result when the query ran, undefined when it was refused or failed.
+async function execute(panel: Panel, sql: string): Promise<Result | undefined> {
+  if (!executor) return undefined;
   dropNote(panel);
   const problem = guard(sql);
   if (problem) {
     setStatus(panel, panel.inFlight > 0 ? WORKING_MESSAGE : '');
     setError(panel, problem);
-    return;
+    return undefined;
   }
   setError(panel, '');
   setStatus(panel, loaded ? WORKING_MESSAGE : loadingMessage());
@@ -522,10 +533,12 @@ async function execute(panel: Panel, sql: string): Promise<void> {
     setError(panel, '');
     paint(panel, result);
     setStatus(panel, summary(result), true);
+    return result;
   } catch (error) {
     dropNote(panel);
     setStatus(panel, '', true);
     setError(panel, failure(error));
+    return undefined;
   } finally {
     working(panel, -1);
   }
@@ -561,13 +574,14 @@ function begin(ui: AskUi, question: string): void {
   ui.results.removeAttribute('tabindex');
   if (ui.edit) ui.edit.hidden = true;
   ui.fallback.hidden = true;
+  for (const line of ui.more) line.hidden = true;
   setStatus(ui, WORKING_MESSAGE);
 }
 
-async function answer(ui: AskUi, sql: string): Promise<void> {
+async function answer(ui: AskUi, sql: string): Promise<Result | undefined> {
   ui.sql.replaceChildren(...sqlNodes(sql));
   if (ui.edit) ui.edit.hidden = false;
-  await execute(ui, sql);
+  return execute(ui, sql);
 }
 
 async function show(ui: AskUi, state: AskState): Promise<void> {
@@ -625,15 +639,20 @@ export function ask(): void {
     // A load that failed earlier is retried alongside the request; the run reports it if it
     // fails again, and nothing is reported when there is no SQL to run.
     executor?.ready().catch(() => undefined);
-    await show(ui, askState(await post(question), consoleUi !== undefined));
+    await show(ui, askState(await post(question), consoleUi !== undefined, ui.fallback.querySelectorAll('li').length));
   });
 }
 
-// A chip, or one of the six fallback examples: reviewed SQL run locally, no request made. The
-// fallback list hides as the run starts, taking the activated button with it, so focus is put
-// back afterwards: on the results when there are rows, else on the input.
-function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean): void {
-  void occupy(ui, label, () => answer(ui, sql)).then((started) => {
+// A chip, or one of the fallback examples: reviewed SQL run locally, no request made. An example
+// with a line of its own shows it under the table once the query has run. The fallback list
+// hides as the run starts, taking the activated button with it, so focus is put back afterwards:
+// on the results when a table was painted, else on the input.
+function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean, more: string | undefined): void {
+  void occupy(ui, label, async () => {
+    const result = await answer(ui, sql);
+    const line = more === undefined ? undefined : ui.more.find((candidate) => candidate.dataset['askMore'] === more);
+    if (result && line) line.hidden = false;
+  }).then((started) => {
     if (!started || !fromList) return;
     const target = ui.results.hasAttribute('tabindex') ? ui.results : ui.input;
     target.focus({ preventScroll: true });
@@ -660,7 +679,9 @@ export function click(button: HTMLElement): void {
     return;
   }
   if (askUi?.box.contains(button)) {
-    if (sql !== undefined) askQuery(askUi, sql, button.textContent?.trim() ?? '', askUi.fallback.contains(button));
+    if (sql !== undefined) {
+      askQuery(askUi, sql, button.textContent?.trim() ?? '', askUi.fallback.contains(button), button.dataset['more']);
+    }
     return;
   }
   if (sql !== undefined) query(sql);
@@ -706,6 +727,7 @@ export function init(): void {
       // The answer's own button, not the example's, which sits deeper in the panel.
       edit: askRoot.querySelector<HTMLElement>('[data-ask-panel] > [data-ask-edit]'),
       fallback: element(askRoot, '[data-ask-fallback]'),
+      more: [...askRoot.querySelectorAll<HTMLElement>('[data-ask-more]')],
       example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),
       busy: false,
     };

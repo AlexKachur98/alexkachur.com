@@ -1,9 +1,12 @@
-// The six example queries (query 5 selects born instead of age, which the pets table does not
-// store). One source for the console buttons, the two Ask chips and the worked examples in the
-// ask prompt.
+// The example queries (the pets query selects born instead of age, which the pets table does not
+// store). One source for the console buttons, the Ask chips, the fallback list and the worked
+// examples in the ask prompt.
 export interface Example {
   label: string;
   sql: string;
+  // One line shown under the example's table when it runs in the Ask panel: a link, then the rest
+  // of the sentence.
+  more?: { href: string; link: string; rest: string };
 }
 
 export const examples: readonly Example[] = [
@@ -14,6 +17,19 @@ export const examples: readonly Example[] = [
   {
     label: 'Which projects use an LLM, and what is its job?',
     sql: 'SELECT name, llm_job FROM projects WHERE uses_llm = 1;',
+  },
+  {
+    label: 'What did Alex do before development?',
+    sql: 'SELECT title, organization, start, end, summary FROM experience WHERE end IS NOT NULL ORDER BY start;',
+  },
+  {
+    label: 'What does this site store about me?',
+    sql: 'SELECT item, kept_for, purpose FROM storage;',
+    more: {
+      href: '/api#what-is-stored',
+      link: 'Full details on the API page',
+      rest: ', including what Anthropic and Vercel keep.',
+    },
   },
   {
     label: 'Which technologies show up in more than one project?',
@@ -33,8 +49,12 @@ export const examples: readonly Example[] = [
   },
 ];
 
-// The two Ask chips carry examples 1 and 2 statically and run with no API call.
-export const chips: readonly Example[] = examples.slice(0, 2);
+// The Ask chips carry the first four examples statically and run them with no API call, so they
+// work when the monthly cap is reached or the model is down.
+export const chips: readonly Example[] = examples.slice(0, 4);
+
+// The query behind the storage chip, which the /api page also shows above its table.
+export const storageQuery = examples[3]!.sql;
 
 // The answer beside the Ask box on a wide screen before anyone asks, run at build time: a
 // question the chips do not already ask. One row per skill area of the core skills, the areas and

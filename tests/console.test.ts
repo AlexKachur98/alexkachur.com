@@ -389,10 +389,13 @@ function keywords(sql: string): string[] {
 describe('SQL keyword tokens', () => {
   it('picks out the syntax words of the example queries and nothing else', () => {
     expect(keywords(examples[0]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE']);
-    expect(keywords(examples[2]!.sql)).toEqual(['SELECT', 'AS', 'FROM', 'JOIN', 'ON', 'GROUP', 'BY', 'HAVING', 'ORDER', 'BY', 'DESC']);
-    expect(keywords(examples[3]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE']);
+    // end is the experience column, not the keyword.
+    expect(keywords(examples[2]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE', 'IS', 'NOT', 'NULL', 'ORDER', 'BY']);
+    expect(keywords(examples[3]!.sql)).toEqual(['SELECT', 'FROM']);
+    expect(keywords(examples[4]!.sql)).toEqual(['SELECT', 'AS', 'FROM', 'JOIN', 'ON', 'GROUP', 'BY', 'HAVING', 'ORDER', 'BY', 'DESC']);
+    expect(keywords(examples[5]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE']);
     // key is the facts column, not the keyword.
-    expect(keywords(examples[5]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE', 'IN']);
+    expect(keywords(examples[7]!.sql)).toEqual(['SELECT', 'FROM', 'WHERE', 'IN']);
   });
 
   it('matches in any case but leaves a function and a column named after it plain', () => {

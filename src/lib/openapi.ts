@@ -3,7 +3,7 @@
 // so the API loads into any client that reads OpenAPI. Paths are the exact ones the files are
 // served at, .json suffix included.
 import { QUESTION_LENGTH } from './ask/handler.ts';
-import { RATE_LIMIT } from './ask/redis.ts';
+import { RATE_LIMIT } from './ask/storage.ts';
 import { endpoints } from './endpoints.ts';
 import type { Endpoint } from './endpoints.ts';
 
@@ -199,13 +199,13 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
     case '/api/ask':
       return {
         operationId: 'ask',
-        description: `Rate limits: ${RATE_LIMIT.requests} questions a minute per connection and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`,
+        description: `Rate limits: ${RATE_LIMIT.requests} questions a minute per address and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`,
         requestBody: { required: true, content: { 'application/json': { schema: ref('ask_request') } } },
         responses: {
           '200': jsonResponse('SQL for the question, or an explanation of why there is none', ref('ask_answer')),
           '400': jsonResponse(`The body has no question of ${QUESTION_LENGTH.min} to ${QUESTION_LENGTH.max} characters`, errorBody('invalid_question')),
           '422': jsonResponse('The model gave nothing that prepares as a safe query', errorBody('unusable_output')),
-          '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions in a minute from one connection`, errorBody('rate_limited')),
+          '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions in a minute from one address`, errorBody('rate_limited')),
           '500': jsonResponse('An unexpected failure', errorBody('internal')),
           '503': jsonResponse('Not answering: the monthly cap is reached, the service is not set up, or the model did not respond', ref('unavailable')),
         },

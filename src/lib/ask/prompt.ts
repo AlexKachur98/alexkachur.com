@@ -38,9 +38,11 @@ function example(index: number, explanation: string): WorkedExample {
 export const workedExamples: readonly WorkedExample[] = [
   example(0, 'Lists the projects Alex was paid for, with the client, the start year and the live URL.'),
   example(1, 'Lists the projects where a language model does real work, with what it does in each.'),
-  example(2, 'Counts the projects each technology appears in and keeps the ones used more than once.'),
-  example(3, 'Lists the course codes and names for the Fall 2026 term.'),
-  example(5, 'Reads where Alex is, what he is doing now and when he is available from the facts table.'),
+  example(2, "Lists Alex's past jobs, the ones that have ended, with dates and a summary of each."),
+  example(3, 'Lists what this site stores, how long it keeps each thing and why.'),
+  example(4, 'Counts the projects each technology appears in and keeps the ones used more than once.'),
+  example(5, 'Lists the course codes and names for the Fall 2026 term.'),
+  example(7, 'Reads where Alex is, what he is doing now and when he is available from the facts table.'),
   // Here "where" is the school rather than the city, so the model sees both readings of the word.
   {
     question: 'What is Alex studying and where?',

@@ -3,9 +3,10 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { tables } from '../../content/schemas.ts';
 import schema from '../../generated/schema.json';
-import { chips } from '../../data/examples.ts';
+import { chips, storageQuery } from '../../data/examples.ts';
 import { endpoints } from '../../lib/endpoints.ts';
 import { previewJson } from '../../lib/preview-json.ts';
+import { select } from '../../lib/query.ts';
 import { petRows, projectRows, projectTechnologyRows, technologyRows, timelineRows } from '../../lib/rows.ts';
 
 // The example responses are cut from the same rows the endpoints serve.
@@ -27,6 +28,8 @@ const single = {
 };
 
 const url = (path: string) => new URL(path, Astro.site).href;
+// What is stored: the storage table itself, run at build time, under the query that reads it.
+const storage = await select(storageQuery);
 const question = chips[0]!.label;
 
 // A curl line and a truncated response for each path in the shared endpoint list.
@@ -55,7 +58,7 @@ for (const path of Object.keys(samples)) {
   <main id="main" class="container">
     <header class="page-head">
       <h1>API</h1>
-      <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per connection and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
+      <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per address and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
       <p>A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
       <p>Try it:</p>
       <pre><code>curl {url('/api/projects.json')}</code></pre>
@@ -79,15 +82,32 @@ for (const path of Object.keys(samples)) {
           {endpoint.path === '/api/ask' && (
             <Fragment>
               <h3 id="what-is-stored">What is stored</h3>
-              <p>The cache and the counters are held in Upstash Redis.</p>
-              <ul>
-                <li>The SQL and the model's one-line explanation for a question, cached for a month (a refusal for a day) under a SHA-256 hash of the question. The question itself is never stored, though the cached SQL can repeat words from it.</li>
-                <li>A counter keyed by a scrambled form of your address, kept for about two minutes, for the rate limit.</li>
-                <li>Two monthly totals: questions answered and model calls, for the footer and the monthly cap.</li>
-                <li>One line per failed request: status, error type, request ID and timing. Never the question or your address.</li>
-                <li>Anthropic, which runs the model, receives the question and keeps API requests for a limited time under <a href="https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data">its own policy</a>; it does not train on them, since this site's account has not opted in to share data.</li>
-                <li>Vercel, which hosts the site, keeps its own request logs.</li>
-              </ul>
+              <pre><code>{storageQuery}</code></pre>
+              <div class="stored" role="region" aria-labelledby="what-is-stored" tabindex="0">
+                <table>
+                  <thead>
+                    <tr>
+                      {storage.columns.map((column) => (
+                        <th scope="col">{column}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {storage.rows.map((row) => (
+                      <tr>
+                        {row.map((cell) => (
+                          <td>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p>Everything in the table but the theme choice is held in Upstash Redis.</p>
+              <p>Your address is scrambled with a keyed hash (HMAC-SHA-256) before anything is stored: a plain hash of an address could be reversed by hashing every address in turn, but without the site's secret key the stored value cannot be matched back to an address.</p>
+              <p>One line per failed request: status, error type, request ID and timing, written to Vercel's logs. Never the question or your address.</p>
+              <p>Anthropic, which runs the model, receives the question and, under its <a href="https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data">data retention policy</a>, deletes API inputs and outputs within 30 days, or keeps them up to 2 years if its safety systems flag a request; it does not train on them, since this site's account has not opted in to share data.</p>
+              <p>Vercel, which hosts the site, keeps its request logs, that failed-request line included, for one hour on this site's plan, and counts page views for Web Analytics without cookies, discarding the visitor hash after 24 hours.</p>
             </Fragment>
           )}
           {endpoint.response ? (
@@ -114,6 +134,11 @@ for (const path of Object.keys(samples)) {
   .endpoint h2 {
     font-family: var(--font-mono);
     font-size: var(--text-md);
+  }
+
+  /* The table of what is stored can be wider than a phone, so it scrolls inside its own box. */
+  .stored {
+    overflow-x: auto;
   }
 
   /* A heading inside an endpoint's section stays at the body size, below the endpoint title's, and a

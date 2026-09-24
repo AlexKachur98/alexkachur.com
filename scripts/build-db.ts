@@ -46,6 +46,7 @@ import {
   timelineRows,
 } from '../src/lib/rows.ts';
 import type { Entry } from '../src/lib/rows.ts';
+import { storageRows } from '../src/lib/ask/storage.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -194,6 +195,8 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     pets: petRows(content.pets),
     experience: experienceRows(content.experience),
     interests: interestRows(content.interests),
+    // Built from the lifetimes the code uses, not from the content files.
+    storage: storageRows(),
   };
 }
 

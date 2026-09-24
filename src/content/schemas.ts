@@ -121,6 +121,12 @@ export const interestRow = z.object({
   note: z.string().nullable().describe("Alex's note on it, NULL if none"),
 });
 
+export const storageRow = z.object({
+  item: z.string().describe('What is stored'),
+  kept_for: z.string().describe('How long it is kept'),
+  purpose: z.string().describe('Why'),
+});
+
 export const petRow = z.object({
   name: z.string().describe('The cat'),
   species: z.string().describe('Always cat so far'),
@@ -185,6 +191,12 @@ export const tables = {
     row: interestRow,
     description: "Alex's hobbies and favourites, in his words",
     primaryKey: ['id'],
+    unique: [],
+  },
+  storage: {
+    row: storageRow,
+    description: 'What this site stores for a visitor or a question, how long, and why, from the constants the code uses',
+    primaryKey: ['item'],
     unique: [],
   },
 } as const satisfies Record<

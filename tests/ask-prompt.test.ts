@@ -14,7 +14,7 @@ import {
   workedExamples,
 } from '../src/lib/ask/prompt.ts';
 
-const tables = ['facts', 'projects', 'technologies', 'project_technologies', 'courses', 'timeline', 'pets', 'experience', 'interests'];
+const tables = ['facts', 'projects', 'technologies', 'project_technologies', 'courses', 'timeline', 'pets', 'experience', 'interests', 'storage'];
 
 describe('outputFormat', () => {
   it('puts the two string fields and nothing else on the wire', () => {
@@ -85,7 +85,7 @@ describe('systemPrompt', () => {
   });
 
   it('shows the worked examples with their SQL and no trailing semicolon', () => {
-    expect(workedExamples).toHaveLength(6);
+    expect(workedExamples).toHaveLength(8);
     for (const entry of workedExamples) {
       expect(entry.sql).not.toMatch(/;\s*$/);
       expect(prompt).toContain(entry.sql);

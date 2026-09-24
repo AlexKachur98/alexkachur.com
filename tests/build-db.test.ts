@@ -82,7 +82,7 @@ describe('build-db', () => {
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
     expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
-    expect(text.match(/CREATE TABLE/g)).toHaveLength(9);
+    expect(text.match(/CREATE TABLE/g)).toHaveLength(10);
   });
 
   it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
@@ -124,6 +124,7 @@ describe('build-db', () => {
       'pets',
       'experience',
       'interests',
+      'storage',
     ]);
     expect(schema.tables.every((table) => table.columns.every((col) => col.description.length > 0))).toBe(true);
     expect(schema.photoAlt).toEqual({
@@ -132,13 +133,16 @@ describe('build-db', () => {
     });
   });
 
-  it('answers the six example queries with the expected rows', () => {
-    const [paying, llm, shared, courses, pets, facts] = examples.map((example) => query(example.sql));
+  it('answers the example queries with the expected rows', () => {
+    const [paying, llm, before, stored, shared, courses, pets, facts] = examples.map((example) => query(example.sql));
     expect(paying).toEqual([
       { name: 'Uraz Hoops', client_name: 'Uraz Hoops', year_start: 2026, live_url: 'https://urazhoops.com' },
     ]);
     expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'This site']);
     expect(llm!.every((row) => typeof row.llm_job === 'string' && row.llm_job.length > 0)).toBe(true);
+    expect(before!.map((row) => row.title)).toEqual(['Manager', 'QA Tester']);
+    expect(stored!.map((row) => Object.keys(row))[0]).toEqual(['item', 'kept_for', 'purpose']);
+    expect(stored!.map((row) => row.kept_for)).toEqual(['30 days', '1 day', '2 minutes 1 second', '40 days', 'until you clear it']);
     expect(shared).toContainEqual({ name: 'React', projects: 2 });
     expect(courses).toHaveLength(6);
     expect(courses!.map((row) => row.code)).toContain('COMP 307');
@@ -155,8 +159,8 @@ describe('build-db', () => {
     expect(query('SELECT COUNT(*) AS n FROM projects WHERE featured <> 0 AND featured <> 1')).toEqual([{ n: 0 }]);
   });
 
-  it('runs both chips, which carry examples 1 and 2 unchanged', () => {
-    expect(chips).toEqual(examples.slice(0, 2));
+  it('runs the four chips, which carry examples 1 to 4 unchanged', () => {
+    expect(chips).toEqual(examples.slice(0, 4));
     const [paying, llm] = chips.map((chip) => query(chip.sql));
     expect(paying!.map((row) => row.name)).toEqual(['Uraz Hoops']);
     expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'This site']);

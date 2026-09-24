@@ -6,7 +6,8 @@ import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { AskDeps } from '../src/lib/ask/handler.ts';
-import { RATE_LIMIT, redisStore } from '../src/lib/ask/redis.ts';
+import { redisStore } from '../src/lib/ask/redis.ts';
+import { RATE_LIMIT, TTL } from '../src/lib/ask/storage.ts';
 import type { Store } from '../src/lib/ask/redis.ts';
 
 // The rate limit as Redis sees it: the real store and the real limiter over a fake client that
@@ -52,6 +53,24 @@ function fakeRedis(blocked = false) {
       record('expire', [key, seconds]);
       return 1;
     },
+    multi() {
+      const queued: Command[] = [];
+      const chain = {
+        set(key: string, value: unknown, options: unknown) {
+          queued.push({ method: 'set', args: [key, value, options] });
+          return chain;
+        },
+        incr(key: string) {
+          queued.push({ method: 'incr', args: [key] });
+          return chain;
+        },
+        async exec() {
+          record('multi', [queued]);
+          return queued.map(({ method }) => (method === 'incr' ? 1 : 'OK'));
+        },
+      };
+      return chain;
+    },
   };
   return { commands, scripts, redis: client as unknown as Redis };
 }
@@ -75,7 +94,7 @@ describe('the rate limit in Redis', () => {
     const { commands, redis } = fakeRedis();
     const result = await handleAsk({ question: QUESTION }, ip, deps(redisStore('test', redis)));
     expect(result.status).toBe(200);
-    expect(commands.map(({ method }) => method)).toEqual(expect.arrayContaining(['eval', 'get', 'set', 'incr']));
+    expect(commands.map(({ method }) => method)).toEqual(expect.arrayContaining(['eval', 'get', 'set', 'multi']));
     expect(JSON.stringify(commands)).not.toContain(ip);
     const keys = limiterCalls(commands).flatMap(([keys]) => keys);
     expect(keys).toHaveLength(2);
@@ -94,7 +113,7 @@ describe('the rate limit in Redis', () => {
     // The library's default would have answered the second from memory. Its memory of a block ends
     // with the window, so the clock is held to keep both calls inside one.
     const control = fakeRedis(true);
-    const cached = new Ratelimit({ redis: control.redis, limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, RATE_LIMIT.window), prefix: 'control' });
+    const cached = new Ratelimit({ redis: control.redis, limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, `${RATE_LIMIT.windowSeconds} s`), prefix: 'control' });
     const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 8, 22, 12, 0, 30));
     try {
       await cached.limit('key');
@@ -103,6 +122,18 @@ describe('the rate limit in Redis', () => {
       clock.mockRestore();
     }
     expect(limiterCalls(control.commands)).toHaveLength(1);
+  });
+
+  it('counts in one transaction that gives a new counter its lifetime and never moves it', async () => {
+    const { commands, redis } = fakeRedis();
+    await redisStore('test', redis).count('ask:test:asked:2026-09', TTL.counter);
+    const multi = commands.filter(({ method }) => method === 'multi');
+    expect(multi).toHaveLength(1);
+    expect(multi[0]!.args[0]).toEqual([
+      { method: 'set', args: ['ask:test:asked:2026-09', 0, { nx: true, ex: TTL.counter }] },
+      { method: 'incr', args: ['ask:test:asked:2026-09'] },
+    ]);
+    expect(commands.map(({ method }) => method)).not.toContain('expire');
   });
 
   it("lets each key expire with the sliding window's two windows and a second: two minutes and one second", async () => {

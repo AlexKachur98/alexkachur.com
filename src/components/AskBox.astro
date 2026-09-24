@@ -8,12 +8,13 @@ import '../styles/console.css';
 
 // The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,
 // in the answer area below the chips. The whole box is one console panel, dark in both themes
-// with one fill and one cut; the form and the answer share it. The two chips carry reviewed
-// SQL and run it locally with no request. The answer area is always in the markup, so its
-// status and error regions exist before anything is written to them; it takes up space only
-// once it holds something.
-// The six examples are the fallback listed when the AI is out of reach. A page without the raw
-// console (404) gets no Edit this query button, since there is nowhere to edit.
+// with one fill and one cut; the form and the answer share it. The chips carry reviewed SQL and
+// run it locally with no request. The answer area is always in the markup, so its status and
+// error regions exist before anything is written to them; it takes up space only once it holds
+// something.
+// The examples are the fallback listed when the AI is out of reach; one of them carries a line
+// shown under its table, which starts hidden and is revealed when that example runs. A page
+// without the raw console (404) gets no Edit this query button, since there is nowhere to edit.
 // With example, the box sets the answer beside the form from 1200px, and until the first question
 // or chip that pane shows an example answer: its SQL run here at build time against the built
 // database and written into the page, so it needs no request and no script.
@@ -58,14 +59,14 @@ const answer = shown ? await run(shown.sql) : undefined;
       {
         chips.map((chip) => (
           <li>
-            <button type="button" class="button chip" data-sql={chip.sql}>
+            <button type="button" class="button chip" data-sql={chip.sql} data-more={chip.more ? examples.indexOf(chip) : undefined}>
               {chip.label}
             </button>
           </li>
         ))
       }
     </ul>
-    <p class="ask-privacy">Your question goes to an AI service to become SQL. This site never logs it. <a href="/api#what-is-stored">What is stored</a></p>
+    <p class="ask-privacy">Your question goes to an AI service to become SQL. This site never logs it.</p>
   </form>
   <div class="console ask-panel" data-ask-panel>
     {
@@ -139,11 +140,21 @@ const answer = shown ? await run(shown.sql) : undefined;
     {editable && <button type="button" class="console-run" data-ask-edit hidden>Edit this query</button>}
     <p class="console-error" role="alert" data-ask-error></p>
     <div class="console-results" role="region" aria-labelledby="ask-question ask-status" data-ask-results></div>
+    {
+      examples.map(
+        (example, index) =>
+          example.more && (
+            <p class="ask-more" data-ask-more={index} hidden>
+              <a href={example.more.href}>{example.more.link}</a>{example.more.rest}
+            </p>
+          ),
+      )
+    }
     <ul class="ask-fallback" role="list" data-ask-fallback hidden>
       {
-        examples.map((example) => (
+        examples.map((example, index) => (
           <li>
-            <button type="button" class="ask-example" data-sql={example.sql}>
+            <button type="button" class="ask-example" data-sql={example.sql} data-more={example.more ? index : undefined}>
               {example.label}
             </button>
             <code>{example.sql}</code>
@@ -256,9 +267,14 @@ const answer = shown ? await run(shown.sql) : undefined;
   }
 
   .ask-explanation,
-  .ask-sql {
+  .ask-sql,
+  .ask-more {
     margin: 0;
     max-width: none;
+  }
+
+  .ask-more {
+    margin-top: var(--space-3);
   }
 
   .ask-explanation:not(:empty) {

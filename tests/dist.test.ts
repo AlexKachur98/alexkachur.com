@@ -4,7 +4,7 @@ import { gzipSync } from 'node:zlib';
 import sharp from 'sharp';
 import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
-import { answerExample, chips } from '../src/data/examples.ts';
+import { answerExample, chips, examples, storageQuery } from '../src/data/examples.ts';
 import { validateSql } from '../src/lib/ask/validate-sql.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
@@ -190,11 +190,51 @@ describe(`built output in ${root}`, () => {
     expect(broken).toEqual([]);
   });
 
-  // The list the Ask box's privacy note links to.
-  it('lists what is stored for a question under its own heading on /api', () => {
+  // The table the storage chip's line links to: the query, then exactly the rows it returns from
+  // the built database.
+  it('shows what is stored on /api as the storage table under the query that reads it', async () => {
     const api = pages.find(({ url }) => url === '/api')!.html;
-    const list = api.match(/<h3\b[^>]*\sid="what-is-stored"[^>]*>What is stored<\/h3>(?:\s*<p\b[^>]*>[^<]*<\/p>)?\s*<ul\b[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? '';
-    expect(list.match(/<li\b/g)).toHaveLength(6);
+    const block = api.match(/<h3\b[^>]*\sid="what-is-stored"[^>]*>What is stored<\/h3>\s*<pre\b[^>]*><code\b[^>]*>([^<]*)<\/code><\/pre>\s*<div\b([^>]*)>\s*<table\b[^>]*>([\s\S]*?)<\/table>/);
+    expect(block).not.toBeNull();
+    const [, query, region, table] = block!;
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).trim();
+    expect(decode(query!)).toBe(storageQuery);
+    expect(region).toMatch(/role="region"/);
+    expect(region).toMatch(/aria-labelledby="what-is-stored"/);
+    expect(region).toMatch(/tabindex="0"/);
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const result = db.exec(storageQuery)[0]!;
+    db.close();
+    expect([...table!.matchAll(/<th\b[^>]*scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map(([, cell]) => text(cell!))).toEqual(result.columns);
+    const rows = [...table!.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)]
+      .map(([, row]) => [...row!.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map(([, cell]) => text(cell!)))
+      .filter((row) => row.length > 0);
+    expect(rows).toEqual(result.values.map((row) => row.map(String)));
+  });
+
+  // The Ask box on the home page and the 404: four chips, the privacy note with no link, and the
+  // storage example's line, hidden until that example runs, linking to the table above.
+  it('shows the four chips, the privacy note and the storage line in every Ask box', () => {
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    for (const url of ['/', '/404']) {
+      const html = pages.find((page) => page.url === url)!.html;
+      const form = html.match(/<form\b[^>]*data-ask-form[^>]*>([\s\S]*?)<\/form>/)?.[1] ?? '';
+      const labels = [...form.matchAll(/<button\b[^>]*class="button chip"[^>]*>([\s\S]*?)<\/button>/g)].map(([, label]) => text(label!));
+      expect(labels, url).toEqual(chips.map((chip) => chip.label));
+      const privacy = form.match(/<p\b[^>]*class="ask-privacy"[^>]*>([\s\S]*?)<\/p>/)?.[1] ?? '';
+      expect(privacy, url).not.toMatch(/<a\b/);
+      expect(text(privacy), url).toBe('Your question goes to an AI service to become SQL. This site never logs it.');
+      const index = examples.findIndex((example) => example.more);
+      const more = examples[index]!.more!;
+      const line = html.match(new RegExp(`<p\\b[^>]*data-ask-more="${index}"[^>]*>([\\s\\S]*?)</p>`));
+      expect(line, url).not.toBeNull();
+      expect(line![0], url).toMatch(/\shidden\b/);
+      expect(line![1], url).toMatch(new RegExp(`<a\\b[^>]*href="${more.href}"[^>]*>${more.link}</a>`));
+      expect(text(line![1]!), url).toBe(`${more.link}${more.rest}`);
+      expect(html.match(new RegExp(`data-more="${index}"`, 'g'))!.length, url).toBeGreaterThanOrEqual(1);
+    }
   });
 
   // The resume is a document, not a page, so it alone opens a new tab and says so in words a screen

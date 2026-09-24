@@ -70,8 +70,8 @@ describe('validateSql accepts read-only statements', () => {
     });
   });
 
-  it('validates the six example queries', () => {
-    expect(examples).toHaveLength(6);
+  it('validates every example query', () => {
+    expect(examples).toHaveLength(8);
     for (const { label, sql } of examples) {
       expect(sql.endsWith(';'), label).toBe(true);
       expect(check(sql), label).toEqual({ ok: true, sql: sql.slice(0, -1) });
