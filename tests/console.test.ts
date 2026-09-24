@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { createExecutor, guard, onScreen, renderCell, ROWS, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { createExecutor, guard, markOverflow, onScreen, renderCell, ROWS, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
@@ -533,6 +533,54 @@ describe('results box', () => {
     const reset = paint.indexOf('panel.results.scrollTo(0, 0);');
     expect(reset).toBeGreaterThan(paint.indexOf('panel.results.replaceChildren(table);'));
     expect(reset).toBeLessThan(paint.indexOf('panel.results.tabIndex = 0;'));
+  });
+
+  it('shows the scroll words while a capped box holds more than it shows, either way, wherever it is scrolled to', () => {
+    const cue = { hidden: true };
+    const fits = { scrollWidth: 414, clientWidth: 414 };
+    markOverflow({ scrollHeight: 804, clientHeight: 400, ...fits }, cue, true);
+    expect(cue.hidden).toBe(false);
+    // A table wider than the pane, such as a cut web address, scrolls sideways.
+    markOverflow({ scrollHeight: 93, clientHeight: 93, scrollWidth: 489, clientWidth: 414 }, cue, true);
+    expect(cue.hidden).toBe(false);
+    for (const [scrollHeight, clientHeight] of [[400, 400], [401, 400], [0, 0]] as const) {
+      markOverflow({ scrollHeight, clientHeight, ...fits }, cue, true);
+      expect(cue.hidden, `${scrollHeight} in ${clientHeight}`).toBe(true);
+    }
+    markOverflow({ scrollHeight: 93, clientHeight: 93, scrollWidth: 415, clientWidth: 414 }, cue, true);
+    expect(cue.hidden).toBe(true);
+    // Under the form the box grows instead, and a phone's pane has no room for the words.
+    markOverflow({ scrollHeight: 93, clientHeight: 93, scrollWidth: 489, clientWidth: 311 }, cue, false);
+    expect(cue.hidden).toBe(true);
+  });
+
+  it('hides the scroll words as a question begins and checks them after each answer and resize', () => {
+    const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer('));
+    expect(begin).toContain('ui.scrollCue.hidden = true;');
+    const answer = source.slice(source.indexOf('async function answer('), source.indexOf('// A capped results box'));
+    expect(answer.indexOf('markOverflow(ui.results, ui.scrollCue, capped(ui.results));')).toBeGreaterThan(answer.indexOf('await execute(ui, sql);'));
+    expect(source.slice(source.indexOf('export function init('))).toMatch(/new ResizeObserver\(\(\) => markOverflow\(ui\.results, ui\.scrollCue, capped\(ui\.results\)\)\)/);
+    // Scrolling never changes the words, so nothing listens for it.
+    expect(source).not.toMatch(/addEventListener\('scroll'/);
+  });
+
+  // The Ask results scroll inside a box only beside the form, on a mouse or trackpad and a window
+  // tall enough; the raw console and everything else keep growing.
+  it('caps the Ask results only in the wide, tall, fine-pointer layout', () => {
+    expect(readFileSync('src/styles/console.css', 'utf8')).not.toMatch(/max-height/);
+    const style = readFileSync('src/components/AskBox.astro', 'utf8');
+    const cap = style.indexOf('max-height: 25rem;');
+    expect(cap).toBeGreaterThan(0);
+    expect(style.lastIndexOf('max-height')).toBe(style.indexOf('max-height'));
+    let from = 0;
+    for (const rule of ['@media (min-width: 1200px)', '@supports (grid-template-columns: subgrid)', '@media (min-height: 42.5rem) and (hover: hover) and (pointer: fine)']) {
+      const at = style.lastIndexOf(rule, cap);
+      expect(at, rule).toBeGreaterThan(from);
+      from = at;
+    }
+    // Nested: both media rules, the supports rule and the results rule are all still open at the cap.
+    const inside = style.slice(style.lastIndexOf('@media (min-width: 1200px)', cap), cap);
+    expect(inside.split('{').length - inside.split('}').length).toBe(4);
   });
 });
 

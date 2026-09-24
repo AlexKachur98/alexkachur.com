@@ -276,6 +276,29 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // The words saying the results box scrolls start hidden and follow the status region rather than
+  // sit in it, so they are never announced and never join the results' name. Both results boxes
+  // keep the role, name and tab stop a box that scrolls needs.
+  it('carries the scroll words hidden after the status, and keeps both results boxes focusable regions', () => {
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    for (const url of ['/', '/404']) {
+      const html = pages.find((page) => page.url === url)!.html;
+      expect(html.match(/data-ask-scroll-cue/g), url).toHaveLength(1);
+      const cue = html.match(/<span\b[^>]*\sid="ask-status"[^>]*><\/span>\s*<span\b([^>]*\sdata-ask-scroll-cue\b[^>]*)>([\s\S]*?)<\/span>\s*<span\b[^>]*\sclass="console-cursor"/);
+      expect(cue, url).not.toBeNull();
+      expect(cue![1], url).toMatch(/\shidden\b/);
+      expect(text(cue![2]!), url).toBe('· scrollable');
+      const live = html.match(/<div\b[^>]*\sdata-ask-results\b[^>]*>/)?.[0] ?? '';
+      expect(live, url).toMatch(/\srole="region"/);
+      expect(live, url).toMatch(/\saria-labelledby="ask-question ask-status"/);
+    }
+    const home = pages.find(({ url }) => url === '/')!.html;
+    const example = home.match(/<div\b[^>]*\sclass="ask-example-answer"[^>]*>[\s\S]*?(<div\b[^>]*\sclass="console-results"[^>]*>)/)?.[1] ?? '';
+    expect(example).toMatch(/\srole="region"/);
+    expect(example).toMatch(/\saria-labelledby="ask-example-answer-head"/);
+    expect(example).toMatch(/\stabindex="0"/);
+  });
+
   // The resume is a document, not a page, so it alone opens a new tab and says so in words a screen
   // reader reads; every other link keeps the Back button working.
   it('opens the resume, and only the resume, in a new tab, with a warning for screen readers', () => {

@@ -486,6 +486,8 @@ interface AskUi extends Panel {
   // The example answer a wide screen shows before the first question, if the page has one.
   example: HTMLElement | null;
   busy: boolean;
+  // The words after the row count saying the results box scrolls, shown while it does.
+  scrollCue: HTMLElement;
   // The answer's head line: the question, and the status line under it.
   head: HTMLElement;
   // Set while a question is in flight whose answer the page will scroll into sight.
@@ -751,6 +753,7 @@ function begin(ui: AskUi, question: string): void {
   setError(ui, '');
   ui.results.replaceChildren();
   ui.results.removeAttribute('tabindex');
+  ui.scrollCue.hidden = true;
   if (ui.edit) ui.edit.hidden = true;
   ui.fallback.hidden = true;
   for (const line of ui.more) line.hidden = true;
@@ -764,8 +767,27 @@ function begin(ui: AskUi, question: string): void {
 async function answer(ui: AskUi, sql: string): Promise<Result | undefined> {
   ui.sql.replaceChildren(...sqlNodes(sql));
   if (ui.edit) ui.edit.hidden = false;
-  return execute(ui, sql);
+  const result = await execute(ui, sql);
+  markOverflow(ui.results, ui.scrollCue, capped(ui.results));
+  return result;
 }
+
+// A capped results box that holds more than it shows, below its foot or past its right edge, says
+// so after the row count, since a scrollbar is not always drawn and the row or column the box cuts
+// can look whole. Only where the box is capped: there the status line has room for the words, and
+// in a phone's narrower pane they would push a longer status onto a second line. The words stay for
+// as long as the box overflows, not only until its end is reached, so the status line never
+// changes while the box is being scrolled. A pixel of difference is rounding, not a hidden row.
+export function markOverflow(
+  results: Pick<HTMLElement, 'scrollHeight' | 'clientHeight' | 'scrollWidth' | 'clientWidth'>,
+  cue: Pick<HTMLElement, 'hidden'>,
+  capped: boolean,
+): void {
+  cue.hidden = !capped || (results.scrollHeight - results.clientHeight <= 1 && results.scrollWidth - results.clientWidth <= 1);
+}
+
+// Whether the stylesheet caps this results box, which it does only beside the form.
+const capped = (box: HTMLElement): boolean => getComputedStyle(box).maxHeight !== 'none';
 
 // A typed question the site could not answer, a refusal or a query with no rows, can be sent to
 // Alex; the offer only shows the button, and nothing leaves the page until it is clicked.
@@ -965,9 +987,13 @@ export function init(): void {
       sent: element(askRoot, '[data-ask-sent]'),
       example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),
       busy: false,
+      scrollCue: element(askRoot, '[data-ask-scroll-cue]'),
       head: element(askRoot, '[data-ask-head]'),
       reveal: undefined,
     };
+    // A resize can cap or uncap the box, which changes whether it overflows without a new answer.
+    const ui = askUi;
+    new ResizeObserver(() => markOverflow(ui.results, ui.scrollCue, capped(ui.results))).observe(ui.results);
   }
   executor.ready().then(
     () => {

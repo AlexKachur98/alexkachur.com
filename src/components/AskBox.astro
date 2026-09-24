@@ -135,6 +135,7 @@ const answer = shown ? await run(shown.sql) : undefined;
       <span class="ask-head-question" id="ask-question" data-ask-question></span>{' '}
       <span class="ask-head-status">
         <span id="ask-status" role="status" data-ask-status></span>{' '}
+        <span data-ask-scroll-cue hidden><span class="console-dot" aria-hidden="true">·</span> scrollable</span>{' '}
         <span class="console-cursor" aria-hidden="true"></span>
       </span>
     </p>
@@ -442,6 +443,36 @@ const answer = shown ? await run(shown.sql) : undefined;
 
       .ask-split .ask-example-answer {
         display: block;
+      }
+
+      /* A long answer here would stretch the hero and push the work list down, so its rows scroll
+         inside a box at most 25rem tall, the column names held at its top, while the question,
+         status, SQL and buttons stay outside it. Only where the main pointer is a mouse or
+         trackpad, since on a touch screen the box would take swipes meant for the page, and only
+         on a window at least 42.5rem tall, so the box never fills more than 59% of it; everywhere
+         else the answer grows as it does below 1200px. The scroll padding keeps a link that takes
+         focus clear of the held header row at the top, and leaves room for its focus ring at the
+         bottom. With separate borders each header cell draws its own rule, so the rule stays with
+         the header while it is held. */
+      @media (min-height: 42.5rem) and (hover: hover) and (pointer: fine) {
+        .ask-split .console-results {
+          max-height: 25rem;
+          overflow: auto;
+          scroll-padding-top: calc(var(--text-xs) * var(--leading-mono) + var(--space-2) * 3 + 1px);
+          scroll-padding-bottom: var(--space-2);
+        }
+
+        .ask-split .console-results :global(table) {
+          border-collapse: separate;
+          border-spacing: 0;
+        }
+
+        .ask-split .console-results :global(th) {
+          position: sticky;
+          top: 0;
+          background: var(--console-bg);
+          white-space: nowrap;
+        }
       }
     }
   }
