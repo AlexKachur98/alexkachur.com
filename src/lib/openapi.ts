@@ -34,6 +34,7 @@ export interface SchemaDocument {
   tables: SchemaTable[];
   factKeys: string[];
   facts: { key: string; description: string }[];
+  sectionPages: string[];
   sectionHeadings: string[];
   photoAlt: Record<string, string>;
 }
@@ -125,6 +126,11 @@ const shapes: Record<string, JsonSchema> = {
         },
       },
       factKeys: { ...stringList, description: 'The keys of the facts table' },
+      sectionPages: {
+        type: 'array',
+        description: 'The pages the sections table holds, each once, sorted',
+        items: { type: 'string' },
+      },
       sectionHeadings: {
         type: 'array',
         description: 'The headings the sections table holds, in page order',
@@ -141,7 +147,7 @@ const shapes: Record<string, JsonSchema> = {
       },
       photoAlt: { type: 'object', additionalProperties: { type: 'string' }, description: 'Alt text by photo path, for the pets photos' },
     },
-    required: ['hash', 'ddl', 'tables', 'factKeys', 'facts', 'sectionHeadings', 'photoAlt'],
+    required: ['hash', 'ddl', 'tables', 'factKeys', 'facts', 'sectionPages', 'sectionHeadings', 'photoAlt'],
   },
   ask_request: {
     type: 'object',

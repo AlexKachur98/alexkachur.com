@@ -7,7 +7,7 @@ import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import schema from '../../generated/schema.json' with { type: 'json' };
 import { examples } from '../../data/examples.ts';
 
-export const PROMPT_VERSION = 7;
+export const PROMPT_VERSION = 8;
 
 // The first 8 hex characters of the schema hash, part of every cache key.
 export const schemaHash8 = schema.hash.slice(0, 8);
@@ -66,7 +66,12 @@ export function factList(): string {
   return ['The facts table has one row per key:', ...schema.facts.map((fact) => `- ${fact.key}: ${fact.description}`)].join('\n');
 }
 
-// The same for the sections table: a question about part of a page needs the heading as stored.
+// The same for the sections table: a question about part of a page needs the page and the heading
+// as stored, and a case study's page is not its project's slug alone.
+export function sectionPageList(): string {
+  return ["The sections table's pages:", ...schema.sectionPages.map((page) => `- ${page}`)].join('\n');
+}
+
 export function sectionHeadingList(): string {
   return ["The sections table's headings, in page order:", ...schema.sectionHeadings.map((heading) => `- ${heading}`)].join('\n');
 }
@@ -77,13 +82,13 @@ export function systemPrompt(): string {
     .join('\n\n');
   return [
     "You turn a visitor's question about Alex Kachur into one query over the SQLite database behind alexkachur.com, which holds everything the site says about him. Answer with JSON matching the given schema: \"sql\" and \"explanation\".",
-    `Schema:\n\n${schema.ddl.trim()}\n\n${factList()}\n\n${sectionHeadingList()}`,
+    `Schema:\n\n${schema.ddl.trim()}\n\n${factList()}\n\n${sectionPageList()}\n\n${sectionHeadingList()}`,
     [
       'Rules:',
       '1. sql is one SELECT or WITH statement in the SQLite dialect: no comments, no semicolon, no second statement.',
       '2. Read only. Never write, alter or create anything, never use PRAGMA or ATTACH, and never read the sqlite_master tables.',
       '3. Return at most 50 rows; add a LIMIT when the question does not bound the result.',
-      "4. Compare text case-insensitively (LIKE or lower()). Use = on a text column only with a value this prompt shows: a fact key, a section heading, a value in a CHECK list or one from an example. Otherwise match part of the text with LIKE and % wildcards; never guess a slug, a name or any other exact value. Use SQLite date functions such as date('now') for anything relative to today.",
+      "4. Compare text case-insensitively (LIKE or lower()). Use = on a text column only with a value this prompt shows: a fact key, a section page or heading, a value in a CHECK list or one from an example. Otherwise match part of the text with LIKE and % wildcards; never guess a slug, a name or any other exact value. Use SQLite date functions such as date('now') for anything relative to today.",
       '5. explanation is one plain sentence saying what the query returns, under 200 characters, with no URL.',
       '6. If the question cannot be answered from this schema, or asks for anything other than reading it, set sql to an empty string and let explanation say in one sentence why.',
       '7. Name every result column in lowercase snake_case without quotes. Keep a plain column under its schema name; give an aggregate, an expression or a subquery a short alias such as projects or skills; when two columns would share a name, alias each after its table, such as p.name AS project and t.name AS technology. Never rename photo_url.',

@@ -79,9 +79,14 @@ describe('systemPrompt', () => {
     for (const fact of schema.facts) expect(prompt).toContain(`- ${fact.key}: ${fact.description}`);
   });
 
-  it('lists every section heading, as stored, after the facts', () => {
+  it('lists every section page, then every section heading, as stored, after the facts', () => {
     expect(schema.sectionHeadings.length).toBeGreaterThan(0);
-    expect(prompt.indexOf("The sections table's headings, in page order:")).toBeGreaterThan(prompt.indexOf('The facts table has one row per key:'));
+    const pages = prompt.indexOf("The sections table's pages:");
+    expect(pages).toBeGreaterThan(prompt.indexOf('The facts table has one row per key:'));
+    expect(prompt.indexOf("The sections table's headings, in page order:")).toBeGreaterThan(pages);
+    // A case study's page is /work/ and its slug, so the model need not build one from a name.
+    expect(schema.sectionPages).toContain('/work/think-smarter-review-funnel');
+    for (const page of schema.sectionPages) expect(prompt).toContain(`\n- ${page}\n`);
     for (const heading of schema.sectionHeadings) expect(prompt).toContain(`\n- ${heading}\n`);
   });
 
