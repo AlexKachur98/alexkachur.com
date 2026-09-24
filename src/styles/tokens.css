@@ -82,7 +82,7 @@
   :root {
     --text-xl: 2.25rem;
     --text-2xl: 3rem;
-    --text-3xl: 4.5rem;
+    --text-3xl: 4rem;
   }
 }
 
@@ -90,7 +90,7 @@
   :root {
     --text-xl: 2.5rem;
     --text-2xl: 3.5rem;
-    --text-3xl: 5.5rem;
+    --text-3xl: 4.75rem;
   }
 }
 
@@ -99,7 +99,7 @@
     --text-lg: 1.75rem;
     --text-xl: 3rem;
     --text-2xl: 4rem;
-    --text-3xl: 6.5rem;
+    --text-3xl: 5.5rem;
   }
 }
 

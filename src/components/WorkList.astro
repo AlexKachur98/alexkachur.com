@@ -8,9 +8,9 @@ import Section from './Section.astro';
 // cropped to one ratio share one size. The sizes list follows the grid: fluid between 768px and
 // 1080px and again between 1200px and the 1240px container, fixed at each container width, and
 // held on a phone by the width attribute. The largest candidate is double the widest column, or
-// the whole source where that is narrower. From 1200px the first row's screenshot starts a little
-// over 900px down the page, so it is in the first screen on windows taller than that, such as
-// 1920x1080, the most common desktop size, and below it on shorter ones such as 1440x900 and
+// the whole source where that is narrower. From 1200px the first row's screenshot starts about
+// 900px down the page, so it is in the first screen on taller windows such as 1920x1080, the most
+// common desktop size, shows only its top edge at 1440x900 and is below shorter ones such as
 // 1366x768; it alone loads eagerly with a high fetch priority. A screenshot is a second way into
 // the case study for a pointer; hovering it or the title marks both, so the two read as one link.
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
