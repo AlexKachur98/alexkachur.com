@@ -558,4 +558,18 @@ describe(`built output in ${root}`, () => {
     const updated = db.exec("SELECT value FROM facts WHERE key = 'uses_updated'")[0]!.values[0]![0];
     expect(uses).toContain(`Last updated: ${updated}`);
   });
+
+  it('serves every table but project_technologies at /api/{table}.json, row for row as the database holds it', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const names = (db.exec("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")[0]!.values as string[][]).map(([name]) => name!);
+    const served = readdirSync(join(root, 'api')).filter((name) => name.endsWith('.json') && !['schema.json', 'openapi.json'].includes(name));
+    expect(served.sort()).toEqual(names.filter((name) => name !== 'project_technologies').map((name) => `${name}.json`).sort());
+    for (const name of names.filter((table) => table !== 'project_technologies')) {
+      const result = db.exec(`SELECT * FROM ${name} ORDER BY rowid`)[0]!;
+      const rows = result.values.map((row) => Object.fromEntries(result.columns.map((column, index) => [column, row[index]])));
+      expect(JSON.parse(readFileSync(join(root, 'api', `${name}.json`), 'utf8')), name).toEqual(rows);
+    }
+  });
 });

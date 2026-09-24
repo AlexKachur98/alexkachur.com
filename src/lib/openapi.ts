@@ -263,7 +263,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
       const table = endpoint.rows && tables.get(endpoint.rows);
       if (!endpoint.rows || !table) throw new Error(`${endpoint.path}: no operation in the OpenAPI document`);
       return {
-        operationId: `list${endpoint.rows[0]!.toUpperCase()}${endpoint.rows.slice(1)}`,
+        operationId: `list${endpoint.rows.split('_').map((word) => `${word[0]!.toUpperCase()}${word.slice(1)}`).join('')}`,
         summary: table.description,
         responses: { '200': jsonResponse(`Every row of the ${endpoint.rows} table`, { type: 'array', items: ref(endpoint.rows) }) },
       };

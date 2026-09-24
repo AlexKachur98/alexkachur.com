@@ -4,19 +4,15 @@ import Base from '../../layouts/Base.astro';
 import { tables } from '../../content/schemas.ts';
 import schema from '../../generated/schema.json';
 import { chips, storageQuery } from '../../data/examples.ts';
-import { endpoints } from '../../lib/endpoints.ts';
+import { endpoints, tableEndpoints } from '../../lib/endpoints.ts';
+import type { TableName } from '../../content/schemas.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
 import { select } from '../../lib/query.ts';
-import { petRows, projectRows, projectTechnologyRows, technologyRows, timelineRows } from '../../lib/rows.ts';
+import { projectRows, projectTechnologyRows, technologyRows } from '../../lib/rows.ts';
 
 // The example responses are cut from the same rows the endpoints serve.
-const [projects, technologies, timeline, pets] = await Promise.all([
-  getCollection('projects'),
-  getCollection('technologies'),
-  getCollection('timeline'),
-  getCollection('pets'),
-]);
+const [projects, technologies] = await Promise.all([getCollection('projects'), getCollection('technologies')]);
 const projectList = projectRows(projects);
 const technologyList = technologyRows(technologies);
 const names = new Map(technologyList.map((row) => [row.id, row.name]));
@@ -29,6 +25,13 @@ const single = {
 };
 
 const url = (path: string) => new URL(path, Astro.site).href;
+
+// A table's rows as its endpoint serves them, and how many the page shows of each.
+async function tableRows(table: TableName) {
+  const { columns, rows } = await select(`SELECT * FROM ${table} ORDER BY rowid`);
+  return rows.map((row) => Object.fromEntries(columns.map((name, index) => [name, row[index]])));
+}
+const shownRows: Partial<Record<TableName, number>> = { projects: 1, pets: 1, technologies: 3, sections: 1, experience: 1 };
 // What is stored: the storage table itself, run at build time, under the query that reads it.
 const storage = await select(storageQuery);
 const question = chips[0]!.label;
@@ -36,11 +39,8 @@ const question = chips[0]!.label;
 // A curl line and a truncated response for each path in the shared endpoint list.
 const minutes = SEND.windowSeconds / 60;
 const samples: Record<string, { curl: string; response?: string; description?: string }> = {
-  '/api/projects.json': { curl: `curl ${url('/api/projects.json')}`, response: previewJson(projectList, { items: 1 }) },
+  ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableRows(rows), { items: shownRows[rows] ?? 2 }) }]))),
   '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, response: previewJson(single) },
-  '/api/technologies.json': { curl: `curl ${url('/api/technologies.json')}`, response: previewJson(technologyList, { items: 3 }) },
-  '/api/timeline.json': { curl: `curl ${url('/api/timeline.json')}`, response: previewJson(timelineRows(timeline), { items: 2 }) },
-  '/api/pets.json': { curl: `curl ${url('/api/pets.json')}`, response: previewJson(petRows(pets), { items: 1 }) },
   '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, response: previewJson(schema, { items: 1, chars: 60 }) },
   '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'` },
   '/api/questions': {
