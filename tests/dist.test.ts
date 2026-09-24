@@ -168,6 +168,34 @@ describe(`built output in ${root}`, () => {
     expect(list.match(/<li\b/g)).toHaveLength(6);
   });
 
+  // The resume is a document, not a page, so it alone opens a new tab and says so in words a screen
+  // reader reads; every other link keeps the Back button working.
+  it('opens the resume, and only the resume, in a new tab, with a warning for screen readers', () => {
+    let resumeLinks = 0;
+    for (const { url, html } of pages) {
+      for (const [, attributes, inner] of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)) {
+        const href = attributes!.match(/\shref="([^"]*)"/)?.[1];
+        const target = attributes!.match(/\starget="([^"]*)"/)?.[1];
+        const link = href === undefined ? undefined : new URL(href, `https://alexkachur.com${url}`);
+        const resume = link?.host === 'alexkachur.com' && ['/Alex-Kachur-Resume.pdf', '/resume'].includes(link.pathname);
+        if (!resume) {
+          expect(target, `${url}: ${href}`).toBeUndefined();
+          continue;
+        }
+        resumeLinks++;
+        expect(target, url).toBe('_blank');
+        expect(attributes!.match(/\srel="([^"]*)"/)?.[1]?.split(/\s+/), url).toContain('noopener');
+        expect(inner, url).toMatch(/<span\b[^>]*\sclass="visually-hidden"[^>]*>\s*\(PDF, opens in a new tab\)<\/span>/);
+        expect(inner!.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim(), url).toBe('Resume (PDF, opens in a new tab)');
+      }
+      expect([...html.matchAll(/<(?!a\b)[a-z][a-z0-9-]*\b[^>]*\starget=/g)].map(([tag]) => tag), url).toEqual([]);
+    }
+    expect(resumeLinks).toBeGreaterThan(0);
+    const scripts = files.filter((path) => path.endsWith('.js') && !vendored(path));
+    expect(scripts.length).toBeGreaterThan(0);
+    expect(scripts.filter((path) => readFileSync(path, 'utf8').includes('_blank'))).toEqual([]);
+  });
+
   it('links /data/ and /vendor/ only through versioned URLs', () => {
     const found: string[] = [];
     const unversioned: string[] = [];

@@ -10,7 +10,9 @@ const curl = `curl ${Astro.site!.origin}`;
     <p class="role"><strong>Full-stack &amp; AI developer.</strong> I build web apps with an AI doing real work inside them.</p>
     <p class="status">Toronto, Canada&nbsp;· Final-year Software Engineering Technology, Centennial College&nbsp;· Available <span class="no-wrap">full-time</span> May&nbsp;2027</p>
     <ul class="actions" role="list">
-      <li><a class="button" href="/Alex-Kachur-Resume.pdf">Resume</a></li>
+      <li>
+        <a class="button" href="/Alex-Kachur-Resume.pdf" target="_blank" rel="noopener">Resume<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+      </li>
       <li><a href="mailto:alexkachur98@gmail.com">Email</a></li>
       <li><a href="https://github.com/AlexKachur98">GitHub</a></li>
       <li><a href="https://linkedin.com/in/alex-kachur">LinkedIn</a></li>
@@ -52,11 +54,13 @@ const curl = `curl ${Astro.site!.origin}`;
     white-space: nowrap;
   }
 
+  /* On a phone the links sit closer, so from 360px wide the resume button, arrow and all, keeps the
+     other three on its row. */
   .actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2) var(--space-5);
+    gap: var(--space-2) var(--space-3);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -97,6 +101,10 @@ const curl = `curl ${Astro.site!.origin}`;
     .hero-id,
     .hero-ask {
       grid-column: 1 / 9;
+    }
+
+    .actions {
+      column-gap: var(--space-5);
     }
   }
 

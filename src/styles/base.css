@@ -112,6 +112,35 @@ a {
   outline-offset: 2px;
 }
 
+/* The resume is the one link that opens a new tab, and a small arrow after its text says so; the
+   link's own hidden words say it to a screen reader. Neither font has a diagonal arrow, so the
+   arrow is drawn: an SVG used as a mask over the link's text colour, so it changes colour with the
+   outlined button under the pointer. It has no content of its own, so nothing is read for it.
+   Forced colours would repaint its background with the page colour and hide it, so there it
+   takes the link colour instead. In running text the link does not wrap, so the arrow never
+   starts a line alone. */
+a[target="_blank"] {
+  white-space: nowrap;
+}
+
+a[target="_blank"]::after {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-left: 0.3em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 10 10 2M3.5 2H10v6.5' fill='none' stroke='%23000' stroke-width='1.75'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 10 10 2M3.5 2H10v6.5' fill='none' stroke='%23000' stroke-width='1.75'/%3E%3C/svg%3E") center / contain no-repeat;
+  forced-color-adjust: none;
+}
+
+@media (forced-colors: active) {
+  a[target="_blank"]::after {
+    background: LinkText;
+  }
+}
+
 /* The console's own controls keep a yellow ring in both themes; --focus is ink in the light one. */
 .console :focus-visible {
   outline-color: var(--console-accent);
