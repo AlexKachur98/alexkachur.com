@@ -88,7 +88,7 @@ describe('build-db', () => {
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
     expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
-    expect(text.match(/CREATE TABLE/g)).toHaveLength(13);
+    expect(text.match(/CREATE TABLE/g)).toHaveLength(14);
   });
 
   it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
@@ -126,6 +126,7 @@ describe('build-db', () => {
       'projects',
       'technologies',
       'project_technologies',
+      'project_images',
       'courses',
       'timeline',
       'pets',
@@ -308,6 +309,18 @@ describe('build-db', () => {
     expect(() => parse(edited('pets.yaml', '/images/pets/simba.webp', '/images/pets/nope.webp'))).toThrow(
       /pets.yaml row simba: \/images\/pets\/nope.webp is not under public/,
     );
+  });
+
+  it('keeps each project card and team line, and every screenshot in page order under its project', () => {
+    expect(query('SELECT slug, card, team FROM projects ORDER BY id')).toEqual(
+      [...content.projects].sort((a, b) => a.data.order - b.data.order).map(({ id, data }) => ({ slug: id, card: data.card, team: data.team ?? null })),
+    );
+    expect(query('SELECT project_id, position, alt, caption FROM project_images')).toEqual(
+      [...content.projects]
+        .sort((a, b) => a.data.order - b.data.order)
+        .flatMap(({ data }) => data.screenshots.map((shot, index) => ({ project_id: data.order, position: index + 1, alt: shot.alt, caption: shot.caption ?? null }))),
+    );
+    expect(query('SELECT COUNT(*) AS n FROM project_images')[0]!.n).toBe(8);
   });
 
   it('keeps every row of uses.yaml, word for word and in its order, and the day /uses was last updated', () => {

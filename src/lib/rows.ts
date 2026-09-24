@@ -17,6 +17,7 @@ import type {
   interestRow,
   pageImageRow,
   petRow,
+  projectImageRow,
   projectRow,
   projectTechnologyRow,
   sectionRow,
@@ -37,6 +38,7 @@ export type FactRow = z.infer<typeof factRow>;
 export type ProjectRow = z.infer<typeof projectRow>;
 export type TechnologyRow = z.infer<typeof technologyRow>;
 export type ProjectTechnologyRow = z.infer<typeof projectTechnologyRow>;
+export type ProjectImageRow = z.infer<typeof projectImageRow>;
 export type CourseRow = z.infer<typeof courseRow>;
 export type TimelineRow = z.infer<typeof timelineRow>;
 export type PetRow = z.infer<typeof petRow>;
@@ -51,7 +53,7 @@ export type PageImageRow = z.infer<typeof pageImageRow>;
 export type TechnologyRef = string | { id: string };
 export type ProjectInput = Omit<ProjectContent, 'technologies' | 'screenshots'> & {
   technologies: readonly TechnologyRef[];
-  screenshots: readonly unknown[];
+  screenshots: readonly { alt: string; caption?: string | undefined }[];
 };
 
 // Code-unit comparison, so the order does not depend on the ICU data of the machine that builds.
@@ -80,8 +82,17 @@ export function projectRows(entries: Entry<ProjectInput>[]): ProjectRow[] {
   // Only the project listed first is featured, so the flag can never disagree with the order.
   return sorted.map(({ id, data }, index) => {
     const { order, card, team, technologies, screenshots, ...row } = data;
-    return { id: order, slug: id, ...row, featured: index === 0 ? 1 : 0 };
+    return { id: order, slug: id, ...row, featured: index === 0 ? 1 : 0, card, team: team ?? null };
   });
+}
+
+// Each case study's screenshots in the order the page shows them.
+export function projectImageRows(entries: Entry<ProjectInput>[]): ProjectImageRow[] {
+  return [...entries]
+    .sort((a, b) => a.data.order - b.data.order)
+    .flatMap(({ data }) =>
+      data.screenshots.map((shot, index) => ({ project_id: data.order, position: index + 1, alt: shot.alt, caption: shot.caption ?? null })),
+    );
 }
 
 export function technologyRows(entries: Entry<TechnologyContent>[]): TechnologyRow[] {

@@ -71,6 +71,8 @@ export const projectRow = z.object({
   llm_job: z.string().nullable().describe('What the language model does, NULL when uses_llm is 0'),
   paid: flag.describe('1 if the work was paid'),
   featured: flag.describe('1 for the project listed first on the home page, else 0'),
+  card: z.string().describe("The one-liner under the name on the home page, also the case study's description"),
+  team: z.string().nullable().describe('The team line on the case study, NULL unless a team project'),
 });
 
 export const technologyRow = z.object({
@@ -84,6 +86,13 @@ export const technologyRow = z.object({
 export const projectTechnologyRow = z.object({
   project_id: z.number().int().describe('projects.id'),
   technology_id: z.number().int().describe('technologies.id'),
+});
+
+export const projectImageRow = z.object({
+  project_id: z.number().int().describe('projects.id'),
+  position: z.number().int().positive().describe('Order on the page, 1 first'),
+  alt: z.string().describe('What the screenshot shows'),
+  caption: z.string().nullable().describe('Caption under the screenshot, NULL until written'),
 });
 
 export const courseRow = z.object({
@@ -186,6 +195,12 @@ export const tables = {
     primaryKey: ['project_id', 'technology_id'],
     unique: [],
   },
+  project_images: {
+    row: projectImageRow,
+    description: 'The screenshots on each case study, in display order',
+    primaryKey: ['project_id', 'position'],
+    unique: [],
+  },
   courses: {
     row: courseRow,
     description: 'Courses Alex is taking at Centennial College',
@@ -261,10 +276,9 @@ export const screenshot = z.strictObject({
 });
 
 export const projectContent = z.strictObject({
-  ...projectRow.omit({ id: true, slug: true, featured: true }).shape,
+  ...projectRow.omit({ id: true, slug: true, featured: true, team: true }).shape,
   order: z.number().int().positive().describe('Site order; also drives projects.id'),
-  card: z.string().describe('The one-liner under the name on the home page'),
-  team: z.string().optional().describe('Team line for the facts strip, for team projects'),
+  team: z.string().optional().describe(projectRow.shape.team.description ?? ''),
   technologies: z.array(z.string()).describe('Ids from technologies.yaml used on this project'),
   screenshots: z.array(screenshot).describe('Real screenshots, in display order'),
 });
