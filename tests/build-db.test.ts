@@ -91,14 +91,17 @@ describe('build-db', () => {
     expect(text.match(/CREATE TABLE/g)).toHaveLength(14);
   });
 
-  it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
+  it('writes a schema.json whose hash is stable and covers the DDL, the table list, the facts and the section headings', () => {
     const schema = schemaJson(content);
     const again = schemaJson(parse(readContentFiles('src/content')));
     expect(again).toEqual(schema);
     expect(schema.hash).toMatch(/^[0-9a-f]{64}$/);
     expect(schema.hash).toBe(
-      sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys, facts: schema.facts })),
+      sha256(JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys, facts: schema.facts, sectionHeadings: schema.sectionHeadings })),
     );
+    // Every heading the sections table holds, once each, in the order the rows first give them.
+    expect(schema.sectionHeadings).toEqual([...new Set(query('SELECT heading FROM sections').map((row) => row.heading))]);
+    expect(schema.sectionHeadings).toContain('What went wrong or what I would change');
     expect(schema.factKeys).toEqual([
       'available_from',
       'email',

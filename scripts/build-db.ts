@@ -404,13 +404,15 @@ export function schemaJson(content: Content) {
     };
   });
   // The ask cache key carries the first 8 characters of this hash, so it covers exactly what
-  // the model is shown: the DDL, the table list and the keys the facts table holds with what
-  // each means, which the prompt lists because the DDL cannot show them.
+  // the model is shown: the DDL, the table list, the keys the facts table holds with what each
+  // means, and the headings the sections table holds, which the prompt lists because the DDL
+  // cannot show them.
   const facts = factRows(content.facts).map(({ key, description }) => ({ key, description }));
   const factKeys = facts.map((fact) => fact.key);
-  const hash = sha256(JSON.stringify({ ddl: ddlText, tables: tableList, factKeys, facts }));
+  const sectionHeadings = [...new Set(tableRows(content).sections.map((section) => section.heading))];
+  const hash = sha256(JSON.stringify({ ddl: ddlText, tables: tableList, factKeys, facts, sectionHeadings }));
   const photoAlt = Object.fromEntries(petRows(content.pets).map((pet) => [pet.photo_url, pet.photo_alt]));
-  return { hash, ddl: ddlText, tables: tableList, factKeys, facts, photoAlt };
+  return { hash, ddl: ddlText, tables: tableList, factKeys, facts, sectionHeadings, photoAlt };
 }
 
 export function buildInfo(env: NodeJS.ProcessEnv = process.env): { commit: string; builtAt: string } {

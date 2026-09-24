@@ -7,7 +7,7 @@ import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import schema from '../../generated/schema.json' with { type: 'json' };
 import { examples } from '../../data/examples.ts';
 
-export const PROMPT_VERSION = 5;
+export const PROMPT_VERSION = 6;
 
 // The first 8 hex characters of the schema hash, part of every cache key.
 export const schemaHash8 = schema.hash.slice(0, 8);
@@ -66,13 +66,18 @@ export function factList(): string {
   return ['The facts table has one row per key:', ...schema.facts.map((fact) => `- ${fact.key}: ${fact.description}`)].join('\n');
 }
 
+// The same for the sections table: a question about part of a page needs the heading as stored.
+export function sectionHeadingList(): string {
+  return ["The sections table's headings, in page order:", ...schema.sectionHeadings.map((heading) => `- ${heading}`)].join('\n');
+}
+
 export function systemPrompt(): string {
   const shown = workedExamples
     .map((entry) => `${questionTurn(entry.question)}\n${JSON.stringify({ sql: entry.sql, explanation: entry.explanation })}`)
     .join('\n\n');
   return [
     "You turn a visitor's question about Alex Kachur into one query over the SQLite database behind alexkachur.com, which holds everything the site says about him. Answer with JSON matching the given schema: \"sql\" and \"explanation\".",
-    `Schema:\n\n${schema.ddl.trim()}\n\n${factList()}`,
+    `Schema:\n\n${schema.ddl.trim()}\n\n${factList()}\n\n${sectionHeadingList()}`,
     [
       'Rules:',
       '1. sql is one SELECT or WITH statement in the SQLite dialect: no comments, no semicolon, no second statement.',

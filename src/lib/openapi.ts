@@ -30,6 +30,7 @@ export interface SchemaDocument {
   tables: SchemaTable[];
   factKeys: string[];
   facts: { key: string; description: string }[];
+  sectionHeadings: string[];
   photoAlt: Record<string, string>;
 }
 
@@ -90,7 +91,7 @@ const shapes: Record<string, JsonSchema> = {
     type: 'object',
     description: 'The tables and columns of the database, the DDL that created it and a hash of both',
     properties: {
-      hash: { type: 'string', description: 'SHA-256 of the DDL, the table list and the fact keys with their descriptions' },
+      hash: { type: 'string', description: 'SHA-256 of the DDL, the table list, the fact keys with their descriptions and the section headings' },
       ddl: { type: 'string', description: 'The CREATE TABLE statements, with a comment per column' },
       tables: {
         type: 'array',
@@ -120,6 +121,11 @@ const shapes: Record<string, JsonSchema> = {
         },
       },
       factKeys: { ...stringList, description: 'The keys of the facts table' },
+      sectionHeadings: {
+        type: 'array',
+        description: 'The headings the sections table holds, in page order',
+        items: { type: 'string' },
+      },
       facts: {
         type: 'array',
         description: 'The keys of the facts table, each with what it means',
@@ -131,7 +137,7 @@ const shapes: Record<string, JsonSchema> = {
       },
       photoAlt: { type: 'object', additionalProperties: { type: 'string' }, description: 'Alt text by photo path, for the pets photos' },
     },
-    required: ['hash', 'ddl', 'tables', 'factKeys', 'facts', 'photoAlt'],
+    required: ['hash', 'ddl', 'tables', 'factKeys', 'facts', 'sectionHeadings', 'photoAlt'],
   },
   ask_request: {
     type: 'object',
