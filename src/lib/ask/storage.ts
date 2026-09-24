@@ -5,7 +5,9 @@
 
 export const DAY = 86_400;
 
-export const TTL = { counter: 40 * DAY, answer: 30 * DAY, refusal: DAY } as const;
+// A sent question is kept from the start of the day it was sent, so its expiry shows the day and
+// not the second; the day's count only has to outlive its own day.
+export const TTL = { counter: 40 * DAY, answer: 30 * DAY, refusal: DAY, sentQuestion: 90 * DAY, sentDay: 2 * DAY } as const;
 
 export const RATE_LIMIT = { requests: 10, windowSeconds: 60 } as const;
 
@@ -42,7 +44,7 @@ export const stored: readonly Stored[] = [
   {
     item: 'A counter keyed by a scrambled form of your address',
     keep: LIMITER_KEY_SECONDS,
-    purpose: 'The rate limit',
+    purpose: 'The rate limit, for questions and sent questions alike',
     where: 'redis',
     key: /^ask:[a-z]+:limit:[0-9a-f]{64}:\d+$/,
   },
@@ -52,6 +54,20 @@ export const stored: readonly Stored[] = [
     purpose: 'The footer and the monthly cap',
     where: 'redis',
     key: /^ask:[a-z]+:(asked|model):\d{4}-\d{2}$/,
+  },
+  {
+    item: 'A question you chose to send to Alex, and the day you sent it',
+    keep: TTL.sentQuestion,
+    purpose: 'So Alex can add what is missing',
+    where: 'redis',
+    key: /^ask:[a-z]+:question:[0-9a-f]{64}$/,
+  },
+  {
+    item: 'The number of questions sent today',
+    keep: TTL.sentDay,
+    purpose: 'The daily cap on sent questions',
+    where: 'redis',
+    key: /^ask:[a-z]+:sent:\d{4}-\d{2}-\d{2}$/,
   },
   {
     item: 'Your light or dark theme choice, in your own browser, never sent to this site',

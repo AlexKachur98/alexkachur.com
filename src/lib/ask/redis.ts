@@ -1,5 +1,6 @@
-// The Redis side of an ask: the sliding-window rate limit, the answer cache and the two monthly
-// counters, behind one small interface so the handler can be tested with a fake.
+// The Redis side of an ask: the sliding-window rate limit, the answer cache, the counters and the
+// questions visitors chose to send, behind one small interface so the handlers can be tested
+// with a fake.
 import { Ratelimit } from '@upstash/ratelimit';
 import type { Redis } from '@upstash/redis';
 import { RATE_LIMIT } from './storage.ts';
@@ -7,6 +8,12 @@ import { RATE_LIMIT } from './storage.ts';
 export interface CacheEntry {
   sql: string;
   explanation: string;
+}
+
+// A question a visitor chose to send: its text and the day, nothing else.
+export interface SentQuestion {
+  question: string;
+  date: string;
 }
 
 export interface Store {
@@ -20,6 +27,11 @@ export interface Store {
   count(key: string, ttlSeconds: number): Promise<number>;
   // MGET of counters, one number per key; a key never incremented reads as 0.
   counts(keys: string[]): Promise<number[]>;
+  // A counter's value without changing it; a key never incremented reads as 0.
+  peek(key: string): Promise<number>;
+  // SET NX with an absolute expiry in epoch seconds: true when it wrote, false when the key was
+  // already there, whose expiry then stays as it was.
+  save(key: string, entry: SentQuestion, expiresAt: number): Promise<boolean>;
 }
 
 // Wraps any Redis failure so the handler can answer 503 upstream without echoing the cause.
@@ -80,6 +92,12 @@ export function redisStore(env: string, redis: Redis): Store {
         const values = await redis.mget<(number | string | null)[]>(...keys);
         return values.map((value) => (typeof value === 'number' ? value : Number(value) || 0));
       }),
+    peek: (key) =>
+      guard(async () => {
+        const value = await redis.get<number | string | null>(key);
+        return typeof value === 'number' ? value : Number(value) || 0;
+      }),
+    save: (key, entry, expiresAt) => guard(async () => (await redis.set(key, entry, { nx: true, exat: expiresAt })) === 'OK'),
   };
 }
 
@@ -91,5 +109,7 @@ export function skippedStore(): Store {
     write: async () => {},
     count: async () => 0,
     counts: async (keys) => keys.map(() => 0),
+    peek: async () => 0,
+    save: async () => false,
   };
 }

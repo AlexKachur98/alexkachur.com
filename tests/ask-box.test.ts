@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { askState, countWord, createExecutor, failure } from '../src/scripts/console.ts';
+import { askState, countWord, createExecutor, createSender, failure, sendMessage } from '../src/scripts/console.ts';
 import type { AskState, WorkerLike } from '../src/scripts/console.ts';
 
 // The sentences written out here rather than imported, so a typo in the module cannot pass by
@@ -134,5 +135,109 @@ describe('failure', () => {
   it("shows SQLite's own text for a query that failed", () => {
     expect(failure(new Error('no such column: nope'))).toBe('no such column: nope');
     expect(failure('Nothing to prepare')).toBe('Nothing to prepare');
+  });
+});
+
+describe('sending a question to Alex', () => {
+  const reply = (status: number, body: unknown = {}) => ({ status, body });
+
+  function recorder(answer: { status: number; body: unknown } | null = reply(200, { sent: true })) {
+    const posts: { question: string; token: string }[] = [];
+    const post = async (body: { question: string; token: string }) => {
+      posts.push(body);
+      return answer;
+    };
+    return { posts, sender: createSender(post) };
+  }
+
+  it('posts nothing when it offers, only when send is called', async () => {
+    const { posts, sender } = recorder();
+    sender.offer('Who is Alex?', 'tok');
+    expect(posts).toEqual([]);
+    expect(await sender.send()).toBe('sent');
+    expect(posts).toEqual([{ question: 'Who is Alex?', token: 'tok' }]);
+    // Sent once; a second click has nothing left to send.
+    expect(await sender.send()).toBeNull();
+    expect(posts).toHaveLength(1);
+  });
+
+  it('sends nothing after reset or with no offer, and drops a reply that arrives after a new question', async () => {
+    const { posts, sender } = recorder();
+    expect(await sender.send()).toBeNull();
+    sender.offer('Who is Alex?', 'tok');
+    sender.reset();
+    expect(await sender.send()).toBeNull();
+    expect(posts).toEqual([]);
+    sender.offer('Who is Alex?', 'tok');
+    const pending = sender.send();
+    sender.reset();
+    expect(await pending).toBeNull();
+  });
+
+  it('names each failure, and a refused token or question is not offered again', async () => {
+    const cases: [ReturnType<typeof reply> | null, string][] = [
+      [reply(429, { error: 'rate_limited' }), 'rate_limited'],
+      [reply(429, { error: 'daily_cap' }), 'daily_cap'],
+      [reply(503, { reason: 'upstream' }), 'failed'],
+      [null, 'failed'],
+      [reply(403, { error: 'invalid_token' }), 'refused'],
+      [reply(400, { error: 'invalid_question' }), 'refused'],
+    ];
+    for (const [answer, outcome] of cases) {
+      const { sender } = recorder(answer);
+      sender.offer('Who is Alex?', 'tok');
+      expect(await sender.send()).toBe(outcome);
+    }
+    const { posts, sender } = recorder(reply(403, { error: 'invalid_token' }));
+    sender.offer('Who is Alex?', 'tok');
+    await sender.send();
+    expect(await sender.send()).toBeNull();
+    expect(posts).toHaveLength(1);
+  });
+
+  it('lets a new question be sent while an older send is still pending', async () => {
+    let release: (value: { status: number; body: unknown }) => void = () => {};
+    const posts: string[] = [];
+    const sender = createSender(async (body) => {
+      posts.push(body.question);
+      if (posts.length === 1) return new Promise((resolve) => (release = resolve));
+      return reply(200, { sent: true });
+    });
+    sender.offer('First question?', 'a');
+    const first = sender.send();
+    // A second click on the same offer while it is in flight sends nothing.
+    expect(await sender.send()).toBeNull();
+    sender.reset();
+    sender.offer('Second question?', 'b');
+    expect(await sender.send()).toBe('sent');
+    release(reply(200, { sent: true }));
+    expect(await first).toBeNull();
+    expect(posts).toEqual(['First question?', 'Second question?']);
+  });
+
+  it('shows the sentence for each send that did not go through', () => {
+    expect(sendMessage('rate_limited')).toBe('Too many questions from your connection. Try again in a minute.');
+    expect(sendMessage('daily_cap')).toBe('The site has taken all the questions it can for today. Try again tomorrow.');
+    expect(sendMessage('failed')).toBe('The question could not be sent. Ask it again to try once more.');
+    expect(sendMessage('refused')).toBe('The question could not be sent. Ask it again to try once more.');
+  });
+
+  it('carries the token of an answer or a refusal into the panel state', () => {
+    expect(askState(reply(200, { sql: '', explanation: 'No.', cached: false, token: 't' }), true, 8)).toMatchObject({ kind: 'refusal', token: 't' });
+    expect(askState(reply(200, { sql: 'SELECT 1', explanation: 'One.', cached: false, token: 't' }), true, 8)).toMatchObject({ kind: 'answer', token: 't' });
+    expect(askState(reply(200, { sql: 'SELECT 1', explanation: 'One.', cached: false }), true, 8)).not.toHaveProperty('token');
+  });
+
+  // The page's only way to call send: the send button's branch of the click handler.
+  it('calls send only from the send button', () => {
+    const source = readFileSync('src/scripts/console.ts', 'utf8');
+    expect(source.match(/sender\.send\(\)/g)).toHaveLength(1);
+    expect(source.match(/sendAsked\(\)/g)).toHaveLength(2);
+    expect(source).toMatch(/if \(button\.hasAttribute\('data-ask-send'\)\) \{\s*void sendAsked\(\);/);
+    expect(source.match(/\/api\/questions/g)).toHaveLength(1);
+    // The one URL constant, used by one fetch, inside the one function the sender is built with.
+    expect(source.match(/\bSEND_URL\b/g)).toHaveLength(2);
+    expect(source.match(/\bpostSend\b/g)).toHaveLength(2);
+    expect(source.match(/createSender\(postSend\)/g)).toHaveLength(1);
   });
 });

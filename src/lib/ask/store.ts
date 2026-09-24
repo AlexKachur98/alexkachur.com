@@ -1,4 +1,4 @@
-// One Store for both on-demand endpoints, built on the first request and kept while the Redis
+// One Store for the on-demand endpoints, built on the first request and kept while the Redis
 // pair is unchanged, so a missing variable answers 503 instead of failing the module load.
 // Without the pair, development skips Redis (nothing limited, cached or counted) and says so
 // once per process; production gets null, which each endpoint answers as a configuration failure.
@@ -20,7 +20,7 @@ export function storeFor(config: AskConfig, dev: boolean): Store | null {
     store = skippedStore();
     if (!warned) {
       warned = true;
-      console.warn('ask: no Redis variables in .env, so the rate limit, the monthly cap, the cache and the counters are skipped');
+      console.warn('ask: no Redis variables in .env, so the rate limit, the monthly cap, the cache and the counters are skipped, and questions cannot be sent');
     }
   }
   cached = { key, store };

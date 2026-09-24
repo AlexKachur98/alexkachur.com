@@ -14,7 +14,7 @@ const dump = dataFile('portfolio.sql');
   <main id="main" class="container">
     <header class="page-head">
       <h1>How this site works</h1>
-      <p class="lead">This site is a small full-stack system. The content is Markdown and YAML. At build time it becomes a SQLite database and a set of JSON endpoints. In the browser, sql.js loads the database on demand so you can query it directly. One of the two server functions, /api/ask, sends your question and the schema to a language model, checks the SQL it returns by preparing it against the real database, and hands the SQL back to your browser to run. The model never touches the data.</p>
+      <p class="lead">This site is a small full-stack system. The content is Markdown and YAML. At build time it becomes a SQLite database and a set of JSON endpoints. In the browser, sql.js loads the database on demand so you can query it directly. One of the three server functions, /api/ask, sends your question and the schema to a language model, checks the SQL it returns by preparing it against the real database, and hands the SQL back to your browser to run. The model never touches the data.</p>
     </header>
 
     <Section id="architecture" title="Architecture">

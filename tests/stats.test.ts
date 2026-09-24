@@ -30,6 +30,8 @@ function fakeStore(values: Record<string, number> = {}, failure?: Error): FakeSt
     read: unexpected('read'),
     write: unexpected('write'),
     count: unexpected('count'),
+    peek: unexpected('peek'),
+    save: unexpected('save'),
     async counts(keys) {
       store.calls.push(['counts', ...keys]);
       if (failure) throw failure;

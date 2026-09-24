@@ -18,5 +18,6 @@ export const endpoints: readonly Endpoint[] = [
   { method: 'GET', path: '/api/pets.json', rows: 'pets' },
   { method: 'GET', path: '/api/schema.json' },
   { method: 'POST', path: '/api/ask' },
+  { method: 'POST', path: '/api/questions' },
   { method: 'GET', path: '/api/stats' },
 ];

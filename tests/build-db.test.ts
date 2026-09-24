@@ -142,7 +142,7 @@ describe('build-db', () => {
     expect(llm!.every((row) => typeof row.llm_job === 'string' && row.llm_job.length > 0)).toBe(true);
     expect(before!.map((row) => row.title)).toEqual(['Manager', 'QA Tester']);
     expect(stored!.map((row) => Object.keys(row))[0]).toEqual(['item', 'kept_for', 'purpose']);
-    expect(stored!.map((row) => row.kept_for)).toEqual(['30 days', '1 day', '2 minutes 1 second', '40 days', 'until you clear it']);
+    expect(stored!.map((row) => row.kept_for)).toEqual(['30 days', '1 day', '2 minutes 1 second', '40 days', '90 days', '2 days', 'until you clear it']);
     expect(shared).toContainEqual({ name: 'React', projects: 2 });
     expect(courses).toHaveLength(6);
     expect(courses!.map((row) => row.code)).toContain('COMP 307');

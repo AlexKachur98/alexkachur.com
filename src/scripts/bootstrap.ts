@@ -67,7 +67,7 @@ for (const panel of document.querySelectorAll('[data-console], [data-ask]')) {
 for (const panel of document.querySelectorAll('[data-console], [data-examples], [data-ask]')) {
   panel.addEventListener('pointerdown', preload);
   panel.addEventListener('click', (event) => {
-    const button = (event.target as Element).closest<HTMLElement>('[data-sql], [data-console-run], [data-ask-edit]');
+    const button = (event.target as Element).closest<HTMLElement>('[data-sql], [data-console-run], [data-ask-edit], [data-ask-send]');
     if (button) void ready().then((module) => module.click(button));
   });
 }

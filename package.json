@@ -18,7 +18,8 @@
     "test": "vitest run",
     "eval": "node scripts/eval.ts",
     "eval:record": "node --env-file-if-exists=.env scripts/eval.ts --record",
-    "eval:live": "node --env-file-if-exists=.env scripts/eval.ts --live"
+    "eval:live": "node --env-file-if-exists=.env scripts/eval.ts --live",
+    "questions": "node --env-file-if-exists=.env scripts/questions.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

@@ -49,6 +49,7 @@ describe('the OpenAPI document', () => {
       '/api/pets.json',
       '/api/projects.json',
       '/api/projects/{slug}.json',
+      '/api/questions',
       '/api/schema.json',
       '/api/stats',
       '/api/technologies.json',
@@ -58,7 +59,7 @@ describe('the OpenAPI document', () => {
       expect(Object.keys(paths[endpoint.path]!), endpoint.path).toEqual([endpoint.method.toLowerCase()]);
     }
     expect(operations.map(({ operation }) => operation.operationId).sort()).toEqual(
-      ['ask', 'getProject', 'getSchema', 'getStats', 'listPets', 'listProjects', 'listTechnologies', 'listTimeline'].sort(),
+      ['ask', 'getProject', 'getSchema', 'getStats', 'listPets', 'listProjects', 'listTechnologies', 'listTimeline', 'sendQuestion'].sort(),
     );
   });
 
@@ -129,9 +130,18 @@ describe('the OpenAPI document', () => {
     expect(request.properties.question.maxLength).toBe(200);
     expect(request.required).toEqual(['question']);
     const answer = schemas['ask_answer'] as { required: string[] };
-    expect(answer.required).toEqual(['sql', 'explanation', 'cached']);
+    expect(answer.required).toEqual(['sql', 'explanation', 'cached', 'token']);
     const unavailable = schemas['unavailable'] as { properties: { reason: { enum: string[] } } };
     expect(unavailable.properties.reason.enum).toEqual(['budget', 'config', 'upstream']);
+  });
+
+  it('documents sending a question with its token, every status it answers, and no way to read one back', () => {
+    const send = paths['/api/questions']!['post']!;
+    expect(Object.keys(send.responses).sort()).toEqual(['200', '400', '403', '429', '500', '503']);
+    const request = schemas['send_request'] as { properties: { question: { maxLength: number } }; required: string[] };
+    expect(request.required).toEqual(['question', 'token']);
+    expect(request.properties.question.maxLength).toBe(200);
+    expect(Object.keys(paths['/api/questions']!)).toEqual(['post']);
   });
 
   it('describes the stats body with exactly the fields the endpoint returns', async () => {

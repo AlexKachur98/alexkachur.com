@@ -8,6 +8,7 @@ import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { AskDeps, ModelCall } from '../src/lib/ask/handler.ts';
 import { redisStore } from '../src/lib/ask/redis.ts';
+import { handleSend, mintToken, tokenKey } from '../src/lib/ask/send.ts';
 import { handleStats } from '../src/lib/ask/stats.ts';
 import { keptFor, LIMITER_KEY_SECONDS, storageRows, stored, TTL } from '../src/lib/ask/storage.ts';
 
@@ -18,6 +19,9 @@ import { keptFor, LIMITER_KEY_SECONDS, storageRows, stored, TTL } from '../src/l
 
 const db = await openDatabase();
 const NOW = Date.UTC(2026, 8, 24, 12, 0, 0);
+// A sent question expires a fixed time after the start of the day it was sent, which is how its
+// lifetime is counted.
+const DAY_START = Date.UTC(2026, 8, 24) / 1000;
 
 interface Written {
   key: string;
@@ -29,10 +33,10 @@ function fakeRedis() {
   // The lifetime a key was given when it was written, in seconds; a key missing here has none.
   const lifetimes = new Map<string, number>();
   const written: Written[] = [];
-  const set = (key: string, value: unknown, options: { ex?: number; nx?: boolean } = {}) => {
+  const set = (key: string, value: unknown, options: { ex?: number; exat?: number; nx?: boolean } = {}) => {
     if (options.nx && data.has(key)) return null;
     data.set(key, value);
-    const seconds = options.ex;
+    const seconds = options.ex ?? (options.exat === undefined ? undefined : options.exat - DAY_START);
     if (seconds === undefined) lifetimes.delete(key);
     else lifetimes.set(key, seconds);
     written.push({ key, seconds: seconds ?? Number.NaN });
@@ -57,7 +61,7 @@ function fakeRedis() {
     async get(key: string) {
       return data.get(key) ?? null;
     },
-    async set(key: string, value: unknown, options?: { ex?: number; nx?: boolean }) {
+    async set(key: string, value: unknown, options?: { ex?: number; exat?: number; nx?: boolean }) {
       return set(key, value, options);
     },
     async incr(key: string) {
@@ -109,12 +113,16 @@ function rowsFor(entry: Written) {
 }
 
 describe('the storage table', () => {
-  it('lists every key the ask and stats paths write, with the lifetime the code gives it', async () => {
+  it('lists every key the ask, stats and send paths write, with the lifetime the code gives it', async () => {
     const { written, data, lifetimes, redis } = fakeRedis();
     expect((await handleAsk({ question: 'Which projects are there?' }, '203.0.113.7', deps(redis, answers))).status).toBe(200);
     expect((await handleAsk({ question: 'Which projects are there?' }, '203.0.113.7', deps(redis, answers))).body.cached).toBe(true);
     expect((await handleAsk({ question: 'What does Alex earn?' }, '203.0.113.7', deps(redis, refuses))).status).toBe(200);
     expect((await handleStats({ config, store: redisStore('test', redis), build: { commit: 'c', builtAt: 'b' }, now: () => NOW })).status).toBe(200);
+    const question = "What is Alex's favourite food?";
+    const token = mintToken(tokenKey(config.limitSecret!, config.env), question, NOW);
+    const send = { config, store: redisStore('test', redis), now: () => NOW, log: () => {} };
+    expect((await handleSend({ question, token }, '203.0.113.7', send)).status).toBe(200);
 
     expect(written.length).toBeGreaterThan(0);
     for (const entry of written) expect(rowsFor(entry), `${entry.key} kept ${entry.seconds} s`).toHaveLength(1);
@@ -158,11 +166,12 @@ function filesUnder(dir: string): string[] {
 }
 
 describe('what the source can store', () => {
-  it('reaches Redis only through the store module', () => {
+  it('reaches Redis only through the store module and the questions script', () => {
     const importers = [...filesUnder('src'), ...filesUnder('scripts'), 'middleware.ts']
       .filter((path) => /\.(ts|astro|mjs)$/.test(path))
       .filter((path) => /['"]@upstash\//.test(readFileSync(path, 'utf8')));
-    expect(importers.sort()).toEqual(['src/lib/ask/redis.ts', 'src/lib/ask/store.ts']);
+    // The questions script reads and deletes sent questions from the command line; it writes nothing.
+    expect(importers.sort()).toEqual(['scripts/questions.ts', 'src/lib/ask/redis.ts', 'src/lib/ask/store.ts']);
   });
 
   it('keeps nothing in the browser, and sets no cookie, that the table does not list', () => {

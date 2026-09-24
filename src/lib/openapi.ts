@@ -3,6 +3,7 @@
 // so the API loads into any client that reads OpenAPI. Paths are the exact ones the files are
 // served at, .json suffix included.
 import { QUESTION_LENGTH } from './ask/handler.ts';
+import { SEND, SEND_DESCRIPTION } from './ask/send.ts';
 import { RATE_LIMIT } from './ask/storage.ts';
 import { endpoints } from './endpoints.ts';
 import type { Endpoint } from './endpoints.ts';
@@ -72,7 +73,7 @@ function errorBody(code: string): JsonSchema {
 const stringList: JsonSchema = { type: 'array', items: { type: 'string' } };
 
 // The shapes that are not table rows: the project detail, the schema document, and what the
-// two on-demand endpoints take and return.
+// on-demand endpoints take and return.
 const shapes: Record<string, JsonSchema> = {
   project_detail: {
     description: 'A projects row with the names of its technologies',
@@ -153,8 +154,30 @@ const shapes: Record<string, JsonSchema> = {
       },
       explanation: { type: 'string', description: 'One sentence on what the SQL does, or on why there is none' },
       cached: { type: 'boolean', description: 'True when the answer came from the cache rather than the model' },
+      token: {
+        type: 'string',
+        description: `Lets the visitor send this question to Alex through /api/questions within ${SEND.windowSeconds / 60} minutes`,
+      },
     },
-    required: ['sql', 'explanation', 'cached'],
+    required: ['sql', 'explanation', 'cached', 'token'],
+  },
+  send_request: {
+    type: 'object',
+    properties: {
+      question: {
+        type: 'string',
+        minLength: QUESTION_LENGTH.min,
+        maxLength: QUESTION_LENGTH.max,
+        description: 'The question exactly as it was asked, with no control or text-direction characters',
+      },
+      token: { type: 'string', description: 'The token /api/ask returned with that question' },
+    },
+    required: ['question', 'token'],
+  },
+  send_answer: {
+    type: 'object',
+    properties: { sent: { const: true, description: 'The same whether the question is new or was sent before' } },
+    required: ['sent'],
   },
   unavailable: {
     type: 'object',
@@ -208,6 +231,24 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
           '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions in a minute from one address`, errorBody('rate_limited')),
           '500': jsonResponse('An unexpected failure', errorBody('internal')),
           '503': jsonResponse('Not answering: the monthly cap is reached, the service is not set up, or the model did not respond', ref('unavailable')),
+        },
+      };
+    case '/api/questions':
+      return {
+        operationId: 'sendQuestion',
+        description: SEND_DESCRIPTION,
+        requestBody: { required: true, content: { 'application/json': { schema: ref('send_request') } } },
+        responses: {
+          '200': jsonResponse('The question is kept for Alex', ref('send_answer')),
+          '400': jsonResponse(`The body has no question of ${QUESTION_LENGTH.min} to ${QUESTION_LENGTH.max} characters, or it holds control or text-direction characters`, errorBody('invalid_question')),
+          '403': jsonResponse(`The token is missing, not for this question, or older than ${SEND.windowSeconds / 60} minutes`, errorBody('invalid_token')),
+          '429': jsonResponse('Over the rate limit, or the day has taken all the questions it can', {
+            type: 'object',
+            properties: { error: { enum: ['rate_limited', 'daily_cap'] } },
+            required: ['error'],
+          }),
+          '500': jsonResponse('An unexpected failure', errorBody('internal')),
+          '503': jsonResponse('Not answering: asking is switched off, the service is not set up, or the store did not respond', ref('unavailable')),
         },
       };
     case '/api/stats':

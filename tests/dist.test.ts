@@ -214,6 +214,31 @@ describe(`built output in ${root}`, () => {
     expect(rows).toEqual(result.values.map((row) => row.map(String)));
   });
 
+  // Sending a question is offered by a block that starts hidden; the page shows it only after a typed
+  // question the site could not answer, and nothing is sent until its button is clicked.
+  it('carries the send offer hidden in every Ask box, with its consent line and thanks', () => {
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    for (const url of ['/', '/404']) {
+      const html = pages.find((page) => page.url === url)!.html;
+      const block = html.match(/<div\b([^>]*)data-ask-send-block([^>]*)>([\s\S]*?)<\/div>/);
+      expect(block, url).not.toBeNull();
+      expect(`${block![1]}${block![2]}`, url).toMatch(/\bhidden\b/);
+      const button = block![3]!.match(/<button\b([^>]*)>([\s\S]*?)<\/button>/);
+      expect(text(button![2]!), url).toBe('Send this question to Alex');
+      expect(button![1], url).toMatch(/aria-describedby="ask-send-note"/);
+      const note = block![3]!.match(/<p\b[^>]*id="ask-send-note"[^>]*>([\s\S]*?)<\/p>/);
+      expect(text(note![1]!), url).toBe("Only if you choose: the question is kept for 90 days so I can add what's missing. Nothing else is sent.");
+      const sent = html.match(/<p\b([^>]*)data-ask-sent([^>]*)>([\s\S]*?)<\/p>/);
+      expect(`${sent![1]}${sent![2]}`, url).toMatch(/\bhidden\b/);
+      expect(`${sent![1]}${sent![2]}`, url).toMatch(/tabindex="-1"/);
+      expect(text(sent![3]!), url).toBe('Sent. Thanks.');
+    }
+    const api = pages.find(({ url }) => url === '/api')!.html;
+    expect(api).toMatch(/<section\b[^>]*id="api-questions"/);
+    expect(text(api)).toContain('Each answer also carries a token: to send that question to Alex, pass it to /api/questions within 10 minutes.');
+    expect(text(api)).toContain('no older than 10 minutes, and keeps only the question and the day it was sent, for 90 days.');
+  });
+
   // The Ask box on the home page and the 404: four chips, the privacy note with no link, and the
   // storage example's line, hidden until that example runs, linking to the table above.
   it('shows the four chips, the privacy note and the storage line in every Ask box', () => {

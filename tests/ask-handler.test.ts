@@ -108,6 +108,15 @@ function fakeStore(): FakeStore {
       throwIf('counts');
       return keys.map((key) => store.counters.get(key)?.value ?? 0);
     },
+    // The ask path never sends a question; a call here is a bug.
+    async peek(key) {
+      store.calls.push(['peek', key]);
+      throw new Error('ask must not call peek');
+    },
+    async save(key) {
+      store.calls.push(['save', key]);
+      throw new Error('ask must not call save');
+    },
   };
   return store;
 }

@@ -66,6 +66,10 @@ const UPSTREAM_MESSAGE = {
   console: (count: string) => `The AI service is not responding right now. The raw console still works, and here are ${count} questions with their SQL.`,
   alone: (count: string) => `The AI service is not responding right now. Here are ${count} questions with their SQL.`,
 };
+// A send that did not go through: the day's quota is used up, or anything else, which asking again
+// mends, since a new answer brings a new token.
+const DAILY_CAP_MESSAGE = 'The site has taken all the questions it can for today. Try again tomorrow.';
+const SEND_FAILED_MESSAGE = 'The question could not be sent. Ask it again to try once more.';
 const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
 export function countWord(n: number): string {
@@ -74,6 +78,7 @@ export function countWord(n: number): string {
 const TIMEOUT_MS = 3000;
 const WORKER_URL = '/console-worker.js';
 const ASK_URL = '/api/ask';
+const SEND_URL = '/api/questions';
 
 // The prefix check. It only produces the friendly message; read-only itself is the
 // engine's PRAGMA in the worker.
@@ -352,9 +357,11 @@ export interface Reply {
 // What the Ask panel shows for a reply. An answer runs its SQL; a refusal shows only the model's
 // sentence; a failure shows one of the copy sentences, with the example queries listed when the
 // AI is out of reach and the console is the way forward.
+// An answer or a refusal carries the token that lets the visitor send the question, when the reply
+// had one.
 export type AskState =
-  | { kind: 'answer'; sql: string; explanation: string; cached: boolean }
-  | { kind: 'refusal'; explanation: string; cached: boolean }
+  | { kind: 'answer'; sql: string; explanation: string; cached: boolean; token?: string }
+  | { kind: 'refusal'; explanation: string; cached: boolean; token?: string }
   | { kind: 'failed'; message: string; fallback: boolean };
 
 function field(body: unknown, name: string): unknown {
@@ -374,8 +381,10 @@ export function askState(reply: Reply | null, withConsole: boolean, listed: numb
     const explanation = field(body, 'explanation');
     if (typeof sql !== 'string' || typeof explanation !== 'string') return upstream;
     const cached = field(body, 'cached') === true;
-    if (sql.trim() === '') return { kind: 'refusal', explanation, cached };
-    return { kind: 'answer', sql, explanation, cached };
+    const token = field(body, 'token');
+    const extra = typeof token === 'string' && token !== '' ? { token } : {};
+    if (sql.trim() === '') return { kind: 'refusal', explanation, cached, ...extra };
+    return { kind: 'answer', sql, explanation, cached, ...extra };
   }
   // A 400 (a question under three characters) shares the unusable sentence.
   if (status === 400 || status === 422) return { kind: 'failed', message: UNUSABLE_MESSAGE, fallback: false };
@@ -386,6 +395,60 @@ export function askState(reply: Reply | null, withConsole: boolean, listed: numb
     return { kind: 'failed', message: BUDGET_MESSAGE[wording](count), fallback: true };
   }
   return upstream;
+}
+
+export type SendOutcome = 'sent' | 'rate_limited' | 'daily_cap' | 'refused' | 'failed';
+
+// Sending a question to Alex, apart from the page so it can be tested: offer() holds the
+// question and its token and posts nothing; only send(), which the send button's click calls,
+// posts. reset() withdraws the offer, and a reply that arrives after it is dropped, so a slow
+// send can never write into the next answer. One send at a time for each offer: a send still
+// pending for an earlier question does not block the next one.
+export function createSender(post: (body: { question: string; token: string }) => Promise<Reply | null>) {
+  let offered: { question: string; token: string; generation: number } | null = null;
+  let generation = 0;
+  // The offer whose send is in flight, if any.
+  let inFlight: number | null = null;
+  return {
+    offer(question: string, token: string): void {
+      generation += 1;
+      offered = { question, token, generation };
+    },
+    reset(): void {
+      generation += 1;
+      offered = null;
+    },
+    async send(): Promise<SendOutcome | null> {
+      if (!offered || inFlight === offered.generation) return null;
+      const mine = offered;
+      inFlight = mine.generation;
+      try {
+        const reply = await post({ question: mine.question, token: mine.token });
+        if (mine.generation !== generation) return null;
+        if (reply?.status === 200) {
+          offered = null;
+          return 'sent';
+        }
+        if (reply?.status === 429) return field(reply.body, 'error') === 'daily_cap' ? 'daily_cap' : 'rate_limited';
+        // A refused token or question stays refused, so the offer ends; any other failure can be
+        // tried again.
+        if (reply?.status === 403 || reply?.status === 400) {
+          offered = null;
+          return 'refused';
+        }
+        return 'failed';
+      } finally {
+        if (inFlight === mine.generation) inFlight = null;
+      }
+    },
+  };
+}
+
+// The sentence the error line shows for a send that did not go through.
+export function sendMessage(outcome: Exclude<SendOutcome, 'sent'>): string {
+  if (outcome === 'rate_limited') return RATE_LIMITED_MESSAGE.alone;
+  if (outcome === 'daily_cap') return DAILY_CAP_MESSAGE;
+  return SEND_FAILED_MESSAGE;
 }
 
 // The parts the two panels share: the working attribute for the cursor, the status and error
@@ -416,6 +479,9 @@ interface AskUi extends Panel {
   fallback: HTMLElement;
   // The lines an example can show under its table, hidden until that example runs.
   more: HTMLElement[];
+  // The offer to send a question the site could not answer, and the thanks that replaces it.
+  sendBlock: HTMLElement;
+  sent: HTMLElement;
   // The example answer a wide screen shows before the first question, if the page has one.
   example: HTMLElement | null;
   busy: boolean;
@@ -575,6 +641,9 @@ function begin(ui: AskUi, question: string): void {
   if (ui.edit) ui.edit.hidden = true;
   ui.fallback.hidden = true;
   for (const line of ui.more) line.hidden = true;
+  sender.reset();
+  ui.sendBlock.hidden = true;
+  ui.sent.hidden = true;
   setStatus(ui, WORKING_MESSAGE);
 }
 
@@ -584,7 +653,9 @@ async function answer(ui: AskUi, sql: string): Promise<Result | undefined> {
   return execute(ui, sql);
 }
 
-async function show(ui: AskUi, state: AskState): Promise<void> {
+// A typed question the site could not answer, a refusal or a query with no rows, can be sent to
+// Alex; the offer only shows the button, and nothing leaves the page until it is clicked.
+async function show(ui: AskUi, state: AskState, question: string): Promise<void> {
   if (state.kind === 'failed') {
     setStatus(ui, '');
     setError(ui, state.message);
@@ -593,8 +664,50 @@ async function show(ui: AskUi, state: AskState): Promise<void> {
   }
   ui.explanation.textContent = state.explanation;
   ui.suffix = state.cached ? CACHED_LABEL : '';
+  let unanswered = true;
   if (state.kind === 'refusal') setStatus(ui, '', true);
-  else await answer(ui, state.sql);
+  else unanswered = (await answer(ui, state.sql))?.rows.length === 0;
+  if (unanswered && state.token) {
+    sender.offer(question, state.token);
+    ui.sendBlock.hidden = false;
+  }
+}
+
+async function postSend(body: { question: string; token: string }): Promise<Reply | null> {
+  try {
+    // A send that hangs gives up rather than holding its button for the rest of the visit.
+    const response = await fetch(SEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    });
+    return { status: response.status, body: await response.json().catch(() => undefined) };
+  } catch {
+    return null;
+  }
+}
+
+const sender = createSender(postSend);
+
+// The send button's click, the one way a question is sent. On success the thanks takes the
+// button's place and the focus; a refusal hides the button and hands focus back to the input.
+async function sendAsked(): Promise<void> {
+  const outcome = await sender.send();
+  if (!outcome || !askUi) return;
+  const ui = askUi;
+  if (outcome === 'sent') {
+    setError(ui, '');
+    ui.sendBlock.hidden = true;
+    ui.sent.hidden = false;
+    ui.sent.focus({ preventScroll: true });
+    return;
+  }
+  setError(ui, sendMessage(outcome));
+  if (outcome === 'refused') {
+    ui.sendBlock.hidden = true;
+    ui.input.focus({ preventScroll: true });
+  }
 }
 
 async function post(question: string): Promise<Reply | null> {
@@ -639,7 +752,7 @@ export function ask(): void {
     // A load that failed earlier is retried alongside the request; the run reports it if it
     // fails again, and nothing is reported when there is no SQL to run.
     executor?.ready().catch(() => undefined);
-    await show(ui, askState(await post(question), consoleUi !== undefined, ui.fallback.querySelectorAll('li').length));
+    await show(ui, askState(await post(question), consoleUi !== undefined, ui.fallback.querySelectorAll('li').length), question);
   });
 }
 
@@ -668,12 +781,16 @@ function edit(sql: string | undefined): void {
   consoleUi.input.focus({ preventScroll: true });
 }
 
-// The bootstrap owns every listener and forwards a click on an example, a chip, Run or Edit
-// this query here, whether it landed before this module was loaded or after.
-// Edit this query is checked first: a click on the example's button can arrive after a question
-// has already taken the example off the page, and it still means edit, not run.
+// The bootstrap owns every listener and forwards a click on an example, a chip, Run, Edit this
+// query or the send button here, whether it landed before this module was loaded or after.
+// Edit this query is checked before the chips: a click on the example's button can arrive after a
+// question has already taken the example off the page, and it still means edit, not run.
 export function click(button: HTMLElement): void {
   const sql = button.dataset['sql'];
+  if (button.hasAttribute('data-ask-send')) {
+    void sendAsked();
+    return;
+  }
   if (button.hasAttribute('data-ask-edit')) {
     edit(sql);
     return;
@@ -728,6 +845,8 @@ export function init(): void {
       edit: askRoot.querySelector<HTMLElement>('[data-ask-panel] > [data-ask-edit]'),
       fallback: element(askRoot, '[data-ask-fallback]'),
       more: [...askRoot.querySelectorAll<HTMLElement>('[data-ask-more]')],
+      sendBlock: element(askRoot, '[data-ask-send-block]'),
+      sent: element(askRoot, '[data-ask-sent]'),
       example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),
       busy: false,
     };

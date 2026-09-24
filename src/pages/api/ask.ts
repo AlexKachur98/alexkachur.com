@@ -5,6 +5,7 @@ import { openDatabase } from '../../lib/ask/db.ts';
 import { env } from '../../lib/ask/env.ts';
 import { DEADLINE_MS, handleAsk } from '../../lib/ask/handler.ts';
 import type { LogEntry, ModelCall } from '../../lib/ask/handler.ts';
+import { withToken } from '../../lib/ask/send.ts';
 import { storeFor } from '../../lib/ask/store.ts';
 
 export const prerender = false;
@@ -33,7 +34,7 @@ function log(entry: LogEntry): void {
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const config = readConfig(env);
   const body: unknown = await request.json().catch(() => undefined);
-  const result = await handleAsk(body, clientAddress, {
+  const answered = await handleAsk(body, clientAddress, {
     config,
     store: storeFor(config, import.meta.env.DEV),
     model: modelFor(config.apiKey),
@@ -41,6 +42,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     signal: AbortSignal.timeout(DEADLINE_MS),
     log,
   });
+  // Every answer carries a token that lets the visitor send the question to Alex for ten minutes.
+  const result = withToken(answered, body, config, Date.now());
   return new Response(JSON.stringify(result.body), {
     status: result.status,
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },

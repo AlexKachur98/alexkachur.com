@@ -1,6 +1,8 @@
 ---
 import { answerExample, chips, examples } from '../data/examples.ts';
 import { openDatabase } from '../lib/ask/db.ts';
+import { QUESTION_LENGTH } from '../lib/ask/handler.ts';
+import { keptFor, TTL } from '../lib/ask/storage.ts';
 import { dataFile } from '../lib/data-file.ts';
 import { ROWS, THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/console.ts';
 import type { Cell, Result } from '../scripts/console.ts';
@@ -15,6 +17,9 @@ import '../styles/console.css';
 // The examples are the fallback listed when the AI is out of reach; one of them carries a line
 // shown under its table, which starts hidden and is revealed when that example runs. A page
 // without the raw console (404) gets no Edit this query button, since there is nowhere to edit.
+// After a typed question the site could not answer, the send block offers to pass the question
+// on; nothing is sent unless its button is clicked, and the sentence under it takes the lifetime
+// from the code.
 // With example, the box sets the answer beside the form from 1200px, and until the first question
 // or chip that pane shows an example answer: its SQL run here at build time against the built
 // database and written into the page, so it needs no request and no script.
@@ -52,7 +57,7 @@ const answer = shown ? await run(shown.sql) : undefined;
   <form class="ask-form" method="dialog" data-ask-form>
     <label class="ask-label" for="ask-input">Ask about my work in plain English. The site writes SQL, and you can read it.</label>
     <div class="ask-row">
-      <input class="input" id="ask-input" type="text" maxlength="200" autocomplete="off" data-ask-input />
+      <input class="input" id="ask-input" type="text" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
       <button type="submit" class="button button-primary cut">Ask</button>
     </div>
     <ul class="ask-chips" role="list">
@@ -150,6 +155,12 @@ const answer = shown ? await run(shown.sql) : undefined;
           ),
       )
     }
+    <div class="ask-send" data-ask-send-block hidden>
+      <button type="button" class="console-run" data-ask-send aria-describedby="ask-send-note">Send this question to Alex</button>
+      <p class="ask-send-note" id="ask-send-note">Only if you choose: the question is kept for {keptFor(TTL.sentQuestion)} so I can add what's missing. Nothing else is sent.</p>
+    </div>
+    <!-- Focused when a send goes through, so the confirmation is read out where the button was. -->
+    <p class="ask-sent" tabindex="-1" data-ask-sent hidden>Sent. Thanks.</p>
     <ul class="ask-fallback" role="list" data-ask-fallback hidden>
       {
         examples.map((example, index) => (
@@ -275,6 +286,24 @@ const answer = shown ? await run(shown.sql) : undefined;
 
   .ask-more {
     margin-top: var(--space-3);
+  }
+
+  .ask-send,
+  .ask-sent {
+    margin-top: var(--space-4);
+  }
+
+  /* The consent sentence reads like the privacy note under the form. */
+  .ask-send-note {
+    margin: var(--space-2) 0 0;
+    color: var(--console-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--leading-body);
+  }
+
+  .ask-sent {
+    margin-bottom: 0;
   }
 
   .ask-explanation:not(:empty) {
