@@ -1,12 +1,14 @@
 ---
 // The architecture diagram: monochrome, with the request path of /api/ask marked in
 // yellow. The labels are the words of the /how-this-site-works intro. The drawing keeps its
-// natural width so the text stays on the type scale; a phone scrolls it sideways.
+// natural width so the text stays on the type scale; below 768px a stacked drawing of the same
+// boxes and words takes its place, 272px wide, so it fits a 320px screen whole. Each drawing has
+// its own markers: Chrome draws no arrowhead from a marker inside a hidden drawing.
 ---
 
 <figure class="diagram-figure">
   <!-- TODO: settle the wording of the labels and write a sentence describing the diagram for readers who cannot see it. -->
-  <svg class="diagram" width="456" height="312" viewBox="0 0 456 312" role="img" aria-labelledby="architecture-title">
+  <svg class="diagram diagram-wide" width="456" height="312" viewBox="0 0 456 312" role="img" aria-labelledby="architecture-title">
     <title id="architecture-title">Architecture</title>
     <defs>
       <marker id="arch-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
@@ -56,6 +58,59 @@
     <text class="label center" x="340" y="256">language model</text>
     <text class="note center" x="228" y="296">The model never touches the data.</text>
   </svg>
+  <svg class="diagram diagram-phone" width="272" height="418" viewBox="0 0 272 418" role="img" aria-labelledby="architecture-title-phone">
+    <title id="architecture-title-phone">Architecture</title>
+    <defs>
+      <marker id="arch-arrow-phone" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+        <path class="head" d="M0 0 L8 4 L0 8 Z"></path>
+      </marker>
+      <marker id="arch-arrow-ask-phone" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+        <path class="head-ask" d="M0 0 L8 4 L0 8 Z"></path>
+      </marker>
+    </defs>
+
+    <rect class="box" x="8" y="8" width="256" height="32"></rect>
+    <text class="label center" x="136" y="24">Markdown and YAML</text>
+
+    <line class="arrow" x1="70" y1="40" x2="70" y2="72"></line>
+    <line class="arrow" x1="202" y1="40" x2="202" y2="72"></line>
+    <text class="note center" x="136" y="56">at build time</text>
+
+    <rect class="box" x="8" y="72" width="124" height="48"></rect>
+    <text class="label center" x="70" y="88">SQLite</text>
+    <text class="label center" x="70" y="106">database</text>
+    <rect class="box" x="140" y="72" width="124" height="48"></rect>
+    <text class="label center" x="202" y="88">JSON</text>
+    <text class="label center" x="202" y="106">endpoints</text>
+
+    <line class="arrow" x1="70" y1="120" x2="70" y2="152"></line>
+    <text class="note" x="78" y="136">on demand</text>
+
+    <rect class="box" x="8" y="152" width="256" height="48"></rect>
+    <text class="label center" x="136" y="168">your browser</text>
+    <text class="label center" x="136" y="186">sql.js</text>
+
+    <g class="ask-path">
+      <line x1="48" y1="200" x2="48" y2="232"></line>
+      <line x1="224" y1="232" x2="224" y2="200"></line>
+      <line x1="48" y1="296" x2="48" y2="328"></line>
+      <line x1="224" y1="328" x2="224" y2="296"></line>
+    </g>
+    <text class="note" x="56" y="216">your question</text>
+
+    <rect class="box" x="8" y="232" width="256" height="64"></rect>
+    <text class="label center" x="136" y="246">/api/ask</text>
+    <text class="note center" x="136" y="264">preparing it against</text>
+    <text class="note center" x="136" y="281">the real database</text>
+
+    <text class="note" x="56" y="312">the schema</text>
+    <text class="note right" x="216" y="312">SQL</text>
+
+    <rect class="box" x="8" y="328" width="256" height="32"></rect>
+    <text class="label center" x="136" y="344">language model</text>
+    <text class="note center" x="136" y="384">The model never</text>
+    <text class="note center" x="136" y="402">touches the data.</text>
+  </svg>
 </figure>
 
 <style>
@@ -67,6 +122,10 @@
   .diagram {
     display: block;
     font-family: var(--font-mono);
+  }
+
+  .diagram-wide {
+    display: none;
   }
 
   .box {
@@ -82,6 +141,10 @@
     marker-end: url("#arch-arrow");
   }
 
+  .diagram-phone .arrow {
+    marker-end: url("#arch-arrow-phone");
+  }
+
   .head {
     fill: var(--ink);
   }
@@ -91,6 +154,10 @@
     stroke: var(--accent);
     stroke-width: 2;
     marker-end: url("#arch-arrow-ask");
+  }
+
+  .diagram-phone .ask-path line {
+    marker-end: url("#arch-arrow-ask-phone");
   }
 
   .head-ask {
@@ -117,5 +184,15 @@
 
   .right {
     text-anchor: end;
+  }
+
+  @media (min-width: 768px) {
+    .diagram-phone {
+      display: none;
+    }
+
+    .diagram-wide {
+      display: block;
+    }
   }
 </style>
