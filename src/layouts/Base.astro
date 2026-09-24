@@ -39,6 +39,9 @@ const hasHeader = path !== '/';
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    <!-- TODO: put my favicon here once I have it. Until then the empty icon stops Chrome asking
+         for /favicon.ico, which does not exist, and logging the 404 as a console error. -->
+    <link rel="icon" href="data:," />
     <script is:inline src="/theme.js"></script>
     {preloads.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
   </head>
