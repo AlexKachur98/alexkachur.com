@@ -413,9 +413,13 @@ const answer = shown ? await run(shown.sql) : undefined;
         margin-top: auto;
       }
 
+      /* After the first question or chip the pane keeps the example's height as its smallest
+         height (begin() in console.ts records it as the example goes), so a short answer leaves
+         the row, the privacy note and the work list where they were. */
       .ask-split .ask-panel {
         position: relative;
         grid-column: 8 / 13;
+        min-height: var(--example-height, auto);
         margin: 0;
       }
 

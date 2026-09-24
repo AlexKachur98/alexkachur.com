@@ -493,10 +493,24 @@ describe('Ask SQL rendering', () => {
     expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML/);
   });
 
-  it('takes the example out of the panel as the first question or chip begins', () => {
+  it("records the example's height, then takes it out of the panel, as the first question or chip begins", () => {
     const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer('));
-    expect(begin).toMatch(/^function begin\(ui: AskUi, question: string\): void \{\n  ui\.example\?\.remove\(\);\n  ui\.example = null;/);
+    expect(begin).toMatch(/^function begin\(ui: AskUi, question: string\): void \{\n  if \(ui\.example\) \{\n/);
+    // The height is read while the example is still there to measure.
+    const held = begin.indexOf("ui.root.style.setProperty('--example-height', ");
+    expect(held).toBeGreaterThan(0);
+    expect(held).toBeLessThan(begin.indexOf('ui.example.remove();'));
     expect(source).toContain("example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),");
+  });
+
+  // The hold is only for the pane beside the form: under the form the example never shows, and
+  // an answer there grows from nothing.
+  it("holds the pane at the example's height only beside the form", () => {
+    const style = readFileSync('src/components/AskBox.astro', 'utf8');
+    const wide = style.indexOf('@media (min-width: 1200px)');
+    expect(wide).toBeGreaterThan(0);
+    expect(style.slice(wide)).toMatch(/\.ask-split \.ask-panel \{[^}]*min-height: var\(--example-height, auto\);/);
+    expect(style.slice(0, wide)).not.toContain('--example-height');
   });
 
   it("still hands Edit this query the plain SQL, the example's from its own button", () => {

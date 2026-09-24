@@ -626,10 +626,17 @@ function query(sql: string): void {
 // Clears the Ask panel for a new question and opens it, the question on its header line. The
 // panel is always in the markup so its two live regions exist before they are written to; it
 // takes up space only once it has something to show. The example answer goes for good, so the
-// visitor's answer takes its place rather than appearing under it.
+// visitor's answer takes its place rather than appearing under it. Its height stays behind as the
+// pane's smallest height, which the stylesheet uses only beside the form, so an answer shorter than
+// the example moves nothing on the page and a longer one moves it only by the difference. The
+// height goes on the panel's style object, which the content security policy allows, unlike a
+// style attribute in the markup.
 function begin(ui: AskUi, question: string): void {
-  ui.example?.remove();
-  ui.example = null;
+  if (ui.example) {
+    ui.root.style.setProperty('--example-height', `${ui.example.getBoundingClientRect().height}px`);
+    ui.example.remove();
+    ui.example = null;
+  }
   ui.root.setAttribute('data-open', '');
   ui.question.textContent = question;
   ui.suffix = '';
