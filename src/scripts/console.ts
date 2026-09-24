@@ -568,6 +568,8 @@ function paint(panel: Panel, result: Result): void {
   } else {
     panel.results.replaceChildren(table);
   }
+  // Each result starts at its first row and column, wherever the last one was scrolled to.
+  panel.results.scrollTo(0, 0);
   panel.results.tabIndex = 0;
 }
 

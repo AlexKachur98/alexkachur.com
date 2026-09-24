@@ -524,3 +524,14 @@ describe('Ask SQL rendering', () => {
     expect(source).toContain("askRoot.querySelector<HTMLElement>('[data-ask-panel] > [data-ask-edit]')");
   });
 });
+
+describe('results box', () => {
+  const source = readFileSync('src/scripts/console.ts', 'utf8');
+
+  it('starts each table at its first row and column, in either panel', () => {
+    const paint = source.slice(source.indexOf('function paint('), source.indexOf('function dropNote('));
+    const reset = paint.indexOf('panel.results.scrollTo(0, 0);');
+    expect(reset).toBeGreaterThan(paint.indexOf('panel.results.replaceChildren(table);'));
+    expect(reset).toBeLessThan(paint.indexOf('panel.results.tabIndex = 0;'));
+  });
+});
