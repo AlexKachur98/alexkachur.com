@@ -261,9 +261,10 @@ export function visibleRows(result: Result): Cell[][] {
 // KEY and DATE, which are columns here; COUNT and every other function, since a query often
 // names a column after one (COUNT(*) AS count); type names; words more often a name than syntax
 // (FIRST, LAST, FILTER, PLAN and the like); and EXPLAIN and every statement other than a query,
-// which the server never sends back. Some listed words (ASC, DESC, END, LEFT and others) are
-// also valid names in SQLite; they stay because a query almost always uses them as syntax, so an
-// alias spelled like one takes the colour.
+// which the server never sends back. Some listed words (ASC, DESC, LEFT and others) are also
+// valid names in SQLite; they stay because a query almost always uses them as syntax, so an alias
+// spelled like one takes the colour. END is the exception: the experience table has an end
+// column, so END counts only when it closes a CASE.
 const SQL_KEYWORDS = new Set([
   'SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY', 'HAVING', 'ORDER', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'AS', 'WITH', 'RECURSIVE',
   'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER', 'CROSS', 'NATURAL', 'ON', 'USING',
@@ -289,9 +290,24 @@ export interface SqlToken {
 export function sqlTokens(sql: string): SqlToken[] {
   const tokens: SqlToken[] = [];
   let plain = '';
+  // CASE expressions still waiting for their END, and whether the last token finished a value.
+  // END closes a CASE only right after a value; where a value is expected, as after ELSE or a
+  // comma, the word is the end column.
+  let open = 0;
+  let afterValue = false;
   for (const match of sql.matchAll(SQL_TOKEN)) {
     const text = match[0];
-    if (ASCII_WORD.test(text) && sql[match.index - 1] !== '.' && SQL_KEYWORDS.has(text.toUpperCase())) {
+    const word = text.toUpperCase();
+    let keyword = ASCII_WORD.test(text) && sql[match.index - 1] !== '.' && SQL_KEYWORDS.has(word);
+    if (keyword && word === 'CASE') open += 1;
+    if (keyword && word === 'END') {
+      if (open > 0 && afterValue) open -= 1;
+      else keyword = false;
+    }
+    if (!/^\s$/.test(text) && !text.startsWith('--') && !text.startsWith('/*')) {
+      afterValue = keyword ? word === 'NULL' || word === 'END' : text === ')' || text.charCodeAt(0) > 127 || /^(?:[\w'"`[]|\.\d)/.test(text);
+    }
+    if (keyword) {
       if (plain !== '') tokens.push({ text: plain, keyword: false });
       tokens.push({ text, keyword: true });
       plain = '';

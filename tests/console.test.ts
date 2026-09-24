@@ -408,6 +408,42 @@ describe('SQL keyword tokens', () => {
     ]);
   });
 
+  it('colours END only where it closes a CASE, since end is also a column', () => {
+    expect(keywords('SELECT title, start, end FROM experience WHERE end IS NULL')).toEqual(['SELECT', 'FROM', 'WHERE', 'IS', 'NULL']);
+    expect(keywords("SELECT CASE WHEN end IS NULL THEN 'now' ELSE end END AS until FROM experience")).toEqual([
+      'SELECT',
+      'CASE',
+      'WHEN',
+      'IS',
+      'NULL',
+      'THEN',
+      'ELSE',
+      'END',
+      'AS',
+      'FROM',
+    ]);
+    expect(keywords('SELECT CASE WHEN a THEN CASE WHEN b THEN 1 END END, end FROM t')).toEqual([
+      'SELECT',
+      'CASE',
+      'WHEN',
+      'THEN',
+      'CASE',
+      'WHEN',
+      'THEN',
+      'END',
+      'END',
+      'FROM',
+    ]);
+  });
+
+  it('treats a string, a closing bracket and a bare decimal as the value that END follows', () => {
+    const closes = ['SELECT', 'CASE', 'WHEN', 'THEN', 'END', 'FROM'];
+    expect(keywords("SELECT CASE WHEN a THEN 'x' END FROM t")).toEqual(closes);
+    expect(keywords('SELECT CASE WHEN a THEN COUNT(*) END FROM t')).toEqual(closes);
+    expect(keywords('SELECT CASE WHEN a THEN .5 END FROM t')).toEqual(closes);
+    expect(keywords('SELECT CASE WHEN (end IS NULL) THEN 1 END FROM t')).toEqual(['SELECT', 'CASE', 'WHEN', 'IS', 'NULL', 'THEN', 'END', 'FROM']);
+  });
+
   it('never colours a table or column name of this database', () => {
     for (const table of schema.tables) {
       for (const name of [table.name, ...table.columns.map((column) => column.name)]) {

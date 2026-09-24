@@ -1,14 +1,17 @@
-// Turns validated content entries into the rows of the seven tables. Used by scripts/build-db.ts
-// to write the database and by the /api/*.json endpoints, so both see the same ids and order.
+// Turns validated content entries into the rows of the database's tables. Used by
+// scripts/build-db.ts to write the database and by the /api/*.json endpoints, so both see the same
+// ids and order.
 import type { z } from 'astro/zod';
 import type {
   CourseContent,
+  ExperienceContent,
   FactContent,
   PetContent,
   ProjectContent,
   TechnologyContent,
   TimelineContent,
   courseRow,
+  experienceRow,
   factRow,
   petRow,
   projectRow,
@@ -29,6 +32,7 @@ export type ProjectTechnologyRow = z.infer<typeof projectTechnologyRow>;
 export type CourseRow = z.infer<typeof courseRow>;
 export type TimelineRow = z.infer<typeof timelineRow>;
 export type PetRow = z.infer<typeof petRow>;
+export type ExperienceRow = z.infer<typeof experienceRow>;
 
 // Inside Astro, reference() turns each technology id into { collection, id } and image() turns
 // each screenshot src into ImageMetadata; plain Node keeps the strings. Both shapes fit here.
@@ -120,4 +124,13 @@ export function petRows(entries: Entry<PetContent>[]): PetRow[] {
   return entries
     .map(({ data: { id, ...row } }) => row)
     .sort((a, b) => compare(a.name, b.name));
+}
+
+// Oldest first, as the timeline is. The resume's bullets are stored one per line, so each one
+// can be read back as it was written.
+export function experienceRows(entries: Entry<ExperienceContent>[]): ExperienceRow[] {
+  return entries
+    .map(({ data: { id, highlights, ...row } }) => ({ ...row, highlights: highlights.join('\n') }))
+    .sort((a, b) => compare(a.start, b.start) || compare(a.title, b.title))
+    .map((row, index) => ({ id: index + 1, ...row }));
 }

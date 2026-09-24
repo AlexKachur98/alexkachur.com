@@ -67,6 +67,7 @@ describe('build-db', () => {
     expect(rows.timeline).toHaveLength(8);
     expect(rows.pets).toHaveLength(2);
     expect(rows.facts).toHaveLength(13);
+    expect(rows.experience).toHaveLength(4);
   });
 
   it('derives the DDL from the shared schemas', () => {
@@ -79,7 +80,8 @@ describe('build-db', () => {
     expect(text).toContain('PRIMARY KEY (project_id, technology_id)');
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
-    expect(text.match(/CREATE TABLE/g)).toHaveLength(7);
+    expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
+    expect(text.match(/CREATE TABLE/g)).toHaveLength(8);
   });
 
   it('writes a schema.json whose hash is stable and covers the DDL, the table list and the facts', () => {
@@ -119,6 +121,7 @@ describe('build-db', () => {
       'courses',
       'timeline',
       'pets',
+      'experience',
     ]);
     expect(schema.tables.every((table) => table.columns.every((col) => col.description.length > 0))).toBe(true);
     expect(schema.photoAlt).toEqual({
@@ -155,6 +158,30 @@ describe('build-db', () => {
     const [paying, llm] = chips.map((chip) => query(chip.sql));
     expect(paying!.map((row) => row.name)).toEqual(['Uraz Hoops']);
     expect(llm!.map((row) => row.name)).toEqual(['SplitRoof AI assistant', 'This site']);
+  });
+
+  it('orders experience by start date and keeps each resume bullet on a line of its own', () => {
+    const rows = query('SELECT id, title, start, end, highlights FROM experience ORDER BY id');
+    expect(rows.map((row) => [row.id, row.title, row.start, row.end])).toEqual([
+      [1, 'Manager', '2019-08', '2022-01'],
+      [2, 'QA Tester', '2022-01', '2025-01'],
+      [3, 'Peer Mentor', '2025-01', null],
+      [4, 'Freelance Web Developer', '2026', null],
+    ]);
+    const bullets = Object.fromEntries(content.experience.map((entry) => [entry.data.title, entry.data.highlights]));
+    for (const row of rows) expect(String(row.highlights).split('\n'), String(row.title)).toEqual(bullets[String(row.title)]);
+  });
+
+  it('fails hard on an experience date that is not YYYY-MM or YYYY', () => {
+    expect(() => parseContent(edited('experience.yaml', 'start: "2019-08"', 'start: "Aug 2019"'))).toThrow(
+      /experience.yaml row manager: start: Invalid string/,
+    );
+    expect(() => parseContent(edited('experience.yaml', 'end: "2022-01"', 'end: "2022-13"'))).toThrow(
+      /experience.yaml row manager: end: Invalid string/,
+    );
+    expect(() => parseContent(edited('experience.yaml', 'start: "2019-08"', 'start: 2019'))).toThrow(
+      /experience.yaml row manager: start: Invalid input: expected string/,
+    );
   });
 
   it('keeps every pets photo under public', () => {

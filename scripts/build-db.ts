@@ -14,6 +14,7 @@ import { parse as parseYaml } from 'yaml';
 import type { z } from 'astro/zod';
 import {
   courseContent,
+  experienceContent,
   factContent,
   petContent,
   projectContent,
@@ -23,6 +24,7 @@ import {
 } from '../src/content/schemas.ts';
 import type {
   CourseContent,
+  ExperienceContent,
   FactContent,
   PetContent,
   ProjectContent,
@@ -32,6 +34,7 @@ import type {
 } from '../src/content/schemas.ts';
 import {
   courseRows,
+  experienceRows,
   factRows,
   petRows,
   projectRows,
@@ -50,6 +53,7 @@ export interface Content {
   courses: Entry<CourseContent>[];
   timeline: Entry<TimelineContent>[];
   pets: Entry<PetContent>[];
+  experience: Entry<ExperienceContent>[];
 }
 
 // File text keyed by path relative to src/content, so tests can hand in edited copies.
@@ -60,7 +64,7 @@ export interface ContentPaths {
   publicDir: string;
 }
 
-const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml'] as const;
+const yamlFiles = ['facts.yaml', 'technologies.yaml', 'courses.yaml', 'timeline.yaml', 'pets.yaml', 'experience.yaml'] as const;
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -146,6 +150,7 @@ export function parseContent(
     courses: yamlRows('courses.yaml', text('courses.yaml'), courseContent),
     timeline: yamlRows('timeline.yaml', text('timeline.yaml'), timelineContent),
     pets: yamlRows('pets.yaml', text('pets.yaml'), petContent),
+    experience: yamlRows('experience.yaml', text('experience.yaml'), experienceContent),
     projects: Object.keys(files)
       .filter((name) => name.startsWith('projects/'))
       .sort()
@@ -176,6 +181,7 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     courses: courseRows(content.courses),
     timeline: timelineRows(content.timeline),
     pets: petRows(content.pets),
+    experience: experienceRows(content.experience),
   };
 }
 

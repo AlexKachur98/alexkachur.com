@@ -1,0 +1,43 @@
+# Jobs and roles. highlights are the resume's bullets, word for word; summary is the line the
+# plain-text resume gives the job. Dates are quoted so YAML keeps them as text. The integer id in
+# the database follows start-date order.
+- id: freelance-web-developer
+  title: Freelance Web Developer
+  organization: Self-employed
+  location: Thornhill, ON
+  start: "2026"
+  end: null
+  summary: Uraz Hoops (urazhoops.com); Think Smarter Insurance review funnel (demo live, go-live pending).
+  highlights:
+    - Built and handed off a five-page marketing site for Uraz Hoops, a basketball training business (Next.js 16, React 19, Tailwind CSS v4, Resend), live at urazhoops.com, with a handoff guide so the owner can update it himself.
+    - "Designed and built a customer review funnel for Think Smarter Insurance, an Ontario brokerage: single-file HTML, CSS and JavaScript with no build step, on Cloudflare Pages, with private feedback routed by email and an owner settings panel. Demo live, go-live pending."
+    - Researched review-gating rules (Google policy, Competition Act, RIBO Guidance 006), documented the risk for the client, and shipped a compliance toggle so the flow can change without a developer.
+- id: qa-tester
+  title: QA Tester
+  organization: 360 Plus IT Consulting
+  location: Thornhill, ON
+  start: "2022-01"
+  end: "2025-01"
+  summary: Dynamics CRM and Power Apps; 50+ test cases; SQL validation; 30+ defects tracked in Jira.
+  highlights:
+    - Wrote and ran 50+ test cases for Microsoft Dynamics CRM and Power Apps workflows against acceptance criteria, reducing post-release defects.
+    - Wrote SQL queries to validate data across tables, improving reporting accuracy by 15%; logged and tracked 30+ defects in Jira and worked with developers on root cause.
+    - Joined stand-ups, sprint planning and retrospectives; refined user stories and acceptance criteria with the product owner.
+- id: manager
+  title: Manager
+  organization: IOAL Distributing
+  location: Mississauga, ON
+  start: "2019-08"
+  end: "2022-01"
+  summary: Warehouse operations.
+  highlights:
+    - Ran daily warehouse operations (inventory control, order fulfilment, vendor and client service), supervised staff, and cut order processing time by 20%.
+- id: peer-mentor
+  title: Peer Mentor
+  organization: Centennial College
+  location: Toronto, ON
+  start: "2025-01"
+  end: null
+  summary: First-year coursework and study sessions.
+  highlights:
+    - First-year coursework and study sessions.

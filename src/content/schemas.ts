@@ -70,6 +70,20 @@ export const timelineRow = z.object({
   event: z.string().describe('What happened'),
 });
 
+// YYYY-MM, or YYYY when the resume gives only the year.
+const yearMonth = z.string().regex(/^\d{4}(-(0[1-9]|1[0-2]))?$/);
+
+export const experienceRow = z.object({
+  id: z.number().int().describe('Position in start-date order, 1 first'),
+  title: z.string().describe('Job title'),
+  organization: z.string().describe('Who Alex worked for'),
+  location: z.string().describe('Where the job was'),
+  start: yearMonth.describe('YYYY-MM, or YYYY when the month is not known'),
+  end: yearMonth.nullable().describe('The same form as start, NULL if current'),
+  summary: z.string().describe('One line on the job, as on the plain-text resume'),
+  highlights: z.string().describe('What Alex did there, word for word from his resume, one per line'),
+});
+
 export const petRow = z.object({
   name: z.string().describe('The cat'),
   species: z.string().describe('Always cat so far'),
@@ -124,6 +138,12 @@ export const tables = {
     primaryKey: ['name'],
     unique: [],
   },
+  experience: {
+    row: experienceRow,
+    description: 'Jobs and roles Alex has held',
+    primaryKey: ['id'],
+    unique: [],
+  },
 } as const satisfies Record<
   string,
   { row: z.ZodObject; description: string; primaryKey: readonly string[]; unique: readonly string[] }
@@ -158,6 +178,11 @@ export const courseContent = z.strictObject({ id: contentId, ...courseRow.shape 
 export const timelineContent = z.strictObject({ id: contentId, ...timelineRow.omit({ id: true }).shape });
 export const petContent = z.strictObject({ id: contentId, ...petRow.shape });
 export const factContent = z.strictObject({ id: contentId, ...factRow.omit({ key: true }).shape });
+export const experienceContent = z.strictObject({
+  id: contentId,
+  ...experienceRow.omit({ id: true, highlights: true }).shape,
+  highlights: z.array(z.string().min(1)).min(1).describe('The resume bullets, word for word'),
+});
 
 export const pageContent = z.strictObject({
   updated: z.date().optional().describe('Last-updated date shown at the top of the page'),
@@ -169,3 +194,4 @@ export type TechnologyContent = z.infer<typeof technologyContent>;
 export type CourseContent = z.infer<typeof courseContent>;
 export type TimelineContent = z.infer<typeof timelineContent>;
 export type PetContent = z.infer<typeof petContent>;
+export type ExperienceContent = z.infer<typeof experienceContent>;
