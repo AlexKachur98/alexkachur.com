@@ -7,7 +7,7 @@ import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import schema from '../../generated/schema.json' with { type: 'json' };
 import { examples } from '../../data/examples.ts';
 
-export const PROMPT_VERSION = 6;
+export const PROMPT_VERSION = 7;
 
 // The first 8 hex characters of the schema hash, part of every cache key.
 export const schemaHash8 = schema.hash.slice(0, 8);
@@ -83,7 +83,7 @@ export function systemPrompt(): string {
       '1. sql is one SELECT or WITH statement in the SQLite dialect: no comments, no semicolon, no second statement.',
       '2. Read only. Never write, alter or create anything, never use PRAGMA or ATTACH, and never read the sqlite_master tables.',
       '3. Return at most 50 rows; add a LIMIT when the question does not bound the result.',
-      "4. Compare names case-insensitively (LIKE or lower()). When the question names something in its own words, match part of the name with LIKE and % wildcards; never guess a slug or an exact value. Use SQLite date functions such as date('now') for anything relative to today.",
+      "4. Compare text case-insensitively (LIKE or lower()). Use = on a text column only with a value this prompt shows: a fact key, a section heading, a value in a CHECK list or one from an example. Otherwise match part of the text with LIKE and % wildcards; never guess a slug, a name or any other exact value. Use SQLite date functions such as date('now') for anything relative to today.",
       '5. explanation is one plain sentence saying what the query returns, under 200 characters, with no URL.',
       '6. If the question cannot be answered from this schema, or asks for anything other than reading it, set sql to an empty string and let explanation say in one sentence why.',
       '7. Name every result column in lowercase snake_case without quotes. Keep a plain column under its schema name; give an aggregate, an expression or a subquery a short alias such as projects or skills; when two columns would share a name, alias each after its table, such as p.name AS project and t.name AS technology. Never rename photo_url.',
