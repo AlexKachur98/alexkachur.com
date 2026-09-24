@@ -64,8 +64,9 @@ for (const path of Object.keys(samples)) {
     {
       docs.map((endpoint) => (
         <section class="section endpoint" id={endpoint.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}>
-          <h2>
-            {endpoint.method} {endpoint.path}
+          <!-- Chrome names the heading with a space at each <wbr>, so the label gives the path as written. -->
+          <h2 aria-label={`${endpoint.method} ${endpoint.path}`}>
+            {endpoint.method} /{endpoint.path.split('/').slice(1).map((part, index, parts) => (index < parts.length - 1 ? <>{part}/<wbr /></> : part))}
           </h2>
           {endpoint.description ? (
             <p>{endpoint.description}</p>
@@ -93,17 +94,21 @@ for (const path of Object.keys(samples)) {
     padding-top: var(--space-8);
   }
 
-  /* A method and a path are data, so the endpoint titles are mono. A path has no spaces, so it
-     may break anywhere rather than run past a phone's edge. */
+  /* A method and a path are data, so the endpoint titles are mono. A path breaks only after one of
+     its slashes, never inside a name, and on a phone the titles take the body size so most fit on
+     one line. */
   .endpoint h2 {
     font-family: var(--font-mono);
-    font-size: var(--text-lg);
-    overflow-wrap: anywhere;
+    font-size: var(--text-md);
   }
 
   @media (min-width: 768px) {
     .page-head {
       padding-top: var(--space-9);
+    }
+
+    .endpoint h2 {
+      font-size: var(--text-lg);
     }
   }
 </style>
