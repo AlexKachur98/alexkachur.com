@@ -56,6 +56,11 @@ import {
 import type { Entry } from '../src/lib/rows.ts';
 import { storageRows } from '../src/lib/ask/storage.ts';
 import { renderBody } from '../src/lib/markdown.ts';
+import { countIn, fillNumbers } from '../src/lib/numbers.ts';
+import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
+import { queryOf, resumeData, resumeText } from '../src/lib/resume.ts';
+import { siteOrigin } from '../src/lib/site.ts';
+import { questions } from './eval/questions.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -214,6 +219,12 @@ export function parseContent(
     rendered,
   };
   if (content.projects.length === 0) throw new Error('projects: no project files');
+  // Client work is on the resume through the experience table; every other project has bullets.
+  for (const project of content.projects) {
+    const client = project.data.kind === 'client';
+    if (client && project.data.highlights) throw new Error(`projects/${project.id}.md: client work has no highlights; the experience table covers it`);
+    if (!client && !project.data.highlights) throw new Error(`projects/${project.id}.md: highlights are missing`);
+  }
   // A core skill is described as backed by a project on this site, so each needs one.
   const used = new Set(projectTechnologyRows(content.projects, content.technologies).map((link) => link.technology_id));
   for (const technology of technologyRows(content.technologies)) {
@@ -239,10 +250,34 @@ export async function loadContent(paths: ContentPaths = { contentDir: 'src/conte
 
 export type Row = Record<string, string | number | null>;
 
+// The numbers a project highlight may name, each from the thing it counts: the eval's questions,
+// the OpenAPI version the API document declares, and the two SplitRoof test counts from the
+// case study's own sentence, where they sit beside the screenshot that shows them.
+export function highlightNumbers(sections: readonly { page: string; body: string }[]): Record<string, string> {
+  const splitroof = sections.filter((section) => section.page === '/work/splitroof-ai-assistant').map((section) => section.body).join('\n');
+  const where = 'projects/splitroof-ai-assistant.md';
+  return {
+    eval_questions: String(questions.length),
+    openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
+    splitroof_tool_tests: String(countIn(splitroof, /(\w+) Jest tests before the model/g, where)),
+    splitroof_model_tests: String(countIn(splitroof, /(\w+) more tests then run the assistant against the live model/g, where)),
+  };
+}
+
 export function tableRows(content: Content): Record<TableName, Row[]> {
+  const sections = sectionRows([
+    ...content.pages.map((entry) => ({ page: entry.page, title: entry.data.title, html: content.rendered[entry.id]! })),
+    ...[...content.projects]
+      .sort((a, b) => a.data.order - b.data.order)
+      .map((entry) => ({ page: `/work/${entry.id}`, html: content.rendered[`projects/${entry.id}.md`]! })),
+  ]);
+  const numbers = highlightNumbers(sections);
   return {
     facts: factRows(content.facts),
-    projects: projectRows(content.projects),
+    projects: projectRows(content.projects).map((row) => ({
+      ...row,
+      highlights: row.highlights === null ? null : fillNumbers(row.highlights, numbers, `projects/${row.slug}.md`),
+    })),
     technologies: technologyRows(content.technologies),
     project_technologies: projectTechnologyRows(content.projects, content.technologies),
     project_images: projectImageRows(content.projects),
@@ -254,12 +289,7 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     // Built from the lifetimes the code uses, not from the content files.
     storage: storageRows(),
     uses: usesRows(content.uses),
-    sections: sectionRows([
-      ...content.pages.map((entry) => ({ page: entry.page, title: entry.data.title, html: content.rendered[entry.id]! })),
-      ...[...content.projects]
-        .sort((a, b) => a.data.order - b.data.order)
-        .map((entry) => ({ page: `/work/${entry.id}`, html: content.rendered[`projects/${entry.id}.md`]! })),
-    ]),
+    sections,
     page_images: pageImageRows(content.pages.map((entry) => ({ page: entry.page, images: entry.data.images ?? [] }))),
   };
 }
@@ -457,12 +487,21 @@ export async function main(root = process.cwd()): Promise<void> {
 
   const content = await loadContent({ contentDir: join(root, 'src', 'content'), publicDir: join(root, 'public') });
   const sql = dumpSql(content);
-  const bytes = buildDatabase(await loadSqlJs(), sql);
+  const SQL = await loadSqlJs();
+  const bytes = buildDatabase(SQL, sql);
 
   const dataDir = join(root, 'public', 'data');
   mkdirSync(dataDir, { recursive: true });
   writeFileSync(join(dataDir, 'portfolio.sqlite'), bytes);
   writeFileSync(join(dataDir, 'portfolio.sql'), sql);
+
+  // The plain-text resume curl gets, from the database just written.
+  const db = new SQL.Database(bytes);
+  try {
+    writeFileSync(join(root, 'public', 'resume.txt'), resumeText(resumeData(queryOf(db)), siteOrigin()));
+  } finally {
+    db.close();
+  }
 
   const generated = join(root, 'src', 'generated');
   mkdirSync(generated, { recursive: true });

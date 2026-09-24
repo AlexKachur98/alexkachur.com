@@ -16,6 +16,9 @@ has_live_demo: 0
 uses_llm: 1
 llm_job: answers questions about a household's shared expenses by calling typed tools; never does the arithmetic itself.
 paid: 0
+highlights:
+  - 'Own the assistant for a shared-household expense app: a read-only agent that answers "who owes what this month" from the household''s own data through three typed tools (getBalance, getCategorySpend, getBudgetStatus). The model never does the arithmetic itself.'
+  - "Built the spike first: three tool functions with {splitroof_tool_tests} passing Jest tests before wiring in the model, then {splitroof_model_tests} tests against the live model. Also maintain the project documentation and keep the team on schedule."
 technologies: [react, node-js, express, firebase, anthropic-api, jest]
 screenshots:
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-1.png

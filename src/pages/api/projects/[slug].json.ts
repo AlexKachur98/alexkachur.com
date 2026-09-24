@@ -1,20 +1,20 @@
 import type { APIRoute, GetStaticPaths } from 'astro';
-import { getCollection } from 'astro:content';
 import { json } from '../../../lib/json.ts';
-import { projectRows, projectTechnologyRows, technologyRows } from '../../../lib/rows.ts';
+import { select } from '../../../lib/query.ts';
 
-// One file per project: the projects row plus the names of its technologies.
+// One file per project: its row as the database holds it, numbers filled in, plus the names of its
+// technologies.
 export const getStaticPaths = (async () => {
-  const [projects, technologies] = await Promise.all([getCollection('projects'), getCollection('technologies')]);
-  const names = new Map(technologyRows(technologies).map((row) => [row.id, row.name]));
-  const links = projectTechnologyRows(projects, technologies);
-  return projectRows(projects).map((project) => ({
-    params: { slug: project.slug },
-    props: {
-      ...project,
-      technologies: links.filter((link) => link.project_id === project.id).map((link) => names.get(link.technology_id)),
-    },
-  }));
+  const projects = await select('SELECT * FROM projects ORDER BY id');
+  return Promise.all(
+    projects.rows.map(async (row) => {
+      const project = Object.fromEntries(projects.columns.map((name, index) => [name, row[index]]));
+      const stack = await select(
+        `SELECT t.name FROM project_technologies pt JOIN technologies t ON t.id = pt.technology_id WHERE pt.project_id = ${Number(project.id)} ORDER BY t.id`,
+      );
+      return { params: { slug: String(project.slug) }, props: { ...project, technologies: stack.rows.map(([name]) => name) } };
+    }),
+  );
 }) satisfies GetStaticPaths;
 
 export const GET: APIRoute = ({ props }) => json(props);

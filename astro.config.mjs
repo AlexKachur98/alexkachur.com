@@ -2,12 +2,10 @@
 import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel';
 import { markdown } from './src/lib/markdown.ts';
-
-// Vercel sets VERCEL_PROJECT_PRODUCTION_URL to the .vercel.app host until the custom domain connects, then to the domain.
-const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+import { siteOrigin } from './src/lib/site.ts';
 
 export default defineConfig({
-  site: productionHost ? `https://${productionHost}` : 'https://alexkachur.com',
+  site: siteOrigin(),
   output: 'static',
   trailingSlash: 'never',
   adapter: vercel({ maxDuration: 30 }),

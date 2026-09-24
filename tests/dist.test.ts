@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { answerExample, chips, examples, storageQuery } from '../src/data/examples.ts';
 import { validateSql } from '../src/lib/ask/validate-sql.ts';
 import { blockText, inlineText } from '../src/lib/page-text.ts';
-import { pageFiles } from '../scripts/build-db.ts';
+import { highlightNumbers, pageFiles } from '../scripts/build-db.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
@@ -559,12 +559,24 @@ describe(`built output in ${root}`, () => {
     expect(uses).toContain(`Last updated: ${updated}`);
   });
 
+  // The numbers a resume bullet names are filled in by build-db; none may reach a page, a file or
+  // an endpoint as its placeholder.
+  it('holds no unfilled number placeholder anywhere', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const sections = (db.exec('SELECT page, body FROM sections')[0]!.values as string[][]).map(([page, body]) => ({ page: page!, body: body! }));
+    const placeholder = new RegExp(`\\{(?:${Object.keys(highlightNumbers(sections)).join('|')})\\}`);
+    for (const path of files.filter((file) => !vendored(file))) expect(readFileSync(path, 'utf8'), path).not.toMatch(placeholder);
+    expect(readFileSync(join(root, 'resume.txt'), 'utf8')).not.toMatch(placeholder);
+  });
+
   it('serves every table but project_technologies at /api/{table}.json, row for row as the database holds it', async () => {
     const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
     const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
     const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
     const names = (db.exec("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")[0]!.values as string[][]).map(([name]) => name!);
-    const served = readdirSync(join(root, 'api')).filter((name) => name.endsWith('.json') && !['schema.json', 'openapi.json'].includes(name));
+    const served = readdirSync(join(root, 'api')).filter((name) => name.endsWith('.json') && !['schema.json', 'openapi.json', 'resume.json'].includes(name));
     expect(served.sort()).toEqual(names.filter((name) => name !== 'project_technologies').map((name) => `${name}.json`).sort());
     for (const name of names.filter((table) => table !== 'project_technologies')) {
       const result = db.exec(`SELECT * FROM ${name} ORDER BY rowid`)[0]!;

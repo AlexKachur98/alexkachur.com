@@ -73,6 +73,10 @@ export const projectRow = z.object({
   featured: flag.describe('1 for the project listed first on the home page, else 0'),
   card: z.string().describe("The one-liner under the name on the home page, also the case study's description"),
   team: z.string().nullable().describe('The team line on the case study, NULL unless a team project'),
+  highlights: z
+    .string()
+    .nullable()
+    .describe('Resume bullets for the project, one per line, NULL for client work; numbers in them are filled in at build time from their sources'),
 });
 
 export const technologyRow = z.object({
@@ -276,9 +280,10 @@ export const screenshot = z.strictObject({
 });
 
 export const projectContent = z.strictObject({
-  ...projectRow.omit({ id: true, slug: true, featured: true, team: true }).shape,
+  ...projectRow.omit({ id: true, slug: true, featured: true, team: true, highlights: true }).shape,
   order: z.number().int().positive().describe('Site order; also drives projects.id'),
   team: z.string().optional().describe(projectRow.shape.team.description ?? ''),
+  highlights: z.array(z.string().min(1)).min(1).optional().describe('The resume bullets, word for word, with each number written as {key}'),
   technologies: z.array(z.string()).describe('Ids from technologies.yaml used on this project'),
   screenshots: z.array(screenshot).describe('Real screenshots, in display order'),
 });

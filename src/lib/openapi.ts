@@ -7,6 +7,10 @@ import { SEND, SEND_DESCRIPTION } from './ask/send.ts';
 import { RATE_LIMIT } from './ask/storage.ts';
 import { endpoints } from './endpoints.ts';
 import type { Endpoint } from './endpoints.ts';
+import { OPENAPI_VERSION } from './openapi-version.ts';
+
+// What /api/resume.json is, for the /api page and this document alike.
+export const RESUME_DESCRIPTION = "Alex's resume in the JSON Resume format, built from the same tables.";
 
 export interface SchemaColumn {
   name: string;
@@ -225,6 +229,12 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
       };
     case '/api/schema.json':
       return { operationId: 'getSchema', responses: { '200': jsonResponse('The database schema', ref('database_schema')) } };
+    case '/api/resume.json':
+      return {
+        operationId: 'getResume',
+        description: RESUME_DESCRIPTION,
+        responses: { '200': jsonResponse('A JSON Resume document, schema 1.x from jsonresume.org', { type: 'object' }) },
+      };
     case '/api/ask':
       return {
         operationId: 'ask',
@@ -284,7 +294,7 @@ export function openApiDocument(schema: SchemaDocument, { site, version }: OpenA
     paths[endpoint.path] = { ...paths[endpoint.path], [endpoint.method.toLowerCase()]: operation(endpoint, tables) };
   }
   return {
-    openapi: '3.1.0',
+    openapi: OPENAPI_VERSION,
     info: {
       title: 'alexkachur.com API',
       version,

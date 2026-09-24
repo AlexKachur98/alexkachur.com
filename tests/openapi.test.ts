@@ -48,14 +48,14 @@ describe('the OpenAPI document', () => {
     // endpoint carries.
     const tableList = Object.keys(tables).filter((table) => table !== 'project_technologies');
     expect(Object.keys(paths).sort()).toEqual(
-      [...tableList.map((table) => `/api/${table}.json`), '/api/ask', '/api/projects/{slug}.json', '/api/questions', '/api/schema.json', '/api/stats'].sort(),
+      [...tableList.map((table) => `/api/${table}.json`), '/api/ask', '/api/projects/{slug}.json', '/api/questions', '/api/resume.json', '/api/schema.json', '/api/stats'].sort(),
     );
     for (const endpoint of endpoints) {
       expect(Object.keys(paths[endpoint.path]!), endpoint.path).toEqual([endpoint.method.toLowerCase()]);
     }
     const camel = (table: string) => table.split('_').map((word) => `${word[0]!.toUpperCase()}${word.slice(1)}`).join('');
     expect(operations.map(({ operation }) => operation.operationId).sort()).toEqual(
-      [...tableList.map((table) => `list${camel(table)}`), 'ask', 'getProject', 'getSchema', 'getStats', 'sendQuestion'].sort(),
+      [...tableList.map((table) => `list${camel(table)}`), 'ask', 'getProject', 'getResume', 'getSchema', 'getStats', 'sendQuestion'].sort(),
     );
     expect(operations.map(({ operation }) => operation.operationId)).toContain('listProjectImages');
   });

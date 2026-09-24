@@ -81,8 +81,8 @@ export function projectRows(entries: Entry<ProjectInput>[]): ProjectRow[] {
   rejectRepeats(sorted, (entry) => entry.data.order, 'project order');
   // Only the project listed first is featured, so the flag can never disagree with the order.
   return sorted.map(({ id, data }, index) => {
-    const { order, card, team, technologies, screenshots, ...row } = data;
-    return { id: order, slug: id, ...row, featured: index === 0 ? 1 : 0, card, team: team ?? null };
+    const { order, card, team, highlights, technologies, screenshots, ...row } = data;
+    return { id: order, slug: id, ...row, featured: index === 0 ? 1 : 0, card, team: team ?? null, highlights: highlights?.join('\n') ?? null };
   });
 }
 

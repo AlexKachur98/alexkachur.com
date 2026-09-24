@@ -23,6 +23,7 @@ export const endpoints: readonly Endpoint[] = [
   { method: 'GET', path: '/api/projects/{slug}.json' },
   ...tableEndpoints.slice(1),
   { method: 'GET', path: '/api/schema.json' },
+  { method: 'GET', path: '/api/resume.json' },
   { method: 'POST', path: '/api/ask' },
   { method: 'POST', path: '/api/questions' },
   { method: 'GET', path: '/api/stats' },

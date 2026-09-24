@@ -11,6 +11,7 @@ import {
   ddl,
   decodeBase64Module,
   dumpSql,
+  highlightNumbers,
   loadSqlJs,
   main,
   parseContent,
@@ -21,6 +22,9 @@ import {
 } from '../scripts/build-db.ts';
 import type { ContentFiles } from '../scripts/build-db.ts';
 import { chips, examples } from '../src/data/examples.ts';
+import { tables } from '../src/content/schemas.ts';
+import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
+import { questions } from '../scripts/eval/questions.ts';
 
 const require = createRequire(import.meta.url);
 const files = readContentFiles('src/content');
@@ -324,6 +328,37 @@ describe('build-db', () => {
         .flatMap(({ data }) => data.screenshots.map((shot, index) => ({ project_id: data.order, position: index + 1, alt: shot.alt, caption: shot.caption ?? null }))),
     );
     expect(query('SELECT COUNT(*) AS n FROM project_images')[0]!.n).toBe(8);
+  });
+
+  it('fills each number in a project highlight from the thing it counts, and leaves no placeholder in any cell', () => {
+    expect(highlightNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[])).toEqual({
+      eval_questions: String(questions.length),
+      openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
+      splitroof_tool_tests: '12',
+      splitroof_model_tests: '5',
+    });
+    const portfolio = query("SELECT highlights FROM projects WHERE slug = 'this-site'")[0]!.highlights as string;
+    expect(portfolio).toContain(`CI replays a ${questions.length}-question evaluation`);
+    expect(query("SELECT highlights FROM projects WHERE kind = 'client'").map((row) => row.highlights)).toEqual([null, null]);
+    for (const table of Object.keys(tables)) {
+      for (const row of query(`SELECT * FROM ${table}`)) expect(JSON.stringify(row), table).not.toMatch(/\{[a-z_]+\}/);
+    }
+  });
+
+  it('fails hard on a highlight number it cannot fill, a typed number, or a case study that stops giving one count', async () => {
+    const withEdit = (from: string, to: string) => tableRows(parse(edited('projects/this-site.md', from, to)));
+    expect(() => withEdit('{eval_questions}-question', '{questions}-question')).toThrow(/\{questions\} is not a number the build knows/);
+    expect(() => withEdit('{eval_questions}-question', '42-question')).toThrow(/a number is typed/);
+    expect(() => withEdit('{eval_questions}-question', '{eval_questions-question')).toThrow(/a brace is left/);
+    const study = 'with 12 Jest tests before the model was wired in';
+    for (const [to, found] of [['before the model was wired in', 'found 0'], [`${study}, ${study}`, 'found 2'], ['with many Jest tests before the model was wired in', 'many is not a number']] as const) {
+      const changed = edited('projects/splitroof-ai-assistant.md', study, to);
+      const again = await renderMarkdown(changed);
+      expect(() => tableRows(parseContent(changed, undefined, again))).toThrow(found);
+    }
+    expect(() => parse(edited('projects/this-site.md', 'highlights:\n', 'notes:\n'))).toThrow();
+    const client = edited('projects/uraz-hoops.md', 'technologies: [', 'highlights:\n  - "A bullet."\ntechnologies: [');
+    expect(() => parse(client)).toThrow(/client work has no highlights/);
   });
 
   it('keeps every row of uses.yaml, word for word and in its order, and the day /uses was last updated', () => {

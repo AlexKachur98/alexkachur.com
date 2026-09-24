@@ -14,6 +14,10 @@ has_live_demo: 1
 uses_llm: 1
 llm_job: turns a visitor's question into one validated SQL statement that runs in their browser.
 paid: 0
+highlights:
+  - "Built a portfolio that compiles into a SQLite database at deploy time. Visitors ask questions in plain English; Claude writes the SQL, the server checks it against the real database, and the visitor's browser runs it."
+  - "Capped AI spending with a monthly limit, an answer cache and a rate limiter; CI replays a {eval_questions}-question evaluation on every push."
+  - "Public JSON API with an OpenAPI {openapi_version} document."
 technologies: [astro, typescript, css, sql, sql-js, sqlite, vercel, anthropic-api, upstash-redis, vitest]
 # TODO: add screenshots of this site after the build.
 screenshots: []

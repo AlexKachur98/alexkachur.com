@@ -1,5 +1,4 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { tables } from '../../content/schemas.ts';
 import schema from '../../generated/schema.json';
@@ -9,28 +8,24 @@ import type { TableName } from '../../content/schemas.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
 import { select } from '../../lib/query.ts';
-import { projectRows, projectTechnologyRows, technologyRows } from '../../lib/rows.ts';
+import { RESUME_DESCRIPTION } from '../../lib/openapi.ts';
+import { queryOf, resumeData, resumeJson } from '../../lib/resume.ts';
+import { openDatabase } from '../../lib/ask/db.ts';
 
 // The example responses are cut from the same rows the endpoints serve.
-const [projects, technologies] = await Promise.all([getCollection('projects'), getCollection('technologies')]);
-const projectList = projectRows(projects);
-const technologyList = technologyRows(technologies);
-const names = new Map(technologyList.map((row) => [row.id, row.name]));
-const first = projectList[0]!;
-const single = {
-  ...first,
-  technologies: projectTechnologyRows(projects, technologies)
-    .filter((link) => link.project_id === first.id)
-    .map((link) => names.get(link.technology_id)),
-};
-
-const url = (path: string) => new URL(path, Astro.site).href;
-
 // A table's rows as its endpoint serves them, and how many the page shows of each.
 async function tableRows(table: TableName) {
   const { columns, rows } = await select(`SELECT * FROM ${table} ORDER BY rowid`);
   return rows.map((row) => Object.fromEntries(columns.map((name, index) => [name, row[index]])));
 }
+const first = (await tableRows('projects'))[0]!;
+const stack = await select(
+  `SELECT t.name FROM project_technologies pt JOIN technologies t ON t.id = pt.technology_id WHERE pt.project_id = ${Number(first.id)} ORDER BY t.id`,
+);
+const single = { ...first, technologies: stack.rows.map(([name]) => name) };
+const resume = resumeJson(resumeData(queryOf(await openDatabase())), Astro.site!.origin);
+
+const url = (path: string) => new URL(path, Astro.site).href;
 const shownRows: Partial<Record<TableName, number>> = { projects: 1, pets: 1, technologies: 3, sections: 1, experience: 1 };
 // What is stored: the storage table itself, run at build time, under the query that reads it.
 const storage = await select(storageQuery);
@@ -42,6 +37,7 @@ const samples: Record<string, { curl: string; response?: string; description?: s
   ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableRows(rows), { items: shownRows[rows] ?? 2 }) }]))),
   '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, response: previewJson(single) },
   '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, response: previewJson(schema, { items: 1, chars: 60 }) },
+  '/api/resume.json': { curl: `curl ${url('/api/resume.json')}`, description: RESUME_DESCRIPTION, response: previewJson(resume, { items: 1, chars: 60 }) },
   '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'` },
   '/api/questions': {
     curl: `curl -X POST ${url('/api/questions')} -H 'content-type: application/json' -d '${JSON.stringify({ question: 'A question the site could not answer', token: '<token from /api/ask>' })}'`,

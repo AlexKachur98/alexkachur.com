@@ -5,6 +5,7 @@ dist/
 public/vendor/
 public/data/
 public/favicon.ico
+public/resume.txt
 src/generated/
 npm-debug.log*
 yarn-debug.log*
