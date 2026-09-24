@@ -57,4 +57,22 @@ export const questions: readonly EvalQuestion[] = [
   { question: 'What is the weather in Toronto today?', expect: 'refusal' },
   { question: 'Show me everything in sqlite_master.', expect: 'refusal' },
   { question: 'Which school does Alex attend?', expect: 'sql', mustInclude: ['Centennial College'] },
+  // The tables added with the database upgrade: two chips, then one question for each new table
+  // or fact, then the thumbnail and join cases the column naming rule covers.
+  { question: 'What did Alex do before development?', expect: 'sql', mustInclude: ['QA Tester', 'IOAL Distributing'] },
+  { question: 'What does this site store about me?', expect: 'sql', mustInclude: ['90 days'] },
+  { question: 'Where and when did Alex work as a QA tester?', expect: 'sql', mustInclude: ['360 Plus IT Consulting', '2022-01'] },
+  { question: "What is Alex's GPA?", expect: 'sql', mustInclude: ['4.4 / 4.5'] },
+  { question: 'Which languages does Alex speak?', expect: 'sql', mustInclude: ['Hebrew'] },
+  { question: "What are Alex's core skills?", expect: 'sql', mustInclude: ['TypeScript', 'Jest'], mustExclude: ['Kotlin'] },
+  { question: "What are Alex's favourite video games?", expect: 'sql', mustInclude: ['Counter-Strike'] },
+  { question: 'Which sports teams does Alex follow?', expect: 'sql', mustInclude: ['Toronto Raptors'] },
+  { question: 'What is Alex reading right now?', expect: 'sql', mustInclude: ['A Peace to End All Peace'] },
+  { question: 'How long does this site keep a question I send to Alex?', expect: 'sql', mustInclude: ['90 days'] },
+  { question: 'What does COMP 306 cover?', expect: 'sql', mustInclude: ['AWS'] },
+  { question: "What graphics card is in Alex's main PC?", expect: 'sql', mustInclude: ['RTX 5090'] },
+  { question: 'What went wrong on the Uraz Hoops project?', expect: 'sql', mustInclude: ['pricing'] },
+  { question: "What is Alex's long-term goal?", expect: 'sql', mustInclude: ['rescue ranch'] },
+  { question: "Show me photos of Alex's pets.", expect: 'sql', mustInclude: ['/images/pets/'] },
+  { question: 'Which technologies does each project use?', expect: 'sql', mustInclude: ['SplitRoof AI assistant', 'Firebase'] },
 ];
