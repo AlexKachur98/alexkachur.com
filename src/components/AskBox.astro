@@ -55,7 +55,7 @@ const answer = shown ? await run(shown.sql) : undefined;
        (there is no dialog around it), so a question typed before the script has loaded, or
        with scripts off, never lands in the URL; the submit event still fires for the script. -->
   <form class="ask-form" method="dialog" data-ask-form>
-    <label class="ask-label" for="ask-input">Ask about my work in plain English. The site writes SQL, and you can read it.</label>
+    <label class="ask-label" for="ask-input">Ask about Alex in plain English. The site writes SQL, and you can read it.</label>
     <div class="ask-row">
       <input class="input" id="ask-input" type="text" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
       <button type="submit" class="button button-primary cut">Ask</button>
