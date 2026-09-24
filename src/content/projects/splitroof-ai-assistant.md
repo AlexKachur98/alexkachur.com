@@ -36,7 +36,7 @@ A read-only assistant. The model, Claude Haiku 4.5 through the Anthropic API, ge
 
 ## Decisions
 
-- Tools before model. I built and tested the three functions with 17 Jest tests before the model was wired in, so the behaviour is verified without an LLM in the loop.
+- Tools before model. I built and tested the three functions with 12 Jest tests before the model was wired in, so the behaviour is verified without an LLM in the loop. Five more tests then run the assistant against the live model.
 - Read-only by design. The assistant has no write path at all, so a bad prompt can at worst produce a wrong sentence, never a wrong balance.
 - One narrow job. This comes from an earlier school project, a Family Feud game where an LLM judged answers ("storm" scored for "rain"). It worked best when the model had one clear, testable task, and that is how I scope AI features now.
 
