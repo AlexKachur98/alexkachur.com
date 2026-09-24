@@ -1,23 +1,26 @@
 ---
 import AskBox from './AskBox.astro';
+
+const curl = `curl ${Astro.site!.origin}`;
 ---
 
 <section class="hero grid">
-  <div class="hero-lead">
+  <div class="hero-id">
     <h1>Alex Kachur</h1>
-    <p class="lead">I build full-stack web apps with an AI doing real work inside them.</p>
-  </div>
-  <div class="hero-ask">
-    <AskBox editable example />
-  </div>
-  <div class="hero-facts">
-    <p class="status">Toronto, Canada. Final-year software engineering student at Centennial College. Open to full-stack and AI roles from May 2027.</p>
-    <ul class="links" role="list">
+    <p class="role"><strong>Full-stack &amp; AI developer.</strong> I build web apps with an AI doing real work inside them.</p>
+    <p class="status">Toronto, Canada&nbsp;· Final-year Software Engineering Technology, Centennial College&nbsp;· Available <span class="no-wrap">full-time</span> May&nbsp;2027</p>
+    <ul class="actions" role="list">
+      <li><a class="button" href="/Alex-Kachur-Resume.pdf">Resume</a></li>
+      <li><a href="mailto:alexkachur98@gmail.com">Email</a></li>
       <li><a href="https://github.com/AlexKachur98">GitHub</a></li>
       <li><a href="https://linkedin.com/in/alex-kachur">LinkedIn</a></li>
-      <li><a href="mailto:alexkachur98@gmail.com">Email</a></li>
-      <li><a href="/Alex-Kachur-Resume.pdf">Resume</a></li>
+      <li><code>{curl}</code></li>
     </ul>
+  </div>
+  <div class="hero-ask">
+    <!-- The panel has no visible title; this one is for moving through the page by headings. -->
+    <h2 class="visually-hidden">Ask this site</h2>
+    <AskBox editable example />
   </div>
 </section>
 
@@ -30,39 +33,51 @@ import AskBox from './AskBox.astro';
     font-size: var(--text-3xl);
   }
 
-  .lead {
-    margin: 0;
+  .role {
+    font-size: var(--text-role);
+    line-height: var(--leading-role);
+    text-wrap: balance;
   }
 
-  /* A plain rule: the Ask button, the cursor while a question runs and the mark on the Selected
-     work title are already the three yellow elements this first screen may hold. */
-  .hero-facts {
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--rule);
+  .role strong {
+    font-weight: 600;
   }
 
   .status {
-    margin: 0 0 var(--space-2);
     color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    line-height: var(--leading-mono);
   }
 
-  .links {
+  /* A narrow phone would otherwise break the word at its hyphen. */
+  .no-wrap {
+    white-space: nowrap;
+  }
+
+  .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-1) var(--space-5);
+    align-items: center;
+    gap: var(--space-2) var(--space-5);
     margin: 0;
     padding: 0;
     list-style: none;
     font-weight: 600;
   }
 
-  .links a {
+  .actions li {
+    margin: 0;
+    max-width: none;
+  }
+
+  .actions a:not(.button) {
     display: inline-flex;
     align-items: center;
     min-height: var(--control);
+  }
+
+  .actions code {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    font-weight: 400;
   }
 
   /* A grid item is never narrower than its content by default, so on a phone the input row or a
@@ -71,51 +86,24 @@ import AskBox from './AskBox.astro';
     min-width: 0;
   }
 
-  /* From 768px the facts sit beside the headline and the Ask box takes its own row under it,
-     so an answer growing in the box moves nothing beside it. */
+  /* One stack, then the Ask panel, in the order they are read. From 768px the stack takes columns
+     1 to 9 and leaves the right side empty, and the panel takes the same columns on its own row,
+     so an answer growing in it moves nothing above it. */
   @media (min-width: 768px) {
     .hero {
-      align-items: end;
       padding-top: var(--space-9);
     }
 
-    .hero-lead {
-      grid-row: 1;
-      grid-column: 1 / 8;
-    }
-
-    .hero-facts {
-      grid-row: 1;
-      grid-column: 8 / 13;
-    }
-
+    .hero-id,
     .hero-ask {
-      grid-row: 2;
       grid-column: 1 / 9;
     }
   }
 
-  /* From 1200px the Ask box spans the second row, a subgrid of all twelve columns, so its form sits
-     under the name and line in columns 1 to 8 and its answer under the facts in 8 to 13, starting
-     on the facts' column line. Until the first question or chip it shows an example. The
-     first row aligns to its top, and the facts drop by the space between the top of the name's
-     line and the tops of its capitals, worked out from the name's size, its line height and
-     Barlow's metrics, so their rule is level with the capitals at every name size. The box keeps
-     the second row to itself, so an answer growing in it moves nothing above it. A browser without
-     subgrid keeps the box under the name and line in columns 1 to 8, as one panel. */
+  /* From 1200px the panel spans its row as a subgrid of all twelve columns: the form in 1 to 8 and
+     the answer in 8 to 13, which shows an example until the first question or chip. A browser
+     without subgrid keeps the panel whole in columns 1 to 9. */
   @media (min-width: 1200px) {
-    .hero {
-      align-items: start;
-    }
-
-    .hero-facts {
-      margin-top: calc(var(--text-3xl) * ((var(--leading-heading) + var(--barlow-ascent) - var(--barlow-descent)) / 2 - var(--barlow-cap-height)));
-    }
-
-    .hero-ask {
-      grid-column: 1 / 8;
-    }
-
     @supports (grid-template-columns: subgrid) {
       .hero-ask {
         display: grid;

@@ -1,10 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
-// Checks on the style source: type that survives zoom and a larger default text size, the one
-// hue besides yellow kept inside the dark panels, and Barlow's metrics as the font file has them.
+// Checks on the style source: type that survives zoom and a larger default text size, and the one
+// hue besides yellow kept inside the dark panels.
 
 function git(...args: string[]): string[] {
   return execFileSync('git', ['ls-files', '-z', ...args], { encoding: 'utf8' }).split('\0').filter(Boolean);
@@ -27,7 +26,7 @@ const viewportUnit = /\d(?:[sld]?v(?:w|h|i|b|min|max))\b/;
 
 describe('type scale', () => {
   it('finds every size token', () => {
-    expect([...scale.keys()].sort()).toEqual(['--text-2xl', '--text-3xl', '--text-lg', '--text-md', '--text-sm', '--text-xl', '--text-xs']);
+    expect([...scale.keys()].sort()).toEqual(['--text-2xl', '--text-3xl', '--text-lg', '--text-md', '--text-role', '--text-sm', '--text-xl', '--text-xs']);
   });
 
   it('writes every step as a plain rem length, so it follows the default text size', () => {
@@ -72,35 +71,5 @@ describe('keyword colour', () => {
     const users = files.filter((file) => !/\.(webp|png|jpe?g|gif|ico|pdf|woff2?|wasm|sqlite)$/.test(file) && readFileSync(file, 'utf8').includes('--console-keyword'));
     expect(users.length).toBeGreaterThan(0);
     expect(users.filter((file) => !allowed.has(file))).toEqual([]);
-  });
-});
-
-describe('Barlow metrics', () => {
-  // The name's weight, in the .woff the site also serves: its tables are plain zlib.
-  it('match the font file the name is set in', () => {
-    const font = readFileSync('node_modules/@fontsource/barlow/files/barlow-latin-700-normal.woff');
-    const tables = new Map<string, Buffer>();
-    for (let i = 0; i < font.readUInt16BE(12); i++) {
-      const entry = 44 + i * 20;
-      const offset = font.readUInt32BE(entry + 4);
-      const stored = font.subarray(offset, offset + font.readUInt32BE(entry + 8));
-      tables.set(font.toString('latin1', entry, entry + 4), stored.length < font.readUInt32BE(entry + 12) ? inflateSync(stored) : stored);
-    }
-    const head = tables.get('head')!;
-    const hhea = tables.get('hhea')!;
-    const os2 = tables.get('OS/2')!;
-    const em = head.readUInt16BE(18);
-    const token = (name: string) => Number(tokens.match(new RegExp(`${name}: ([0-9.]+);`))?.[1]);
-
-    // The file holds its ascent and descent three times: in hhea, and as the typo and win pairs in
-    // OS/2, where the win pair differs. Its USE_TYPO_METRICS flag (bit 7 of fsSelection, from OS/2
-    // version 4) marks the typo pair as the one to use. The tokens copy that pair, so the flag must
-    // stay set and hhea must agree with it.
-    expect(os2.readUInt16BE(0)).toBeGreaterThanOrEqual(4);
-    expect(os2.readUInt16BE(62) & 0x80).toBe(0x80);
-    expect([hhea.readInt16BE(4), hhea.readInt16BE(6)]).toEqual([os2.readInt16BE(68), os2.readInt16BE(70)]);
-    expect(token('--barlow-ascent')).toBe(os2.readInt16BE(68) / em);
-    expect(token('--barlow-descent')).toBe(-os2.readInt16BE(70) / em);
-    expect(token('--barlow-cap-height')).toBe(os2.readInt16BE(88) / em);
   });
 });

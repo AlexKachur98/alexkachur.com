@@ -7,8 +7,9 @@ import type { ImageMetadata } from 'astro';
 // unless the page stretches it to fill a wider column. The srcset carries that width and double
 // it for dense screens, or the widths given when the image is stretched; every candidate is
 // capped at the source so nothing is upscaled. The height keeps the source ratio, so the image
-// service scales and never crops. An eager figure is fetched first, for an image that is the
-// largest thing in the first screen; every other image waits until it is near the viewport.
+// service scales and never crops. An eager figure loads with the page at the browser's usual
+// priority, for an image that is the largest thing in the first screen on some windows; every
+// other image waits until it is near the viewport.
 // With href, the image is also a way to a page some other link on this page already leads to:
 // an empty link lies over it, out of the tab order and hidden from screen readers, so the image
 // keeps its alt text and keyboard users meet that page's link once.
@@ -35,7 +36,6 @@ const image = {
   widths,
   sizes,
   loading: eager ? ('eager' as const) : ('lazy' as const),
-  fetchpriority: eager ? ('high' as const) : undefined,
 };
 ---
 
