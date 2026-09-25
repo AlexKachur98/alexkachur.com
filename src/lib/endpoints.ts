@@ -18,6 +18,12 @@ export const tableEndpoints: readonly (Endpoint & { rows: TableName })[] = (Obje
   .sort((a, b) => Number(b === 'projects') - Number(a === 'projects'))
   .map((table) => ({ method: 'GET', path: `/api/${table}.json`, rows: table }));
 
+// The id of an endpoint's section on the /api page, so the index under the lead and the sections
+// agree: the path with every run of other characters as one hyphen.
+export function endpointId(path: string): string {
+  return path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
+}
+
 export const endpoints: readonly Endpoint[] = [
   tableEndpoints[0]!,
   { method: 'GET', path: '/api/projects/{slug}.json' },

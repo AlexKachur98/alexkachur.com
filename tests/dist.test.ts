@@ -6,8 +6,10 @@ import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
 import { answerExample, chips, examples, storageQuery } from '../src/data/examples.ts';
 import { validateSql } from '../src/lib/ask/validate-sql.ts';
-import { INSIGHTS } from '../src/lib/loaded-scripts.ts';
+import { BOOTSTRAP_BUDGET_BYTES, INSIGHTS } from '../src/lib/loaded-scripts.ts';
+import { RATE_LIMITS_SENTENCE } from '../src/lib/openapi.ts';
 import { blockText, inlineText } from '../src/lib/page-text.ts';
+import { usesQuery } from '../src/lib/uses-query.ts';
 import { pageFiles, recordedPromptTokens, siteNumbers } from '../scripts/build-db.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
@@ -265,6 +267,23 @@ describe(`built output in ${root}`, () => {
     }
     const api = pages.find(({ url }) => url === '/api')!.html;
     expect(api).toMatch(/<section\b[^>]*id="api-questions"/);
+    expect(text(api)).toContain(RATE_LIMITS_SENTENCE);
+    expect(text(api)).toContain('Replace TOKEN with the token /api/ask returned for that question.');
+    // The index under the lead links every endpoint's section, in page order.
+    const index = api.match(/<nav\b[^>]*\saria-label="Endpoints"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? '';
+    const linked = [...index.matchAll(/<a href="#([^"]+)"[^>]*>([^<]*)<\/a>/g)].map(([, id, label]) => ({ id: id!, label: decode(label!) }));
+    const sections = [...api.matchAll(/<section class="section endpoint"[^>]*\sid="([^"]+)"[^>]*>\s*<h2\b[^>]*aria-label="([^"]*)"/g)].map(([, id, label]) => ({ id: id!, label: decode(label!) }));
+    expect(linked.length).toBeGreaterThan(10);
+    expect(linked).toEqual(sections);
+    // The on-demand endpoints list the fields of a 200 body and every status, as the OpenAPI document has them.
+    const openapi = JSON.parse(readFileSync(join(root, 'api', 'openapi.json'), 'utf8')) as { paths: Record<string, Record<string, { responses: Record<string, unknown> }>> };
+    for (const path of ['/api/ask', '/api/questions', '/api/stats']) {
+      const section = api.match(new RegExp(`<section class="section endpoint"[^>]*\\sid="${path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}"[^>]*>([\\s\\S]*?)</section>`))?.[1] ?? '';
+      const tables = [...section.matchAll(/<table class="shape"[^>]*>([\s\S]*?)<\/table>/g)].map(([, table]) => [...table!.matchAll(/<tr\b[^>]*>\s*<td\b[^>]*>([^<]*)<\/td>/g)].map(([, cell]) => decode(cell!)));
+      expect(tables, path).toHaveLength(2);
+      expect(tables[0]!.length, path).toBeGreaterThan(0);
+      expect(tables[1], path).toEqual(Object.keys(Object.values(openapi.paths[path]!)[0]!.responses));
+    }
     expect(text(api)).toContain('Each answer also carries a token: to send that question to Alex, pass it to /api/questions within 10 minutes.');
     expect(text(api)).toContain('It is kept for 90 days, and no endpoint ever returns it.');
   });

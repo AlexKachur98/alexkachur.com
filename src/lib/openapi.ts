@@ -18,6 +18,8 @@ export const RESUME_DESCRIPTION = "Alex's resume in the JSON Resume format, buil
 export const ASK_DESCRIPTION =
   "Send a question and get back SQL that answers it from this site's database, checked against the real database first, or a short refusal when the data can't answer it. It never runs the SQL; you do.";
 export const STATS_DESCRIPTION = 'The numbers behind the footer: questions answered this month, model calls this month and the monthly cap, the model the Ask box runs on, and the commit and time of the build.';
+// The limits, with the number from the code, for the /api lead and the ask operation alike.
+export const RATE_LIMITS_SENTENCE = `Rate limits: ${RATE_LIMIT.requests} questions a minute per address, shared by /api/ask and /api/questions, and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`;
 
 export interface SchemaColumn {
   name: string;
@@ -252,7 +254,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
     case '/api/ask':
       return {
         operationId: 'ask',
-        description: `${ASK_DESCRIPTION} Rate limits: ${RATE_LIMIT.requests} questions a minute per address and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`,
+        description: `${ASK_DESCRIPTION} ${RATE_LIMITS_SENTENCE}`,
         requestBody: { required: true, content: { 'application/json': { schema: ref('ask_request') } } },
         responses: {
           '200': jsonResponse('SQL for the question, or an explanation of why there is none', ref('ask_answer')),

@@ -3,13 +3,38 @@ import Base from '../../layouts/Base.astro';
 import { tables } from '../../content/schemas.ts';
 import schema from '../../generated/schema.json';
 import { chips, storageQuery } from '../../data/examples.ts';
-import { endpoints, tableEndpoints } from '../../lib/endpoints.ts';
+import { endpointId, endpoints, tableEndpoints } from '../../lib/endpoints.ts';
 import type { TableName } from '../../content/schemas.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
 import { select } from '../../lib/query.ts';
-import { ASK_DESCRIPTION, PROJECT_DESCRIPTION, RESUME_DESCRIPTION, SCHEMA_DESCRIPTION, STATS_DESCRIPTION } from '../../lib/openapi.ts';
+import { ASK_DESCRIPTION, openApiDocument, PROJECT_DESCRIPTION, RATE_LIMITS_SENTENCE, RESUME_DESCRIPTION, SCHEMA_DESCRIPTION, STATS_DESCRIPTION } from '../../lib/openapi.ts';
+import buildInfo from '../../generated/build-info.json';
 import recorded from '../../data/api-samples.json';
+
+// The on-demand endpoints show the fields of their 200 body and every status they answer, read
+// from the same OpenAPI document /api/openapi.json serves, so no value is typed in twice.
+type Shape = { properties?: Record<string, { type?: string | string[]; description?: string; const?: unknown; enum?: unknown[] }>; $ref?: string };
+type Operation = { responses: Record<string, { description: string; content?: { 'application/json'?: { schema: Shape } } }> };
+const document = openApiDocument(schema, { site: Astro.site!.origin, version: buildInfo.commit });
+const shapes = document.components.schemas as Record<string, Shape>;
+const shapeOf = (ref: string): Shape => shapes[ref.split('/').pop()!]!;
+function bodyOf(response: Operation['responses'][string]): string {
+  const body = response.content?.['application/json']?.schema;
+  if (!body) return '';
+  const shape = body.$ref ? shapeOf(body.$ref) : body;
+  const entries = Object.entries(shape.properties ?? {});
+  const [name, only] = entries.length === 1 ? entries[0]! : [];
+  if (only?.enum) return `${name}: ${only.enum.join(', ')}`;
+  if (only?.const !== undefined) return `${name}: ${String(only.const)}`;
+  return entries.map(([field]) => field).join(', ');
+}
+const fieldsOf = (ref: string) => Object.entries(shapeOf(ref).properties ?? {}).map(([name, field]) => ({ name, type: [field.type].flat().join(' or '), description: field.description ?? '' }));
+const statusesOf = (path: string) => {
+  const operation = Object.values(document.paths[path] as Record<string, Operation>)[0]!;
+  return Object.entries(operation.responses).map(([status, response]) => ({ status, body: bodyOf(response), meaning: response.description }));
+};
+const shapesShown: Record<string, string> = { '/api/ask': 'ask_answer', '/api/questions': 'send_answer', '/api/stats': 'stats' };
 import { queryOf, resumeData, resumeJson } from '../../lib/resume.ts';
 import { openDatabase } from '../../lib/ask/db.ts';
 
@@ -36,16 +61,17 @@ const question = chips[0]!.label;
 // on-demand endpoints whose bodies carry live values show a response recorded from the deployed
 // site on the day given, since the build cannot know those numbers.
 const minutes = SEND.windowSeconds / 60;
-const samples: Record<string, { curl: string; response?: string; description?: string; recorded?: string }> = {
+const samples: Record<string, { curl: string; response?: string; description?: string; recorded?: string; note?: string }> = {
   ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableRows(rows), { items: shownRows[rows] ?? 2 }) }]))),
   '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, description: PROJECT_DESCRIPTION, response: previewJson(single) },
   '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, description: SCHEMA_DESCRIPTION, response: previewJson(schema, { items: 1, chars: 60 }) },
   '/api/resume.json': { curl: `curl ${url('/api/resume.json')}`, description: RESUME_DESCRIPTION, response: previewJson(resume, { items: 1, chars: 60 }) },
   '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'`, description: ASK_DESCRIPTION },
   '/api/questions': {
-    curl: `curl -X POST ${url('/api/questions')} -H 'content-type: application/json' -d '${JSON.stringify({ question: 'A question the site could not answer', token: '<token from /api/ask>' })}'`,
+    curl: `curl -X POST ${url('/api/questions')} -H 'content-type: application/json' -d '${JSON.stringify({ question: 'A question the site could not answer', token: 'TOKEN' })}'`,
     description: SEND_DESCRIPTION,
     response: previewJson({ sent: true }),
+    note: 'Replace TOKEN with the token /api/ask returned for that question.',
   },
   '/api/stats': { curl: `curl ${url('/api/stats')}`, description: STATS_DESCRIPTION, response: previewJson(recorded.stats.body), recorded: recorded.stats.recorded },
 };
@@ -53,7 +79,14 @@ const samples: Record<string, { curl: string; response?: string; description?: s
 const docs = endpoints.map((endpoint) => {
   const sample = samples[endpoint.path];
   if (!sample) throw new Error(`${endpoint.path} has no example on this page`);
-  return { ...endpoint, description: endpoint.rows ? tables[endpoint.rows].description : undefined, ...sample };
+  const shown = shapesShown[endpoint.path];
+  return {
+    ...endpoint,
+    description: endpoint.rows ? tables[endpoint.rows].description : undefined,
+    ...sample,
+    fields: shown ? fieldsOf(`#/components/schemas/${shown}`) : undefined,
+    statuses: shown ? statusesOf(endpoint.path) : undefined,
+  };
 });
 for (const path of Object.keys(samples)) {
   if (!endpoints.some((endpoint) => endpoint.path === path)) throw new Error(`${path} is not in the endpoint list`);
@@ -64,15 +97,24 @@ for (const path of Object.keys(samples)) {
   <main id="main" class="container">
     <header class="page-head">
       <h1>API</h1>
-      <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, /api/questions, which passes on a question a visitor chose to send, and /api/stats, which reports the counters. Rate limits: 10 questions a minute per address, shared by /api/ask and /api/questions, and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".</p>
-      <p>A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
+      <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, /api/questions, which passes on a question a visitor chose to send, and /api/stats, which reports the counters.</p>
+      <p>{RATE_LIMITS_SENTENCE} A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
       <p>Try it:</p>
       <pre><code>curl {url('/api/projects.json')}</code></pre>
       <p>The whole API as an OpenAPI 3.1 document, built from the same schema and endpoint list, for loading into any client: <a href="/api/openapi.json">/api/openapi.json</a></p>
+      <nav aria-label="Endpoints">
+        <ul class="index" role="list">
+          {docs.map((endpoint) => (
+            <li>
+              <a href={`#${endpointId(endpoint.path)}`}>{endpoint.method} {endpoint.path}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </header>
     {
       docs.map((endpoint) => (
-        <section class="section endpoint" id={endpoint.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}>
+        <section class="section endpoint" id={endpointId(endpoint.path)}>
           <!-- Chrome names the heading with a space at each <wbr>, so the label gives the path as written. -->
           <h2 aria-label={`${endpoint.method} ${endpoint.path}`}>
             {endpoint.method} /{endpoint.path.split('/').slice(1).map((part, index, parts) => (index < parts.length - 1 ? <>{part}/<wbr /></> : part))}
@@ -85,6 +127,53 @@ for (const path of Object.keys(samples)) {
             </Fragment>
           )}
           <pre><code>{endpoint.curl}</code></pre>
+          {endpoint.note && <p class="recorded">{endpoint.note}</p>}
+          {endpoint.fields && endpoint.statuses && (
+            <Fragment>
+              <p class="recorded">The fields of a 200 body:</p>
+              <div class="wide" role="region" aria-label={`Fields of the ${endpoint.path} body`} tabindex="0">
+                <table class="shape">
+                  <thead>
+                    <tr>
+                      <th scope="col">field</th>
+                      <th scope="col">type</th>
+                      <th scope="col">meaning</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {endpoint.fields.map((field) => (
+                      <tr>
+                        <td>{field.name}</td>
+                        <td>{field.type}</td>
+                        <td>{field.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p class="recorded">Every status it answers:</p>
+              <div class="wide" role="region" aria-label={`Statuses of ${endpoint.path}`} tabindex="0">
+                <table class="shape">
+                  <thead>
+                    <tr>
+                      <th scope="col">status</th>
+                      <th scope="col">body</th>
+                      <th scope="col">meaning</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {endpoint.statuses.map((row) => (
+                      <tr>
+                        <td>{row.status}</td>
+                        <td>{row.body}</td>
+                        <td>{row.meaning}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Fragment>
+          )}
           {endpoint.path === '/api/ask' && (
             <Fragment>
               <p>Each answer also carries a token: to send that question to Alex, pass it to /api/questions within {minutes} minutes.</p>
@@ -146,16 +235,43 @@ for (const path of Object.keys(samples)) {
     font-size: var(--text-md);
   }
 
-  /* The table of what is stored can be wider than a phone, so it scrolls inside its own box. */
-  .stored {
+  /* The table of what is stored, and the field and status tables, can be wider than a phone, so
+     each scrolls inside its own box. */
+  .stored,
+  .wide {
     overflow-x: auto;
   }
 
-  /* The day a recorded sample was taken, under its code block in the caption style. */
+  .shape td:first-child,
+  .shape td:nth-child(2) {
+    white-space: nowrap;
+  }
+
+  /* The day a recorded sample was taken, or the note under a curl line, in the caption style. */
   .recorded {
     margin-top: calc(-1 * var(--space-2));
     color: var(--muted);
     font-size: var(--text-sm);
+  }
+
+  /* The endpoint index: one line per endpoint in the mono the titles use, so the on-demand
+     endpoints at the foot of the page are reachable from the first screen. */
+  .index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-5);
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-mono);
+  }
+
+  .index a {
+    display: inline-block;
+    padding-block: calc((var(--control) - var(--leading-mono) * 1em) / 2);
+    margin-block: calc((var(--leading-mono) * 1em - var(--control)) / 2);
   }
 
   /* A heading inside an endpoint's section stays at the body size, below the endpoint title's, and a
