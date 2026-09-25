@@ -393,7 +393,7 @@ describe(`built output in ${root}`, () => {
   it('keeps the bootstrap under 2 KB gzipped', () => {
     const bootstrap = files.filter((path) => /Base\.astro_astro_type_script_index_0_lang\.[\w-]+\.js$/.test(path));
     expect(bootstrap).toHaveLength(1);
-    expect(gzipSync(readFileSync(bootstrap[0]!)).length).toBeLessThan(2048);
+    expect(gzipSync(readFileSync(bootstrap[0]!)).length).toBeLessThan(BOOTSTRAP_BUDGET_BYTES);
   });
 
   it('ends every page with the Vercel Analytics element and its module', () => {
@@ -609,7 +609,8 @@ describe(`built output in ${root}`, () => {
       rows.set(page!, [...(rows.get(page!) ?? []), { heading: heading!, body: body! }]);
     }
     const html = (url: string) => pages.find((page) => page.url === url)!.html;
-    const pageOnly = /<(figure|pre|p|ul|div)\b[^>]*\sdata-page-only\b[^>]*>[\s\S]*?<\/\1>/g;
+    const text = (source: string) => decode(source.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    const pageOnly = /<(figure|pre|p|ul|dl|div)\b[^>]*\sdata-page-only\b[^>]*>[\s\S]*?<\/\1>/g;
     const sections = (source: string) =>
       [...source.matchAll(/<section class="section"[^>]*\sid="([^"]*)"[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)<\/section>/g)].map(
         ([, id, heading, body]) => ({ id: id!, heading: inlineText(heading!), body: body!.replace(pageOnly, '') }),
@@ -635,7 +636,18 @@ describe(`built output in ${root}`, () => {
     shown.set('/404', [leadOf(html('/404'))]);
     const works = html('/how-this-site-works');
     shown.set('/how-this-site-works', [leadOf(works), ...sections(works).map((section) => ({ heading: section.heading, body: blockText(section.body) }))]);
-    expect(works.match(pageOnly)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    expect(works.match(pageOnly)?.length ?? 0).toBeGreaterThanOrEqual(8);
+    // The numbers under the title are the build's, and the build script links to its source at the built commit.
+    const facts = works.match(/<dl class="facts"[^>]*\sdata-page-only[^>]*>([\s\S]*?)<\/dl>/)?.[1] ?? '';
+    const pairs = [...facts.matchAll(/<dt[^>]*>([^<]*)<\/dt>\s*<dd[^>]*>([^<]*)<\/dd>/g)].map(([, label, value]) => [decode(label!), decode(value!)]);
+    expect(pairs.map(([label]) => label)).toEqual(['Tables', 'Model calls a month, at most', 'Tokens a question sends', 'A month at the cap, at most', 'Eval questions on every push']);
+    const numbers = JSON.parse(readFileSync('src/generated/numbers.json', 'utf8')) as Record<string, string>;
+    expect(pairs.map(([, value]) => value)).toEqual([numbers.table_count, numbers.monthly_cap, numbers.prompt_tokens, numbers.cap_month_cost, numbers.eval_questions]);
+    const info = JSON.parse(readFileSync('src/generated/build-info.json', 'utf8')) as { commit: string };
+    expect(works).toMatch(new RegExp(`<a href="https://github\\.com/[^"]+/blob/${info.commit}/scripts/build-db\\.ts"[^>]*>scripts/build-db\\.ts</a>`));
+    expect(text(works)).toContain(`Together ${numbers.cap_month_cost}. Measured on ${numbers.fixture_model} at prompt version ${numbers.fixture_prompt_version}`);
+    expect(works).toContain('curl -A curl/8.0 https://alexkachur.com');
+    expect(text(works)).toContain(readFileSync(join(root, 'resume.txt'), 'utf8').split('\n')[0]!);
 
     expect([...shown.keys()].sort()).toEqual([...rows.keys()].sort());
     for (const [page, expected] of rows) expect(shown.get(page), page).toEqual(expected);
@@ -719,7 +731,8 @@ describe(`built output in ${root}`, () => {
     const bootstrap = assets.find((name) => /^Base\.astro_astro_type_script_index_0_lang\./.test(name))!;
     const analytics = assets.find((name) => readFileSync(join(root, '_astro', name), 'utf8').includes(INSIGHTS.name))!;
     const gzipped = (path: string) => gzipSync(readFileSync(path)).length;
-    expect(lines).toHaveLength(4);
+    expect(lines).toHaveLength(5);
+    expect(lines[4]).toContain(`passes ${BOOTSTRAP_BUDGET_BYTES.toLocaleString('en-US')} bytes gzipped`);
     expect(lines[0]).toMatch(/^\/theme\.js, /);
     expect(size(lines[0]!)).toBe(gzipped(join(root, 'theme.js')));
     expect(size(lines[1]!)).toBe(gzipped(join(root, '_astro', bootstrap)));

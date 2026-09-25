@@ -15,6 +15,9 @@ export interface LoadedScript {
 
 export const INSIGHTS = { name: '/_vercel/insights/script.js', bytes: 2019, measured: '2026-09-25' } as const;
 
+// The bootstrap's budget, gzipped; the build test fails past it and the page names it.
+export const BOOTSTRAP_BUDGET_BYTES = 2048;
+
 export function loadedScripts(root = process.cwd()): LoadedScript[] | null {
   const assets = join(root, 'dist', 'client', '_astro');
   if (!existsSync(assets)) return null;

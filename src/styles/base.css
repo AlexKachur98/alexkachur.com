@@ -226,6 +226,26 @@ figcaption {
   vertical-align: 0.15em;
 }
 
+/* The facts list under a page title: a case study's role, year, client and stack, or the
+   write-up's measured numbers; labels in the muted mono, values beside them. */
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-mono);
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+}
+
 .site-footer {
   margin-top: var(--space-8);
   padding-block: var(--space-6);

@@ -15,6 +15,7 @@ import {
   main,
   parseContent,
   readContentFiles,
+  recordedEval,
   recordedPromptTokens,
   renderMarkdown,
   schemaJson,
@@ -350,12 +351,25 @@ describe('build-db', () => {
   });
 
   it('fills each number in a highlight, a caption or a page from the thing it counts, and leaves no placeholder in any cell', () => {
+    const recorded = recordedEval();
     const promptTokens = recordedPromptTokens();
-    const fixture = JSON.parse(readFileSync('scripts/eval/fixtures.json', 'utf8')) as { questions: { replies: { usage: { input_tokens: number } }[] }[] };
+    const fixture = JSON.parse(readFileSync('scripts/eval/fixtures.json', 'utf8')) as { model: string; promptVersion: number; questions: { replies: { usage: { input_tokens: number; output_tokens: number } }[] }[] };
+    const outputs = fixture.questions.map((entry) => entry.replies[0]!.usage.output_tokens);
     expect(promptTokens).toBe(Math.max(...fixture.questions.map((entry) => entry.replies[0]!.usage.input_tokens)));
+    expect(recorded).toEqual({ promptTokens, model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) });
     expect(promptTokens).toBeLessThan(CACHE_MINIMUM_TOKENS);
-    const cost = (DEFAULT_CAP * (promptTokens * PRICE.input + MODEL.maxTokens * PRICE.output)) / 1e6;
-    expect(siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], promptTokens)).toEqual({
+    const inputCost = Math.round(((DEFAULT_CAP * promptTokens * PRICE.input) / 1e6) * 100) / 100;
+    const outputCost = Math.round(((DEFAULT_CAP * MODEL.maxTokens * PRICE.output) / 1e6) * 100) / 100;
+    const cost = inputCost + outputCost;
+    expect(siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], recorded)).toEqual({
+      month_input_tokens: (DEFAULT_CAP * promptTokens).toLocaleString('en-US'),
+      month_input_cost: `$${inputCost.toFixed(2)}`,
+      month_output_tokens: (DEFAULT_CAP * MODEL.maxTokens).toLocaleString('en-US'),
+      month_output_cost: `$${outputCost.toFixed(2)}`,
+      fixture_model: fixture.model,
+      fixture_prompt_version: String(fixture.promptVersion),
+      output_tokens_min: String(Math.min(...outputs)),
+      output_tokens_max: String(Math.max(...outputs)),
       eval_questions: String(questions.length),
       openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
       splitroof_tool_tests: '12',

@@ -263,14 +263,35 @@ export type Row = Record<string, string | number | null>;
 
 const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-// The largest first call the eval recorded: the whole request as the model counts it, system
-// prompt, question and the shape of the answer. The fixture is committed, so every build reads
-// the same count until the eval is recorded again.
-export function recordedPromptTokens(path = fileURLToPath(new URL('./eval/fixtures.json', import.meta.url))): number {
-  const fixture = JSON.parse(readFileSync(path, 'utf8')) as { questions: { replies: { usage: { input_tokens: number } }[] }[] };
-  const counts = fixture.questions.map((entry) => entry.replies[0]?.usage.input_tokens ?? 0);
-  if (counts.length === 0 || counts.some((count) => count <= 0)) throw new Error(`${path}: a question has no recorded input token count`);
-  return Math.max(...counts);
+// What the eval recorded: the largest first call (the whole request as the model counts it,
+// system prompt, question and the shape of the answer), the model and prompt version it ran on,
+// and the range of the answers. The fixture is committed, so every build reads the same numbers
+// until the eval is recorded again.
+export interface RecordedEval {
+  promptTokens: number;
+  model: string;
+  promptVersion: number;
+  outputMin: number;
+  outputMax: number;
+}
+
+export const fixturePath = fileURLToPath(new URL('./eval/fixtures.json', import.meta.url));
+
+export function recordedEval(path = fixturePath): RecordedEval {
+  const fixture = JSON.parse(readFileSync(path, 'utf8')) as {
+    model: string;
+    promptVersion: number;
+    questions: { replies: { usage: { input_tokens: number; output_tokens: number } }[] }[];
+  };
+  const first = fixture.questions.map((entry) => entry.replies[0]?.usage);
+  if (first.length === 0 || first.some((usage) => !usage || usage.input_tokens <= 0)) throw new Error(`${path}: a question has no recorded first call`);
+  const inputs = first.map((usage) => usage!.input_tokens);
+  const outputs = first.map((usage) => usage!.output_tokens);
+  return { promptTokens: Math.max(...inputs), model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) };
+}
+
+export function recordedPromptTokens(path = fixturePath): number {
+  return recordedEval(path).promptTokens;
 }
 
 // The numbers the site's text may name, each from the thing it counts, so a count typed in two
@@ -278,15 +299,31 @@ export function recordedPromptTokens(path = fileURLToPath(new URL('./eval/fixtur
 // document declares, the two SplitRoof test counts from the case study's own sentence (where they
 // sit beside the screenshot that shows them), the table count, the limits and lifetimes the code
 // stores with, and what a model call costs from the recorded eval and the published prices.
-export function siteNumbers(sections: readonly { page: string; body: string }[], promptTokens: number): Record<string, string> {
+export function siteNumbers(sections: readonly { page: string; body: string }[], eval_: RecordedEval | number): Record<string, string> {
+  const recorded = typeof eval_ === 'number' ? { promptTokens: eval_, model: MODEL.id, promptVersion: 0, outputMin: 0, outputMax: 0 } : eval_;
+  const { promptTokens } = recorded;
   const splitroof = sections.filter((section) => section.page === '/work/splitroof-ai-assistant').map((section) => section.body).join('\n');
   const where = 'projects/splitroof-ai-assistant.md';
   // The page says the prompt is under the cache's floor, so a prompt that grows past it stops the build.
   if (promptTokens >= CACHE_MINIMUM_TOKENS) {
     throw new Error(`the prompt is ${promptTokens} tokens, at or over the ${CACHE_MINIMUM_TOKENS}-token cache floor; the caching paragraph on /how-this-site-works is no longer true`);
   }
-  const monthCost = (DEFAULT_CAP * (promptTokens * PRICE.input + MODEL.maxTokens * PRICE.output)) / 1e6;
+  // The month's ceiling is the sum of its two rounded parts, so the arithmetic the page shows adds up.
+  const dollars = (n: number): number => Math.round(n * 100) / 100;
+  const monthInputTokens = DEFAULT_CAP * promptTokens;
+  const monthOutputTokens = DEFAULT_CAP * MODEL.maxTokens;
+  const monthInputCost = dollars((monthInputTokens * PRICE.input) / 1e6);
+  const monthOutputCost = dollars((monthOutputTokens * PRICE.output) / 1e6);
+  const monthCost = monthInputCost + monthOutputCost;
   return {
+    month_input_tokens: group(monthInputTokens),
+    month_input_cost: `$${monthInputCost.toFixed(2)}`,
+    month_output_tokens: group(monthOutputTokens),
+    month_output_cost: `$${monthOutputCost.toFixed(2)}`,
+    fixture_model: recorded.model,
+    fixture_prompt_version: String(recorded.promptVersion),
+    output_tokens_min: group(recorded.outputMin),
+    output_tokens_max: group(recorded.outputMax),
     eval_questions: String(questions.length),
     openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
     splitroof_tool_tests: String(countIn(splitroof, /(\w+) Jest tests before the model/g, where)),
@@ -322,13 +359,13 @@ function rawSections(content: Content): SectionRow[] {
   ]);
 }
 
-export function siteNumbersFor(content: Content, promptTokens = recordedPromptTokens()): Record<string, string> {
-  return siteNumbers(rawSections(content), promptTokens);
+export function siteNumbersFor(content: Content, recorded = recordedEval()): Record<string, string> {
+  return siteNumbers(rawSections(content), recorded);
 }
 
-export function tableRows(content: Content, promptTokens = recordedPromptTokens()): Record<TableName, Row[]> {
+export function tableRows(content: Content, recorded: RecordedEval | number = recordedEval()): Record<TableName, Row[]> {
   const raw = rawSections(content);
-  const numbers = siteNumbers(raw, promptTokens);
+  const numbers = siteNumbers(raw, recorded);
   const sections = raw.map((row) => ({ ...row, body: fillPlaceholders(row.body, numbers, `${row.page} ${row.heading}`) }));
   return {
     facts: factRows(content.facts),

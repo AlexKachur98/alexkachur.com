@@ -1,20 +1,26 @@
 ---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getEntry } from 'astro:content';
 import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
+import buildInfo from '../generated/build-info.json';
 import numbers from '../generated/numbers.json';
 import { dataFile } from '../lib/data-file.ts';
-import { INSIGHTS, loadedScripts } from '../lib/loaded-scripts.ts';
+import { BOOTSTRAP_BUDGET_BYTES, INSIGHTS, loadedScripts } from '../lib/loaded-scripts.ts';
 import { fillPlaceholders } from '../lib/numbers.ts';
+import { select } from '../lib/query.ts';
 import { splitSections } from '../lib/sections.ts';
 
 // The prose is the page entry, the text the sections table holds, with its numbers filled in the
 // way the table's were. What only this page can add follows the prose of its section and is
-// marked data-page-only, so the build test can compare the rest with the table: the diagram and
-// the curl one-liner, the versioned link to the dump, the model's name read from /api/stats after
-// load (never baked, so the page cannot go stale when the variable changes), and the sizes of the
-// scripts every page loads before interaction, measured from the client build.
+// marked data-page-only, so the build test can compare the rest with the table: the numbers under
+// the title, the diagram, the curl one-liner with the first lines it returns, the versioned link
+// to the dump, the model's name read from /api/stats after load (never baked, so the page cannot
+// go stale when the variable changes), the cost arithmetic, and the sizes of the scripts every
+// page loads before interaction, measured from the client build. The build script's name links
+// to its source at the commit the site was built from, so the link cannot rot.
 const page = await getEntry('pages', 'how-this-site-works');
 if (!page?.data.title) throw new Error('src/content/pages/how-this-site-works.md is missing, or has no title');
 const where = 'pages/how-this-site-works.md';
@@ -26,6 +32,15 @@ if (!lead || lead.id !== '') throw new Error(`${where}: the text before the firs
 const dump = dataFile('portfolio.sql');
 const scripts = loadedScripts();
 const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+const repo = (await select("SELECT repo_url FROM projects WHERE slug = 'this-site'")).rows[0]?.[0];
+if (typeof repo !== 'string') throw new Error('the this-site project has no repo_url');
+const commit = /^[0-9a-f]{7,40}$/.test(buildInfo.commit) ? buildInfo.commit : 'main';
+const source = (path: string) => `${repo}/blob/${commit}/${path}`;
+const linked = (html: string, path: string) => html.replace(path, `<a href="${source(path)}">${path}</a>`);
+
+// The first lines of the plain-text resume curl gets, cut the way the /api samples are.
+const resumeHead = `${readFileSync(join(process.cwd(), 'public', 'resume.txt'), 'utf8').split('\n').slice(0, 7).join('\n')}\n...`;
 ---
 
 <Base title={page.data.title} description="How alexkachur.com works: a database built at deploy time, an AI that writes SQL your browser runs, a public API and a capped AI budget.">
@@ -34,13 +49,29 @@ const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, 
       <h1>{page.data.title}</h1>
       <div class="lead"><Fragment set:html={lead.body} /></div>
     </header>
+    <dl class="facts" data-page-only>
+      <dt>Tables</dt>
+      <dd>{numbers.table_count}</dd>
+      <dt>Model calls a month, at most</dt>
+      <dd>{numbers.monthly_cap}</dd>
+      <dt>Tokens a question sends</dt>
+      <dd>{numbers.prompt_tokens}</dd>
+      <dt>A month at the cap, at most</dt>
+      <dd>{numbers.cap_month_cost}</dd>
+      <dt>Eval questions on every push</dt>
+      <dd>{numbers.eval_questions}</dd>
+    </dl>
     {
       sections.map((section) => (
         <Section id={section.id} title={section.title}>
           {section.id === 'architecture' && <ArchitectureDiagram />}
-          <Fragment set:html={section.body} />
+          <Fragment set:html={section.id === 'build-time-database' ? linked(section.body, 'scripts/build-db.ts') : section.body} />
           {section.id === 'architecture' && (
-            <pre data-page-only><code>curl -A curl/8.0 https://alexkachur.com</code></pre>
+            <Fragment>
+              <pre data-page-only><code>curl -A curl/8.0 https://alexkachur.com</code></pre>
+              <p data-page-only>The first lines of what comes back:</p>
+              <pre data-page-only><code>{resumeHead}</code></pre>
+            </Fragment>
           )}
           {section.id === 'build-time-database' && (
             <p data-page-only>
@@ -54,6 +85,19 @@ const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, 
               Right now it is <span data-model />.
             </p>
           )}
+          {section.id === 'cost-and-the-cap' && (
+            <ul data-page-only>
+              <li>
+                Input: {numbers.monthly_cap} calls of {numbers.prompt_tokens} tokens, {numbers.month_input_tokens} tokens at {numbers.price_input} per million, {numbers.month_input_cost}.
+              </li>
+              <li>
+                Output: at most {numbers.max_output_tokens} tokens a call, {numbers.month_output_tokens} tokens at {numbers.price_output} per million, {numbers.month_output_cost}.
+              </li>
+              <li>
+                Together {numbers.cap_month_cost}. Measured on {numbers.fixture_model} at prompt version {numbers.fixture_prompt_version}; the recorded answers ran from {numbers.output_tokens_min} to {numbers.output_tokens_max} tokens.
+              </li>
+            </ul>
+          )}
           {section.id === 'performance' && scripts && (
             <ul data-page-only>
               {scripts.map((script) => (
@@ -63,6 +107,9 @@ const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, 
               ))}
               <li>
                 <code>{INSIGHTS.name}</code>, {group(INSIGHTS.bytes)} bytes as Vercel served it on {INSIGHTS.measured}: the page-count beacon the module above adds.
+              </li>
+              <li>
+                The build fails if the bootstrap passes {group(BOOTSTRAP_BUDGET_BYTES)} bytes gzipped. The sizes are gzipped at zlib's default level, so a browser's Size column, which counts headers or the raw bytes, shows other figures.
               </li>
             </ul>
           )}
