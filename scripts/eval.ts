@@ -6,8 +6,9 @@
 // the API and writes that file; --live calls the API and only reports. A fixture is tied to the
 // model id, the prompt version and the schema hash the prompt embeds, so it must be recorded
 // again when any of them changes. Runs under Node's type stripping, like build-db.ts.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import Anthropic from '@anthropic-ai/sdk';
 import initSqlJs from 'sql.js';
@@ -101,7 +102,7 @@ function liveModel(client: Anthropic, replies: RecordedReply[], counter: Counter
 }
 
 // A second connection for the checks, so they never step the one the handler validates against.
-async function checkDatabase(): Promise<Database> {
+export async function checkDatabase(): Promise<Database> {
   const wasm = Buffer.from(sqlWasmBase64, 'base64');
   const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
   const db = new SQL.Database(Buffer.from(portfolioDbBase64, 'base64'));
@@ -144,7 +145,7 @@ function kindOf(result: AskResult): Kind {
 }
 
 // null when the result meets the question's expectation, otherwise the reason it does not.
-function checkProblem(entry: EvalQuestion, result: AskResult, db: Database): string | null {
+export function checkProblem(entry: EvalQuestion, result: AskResult, db: Database): string | null {
   if (result.status !== 200) return `status ${result.status}: ${String(result.body.reason ?? result.body.error ?? '')}`;
   const kind = kindOf(result);
   if (entry.expect !== 'either' && kind !== entry.expect) return `expected ${entry.expect}, got ${kind}`;
@@ -158,6 +159,12 @@ function checkProblem(entry: EvalQuestion, result: AskResult, db: Database): str
   }
   const naming = columnProblem(sql, found.columns, found.values);
   if (naming) return naming;
+  // Counted before the text checks, so an answer that lists every row fails on its count rather
+  // than on a missing group name. Reading stops one row past the 50 shown.
+  const count = found.values.length;
+  const counted = `${count === ROW_LIMIT ? `${count} or more` : count} ${count === 1 ? 'row' : 'rows'}`;
+  if (entry.maxRows !== undefined && count > entry.maxRows) return `${counted}, more than ${entry.maxRows}`;
+  if (entry.minRows !== undefined && count < entry.minRows) return `${counted}, fewer than ${entry.minRows}`;
   const text = JSON.stringify(found.values);
   const quoted = (values: string[]) => values.map((value) => JSON.stringify(value)).join(', ');
   const missing = (entry.mustInclude ?? []).filter((needle) => !text.includes(needle));
@@ -273,4 +280,8 @@ async function main(): Promise<number> {
   return 0;
 }
 
-process.exitCode = await main();
+// Node resolves the entry module through its real path, so a symlinked checkout compares the same
+// way; imported by the tests, the file only defines the checks.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+  process.exitCode = await main();
+}
