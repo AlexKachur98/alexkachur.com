@@ -16,10 +16,22 @@ export interface SentQuestion {
   date: string;
 }
 
+// Whether a key is inside its window and, when it is not, the moment the window lets it through
+// again, so the refusal can say how long to wait.
+export interface Allowance {
+  allowed: boolean;
+  // Epoch milliseconds; only meaningful when allowed is false.
+  resetAt: number;
+}
+
+// The header a 429 carries: whole seconds until the moment given, never less than one.
+export function retryAfter(resetAtMs: number, nowMs: number): Record<string, string> {
+  return { 'Retry-After': String(Math.max(1, Math.ceil((resetAtMs - nowMs) / 1000))) };
+}
+
 export interface Store {
-  // True while the key is inside its window. The key is the handler's keyed hash of the address,
-  // never the address itself.
-  allow(key: string): Promise<boolean>;
+  // The key is the handler's keyed hash of the address, never the address itself.
+  allow(key: string): Promise<Allowance>;
   read(key: string): Promise<CacheEntry | null>;
   write(key: string, entry: CacheEntry, ttlSeconds: number): Promise<void>;
   // INCR; the key's lifetime is set with its first count and never pushed back, so a counter
@@ -70,7 +82,11 @@ export function redisStore(env: string, redis: Redis): Store {
     }
   };
   return {
-    allow: (key) => guard(async () => (await limiter.limit(key)).success),
+    allow: (key) =>
+      guard(async () => {
+        const { success, reset } = await limiter.limit(key);
+        return { allowed: success, resetAt: reset };
+      }),
     read: (key) =>
       guard(async () => {
         const value = await redis.get<unknown>(key);
@@ -104,7 +120,7 @@ export function redisStore(env: string, redis: Redis): Store {
 // Local development without Redis: every request passes, nothing is cached, nothing is counted.
 export function skippedStore(): Store {
   return {
-    allow: async () => true,
+    allow: async () => ({ allowed: true, resetAt: 0 }),
     read: async () => null,
     write: async () => {},
     count: async () => 0,

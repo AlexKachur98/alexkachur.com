@@ -13,8 +13,10 @@ const document = openApiDocument(schema, { site, version: 'abc1234' });
 type Operation = {
   operationId: string;
   parameters?: unknown[];
-  responses: Record<string, { description: string; content?: Record<string, { schema: unknown }> }>;
+  responses: Record<string, { description: string; content?: Record<string, { schema: unknown }>; headers?: Record<string, unknown> }>;
 };
+
+const retryAfter = { 'Retry-After': { description: 'Seconds to wait before trying again', schema: { type: 'integer', minimum: 1 } } };
 const paths = document.paths as Record<string, Record<string, Operation>>;
 const schemas = document.components.schemas as Record<string, Record<string, unknown>>;
 
@@ -122,6 +124,8 @@ describe('the OpenAPI document', () => {
   it('documents the ask request limits from the handler and every status it answers', () => {
     const ask = paths['/api/ask']!['post']!;
     expect(Object.keys(ask.responses).sort()).toEqual(['200', '400', '422', '429', '500', '503']);
+    expect(ask.responses['429']!.headers).toEqual(retryAfter);
+    expect(Object.values(ask.responses).filter((response) => response.headers)).toHaveLength(1);
     const request = schemas['ask_request'] as { properties: { question: { minLength: number; maxLength: number } }; required: string[] };
     expect(request.properties.question.minLength).toBe(3);
     expect(request.properties.question.maxLength).toBe(200);
@@ -135,6 +139,7 @@ describe('the OpenAPI document', () => {
   it('documents sending a question with its token, every status it answers, and no way to read one back', () => {
     const send = paths['/api/questions']!['post']!;
     expect(Object.keys(send.responses).sort()).toEqual(['200', '400', '403', '429', '500', '503']);
+    expect(send.responses['429']!.headers).toEqual(retryAfter);
     const request = schemas['send_request'] as { properties: { question: { maxLength: number } }; required: string[] };
     expect(request.required).toEqual(['question', 'token']);
     expect(request.properties.question.maxLength).toBe(200);

@@ -78,7 +78,7 @@ function fakeStore(): FakeStore {
     async allow(key) {
       store.calls.push(['allow', key]);
       throwIf('allow');
-      return store.allowed;
+      return { allowed: store.allowed, resetAt: t + 24_500 };
     },
     async read(key) {
       store.calls.push(['read', key]);
@@ -267,6 +267,8 @@ describe('the rate limit', () => {
     const { result } = await run(QUESTION, { store, model });
     expect(result.status).toBe(429);
     expect(result.body).not.toHaveProperty('sql');
+    // The window has room again in 24.5 seconds, rounded up to whole seconds.
+    expect(result.headers).toEqual({ 'Retry-After': '25' });
     expect(store.calls).toEqual([['allow', limitKey(LIMIT_SECRET, IP)]]);
     expect(model.calls).toBe(0);
   });

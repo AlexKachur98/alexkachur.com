@@ -46,6 +46,6 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const result = withToken(answered, body, config, Date.now());
   return new Response(JSON.stringify(result.body), {
     status: result.status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...result.headers },
   });
 };

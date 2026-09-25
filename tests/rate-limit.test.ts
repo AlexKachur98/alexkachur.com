@@ -103,11 +103,20 @@ describe('the rate limit in Redis', () => {
     for (const key of keys) expect(key).toMatch(new RegExp(`^ask:test:limit:${hmac}:\\d+$`));
   });
 
+  it('answers a blocked address with 429 and a Retry-After inside the window', async () => {
+    const { redis } = fakeRedis(true);
+    const result = await handleAsk({ question: QUESTION }, '203.0.113.7', deps(redisStore('test', redis)));
+    expect(result.status).toBe(429);
+    const seconds = Number(result.headers?.['Retry-After']);
+    expect(seconds).toBeGreaterThanOrEqual(1);
+    expect(seconds).toBeLessThanOrEqual(RATE_LIMIT.windowSeconds);
+  });
+
   it('keeps no in-memory cache, so a blocked key still goes to Redis every time', async () => {
     const { commands, redis } = fakeRedis(true);
     const store = redisStore('test', redis);
-    expect(await store.allow('key')).toBe(false);
-    expect(await store.allow('key')).toBe(false);
+    expect(await store.allow('key')).toMatchObject({ allowed: false });
+    expect(await store.allow('key')).toMatchObject({ allowed: false });
     expect(limiterCalls(commands)).toHaveLength(2);
 
     // The library's default would have answered the second from memory. Its memory of a block ends

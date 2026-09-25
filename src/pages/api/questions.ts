@@ -18,6 +18,6 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const result = await handleSend(body, clientAddress, { config, store: storeFor(config, import.meta.env.DEV), log });
   return new Response(JSON.stringify(result.body), {
     status: result.status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...result.headers },
   });
 };

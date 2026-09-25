@@ -105,7 +105,7 @@ for (const path of Object.keys(samples)) {
     <header class="page-head">
       <h1>API</h1>
       <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, /api/questions, which passes on a question a visitor chose to send, and /api/stats, which reports the counters.</p>
-      <p>{RATE_LIMITS_SENTENCE} A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
+      <p>{RATE_LIMITS_SENTENCE} Every 429 carries a Retry-After header with the seconds to wait before you try again. /api/questions also returns 429 with error "daily_cap" once the day's {SEND.dailyCap} sent questions are used up. A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
       <p>Try it:</p>
       <pre><code>curl {url('/api/projects.json')}</code></pre>
       <p>The whole API as an OpenAPI 3.1 document, built from the same schema and endpoint list, for loading into any client: <a href="/api/openapi.json">/api/openapi.json</a></p>

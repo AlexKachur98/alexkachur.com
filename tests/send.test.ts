@@ -48,7 +48,7 @@ function fakeStore(): FakeStore {
     async allow(k) {
       store.calls.push(`allow ${k}`);
       if (store.fail) throw store.fail;
-      return store.allowed;
+      return { allowed: store.allowed, resetAt: NOW + 24_500 };
     },
     async read() {
       throw new Error('send must not read the cache');
@@ -178,7 +178,8 @@ describe('POST /api/questions', () => {
       expect((await send(store, { question, token: token(question) })).status).toBe(200);
     }
     const last = 'One question too many?';
-    expect(await send(store, { question: last, token: token(last) })).toMatchObject({ status: 429, body: { error: 'daily_cap' } });
+    // Noon UTC, so the day opens again in twelve hours.
+    expect(await send(store, { question: last, token: token(last) })).toMatchObject({ status: 429, body: { error: 'daily_cap' }, headers: { 'Retry-After': String(12 * 60 * 60) } });
     expect(store.saved.size).toBe(SEND.dailyCap);
     // A new UTC day has its own count.
     const tomorrow = NOW + DAY * 1000;
@@ -188,7 +189,8 @@ describe('POST /api/questions', () => {
   it('answers 429 rate_limited when the address is over the shared limit, storing nothing', async () => {
     const store = fakeStore();
     store.allowed = false;
-    expect(await send(store, { question: QUESTION, token: token() })).toMatchObject({ status: 429, body: { error: 'rate_limited' } });
+    // The window has room again in 24.5 seconds, which the header rounds up to whole seconds.
+    expect(await send(store, { question: QUESTION, token: token() })).toMatchObject({ status: 429, body: { error: 'rate_limited' }, headers: { 'Retry-After': '25' } });
     expect(store.saved.size).toBe(0);
   });
 

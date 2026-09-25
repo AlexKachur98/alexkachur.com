@@ -77,9 +77,13 @@ function rowSchema(table: SchemaTable): JsonSchema {
   };
 }
 
-function jsonResponse(description: string, schema: JsonSchema): JsonSchema {
-  return { description, content: { 'application/json': { schema } } };
+function jsonResponse(description: string, schema: JsonSchema, headers?: JsonSchema): JsonSchema {
+  return { description, content: { 'application/json': { schema } }, ...(headers ? { headers } : {}) };
 }
+
+// Every 429 says how many whole seconds to wait: until the address's window has room again, or
+// until the next UTC day for sent questions.
+const RETRY_AFTER: JsonSchema = { 'Retry-After': { description: 'Seconds to wait before trying again', schema: { type: 'integer', minimum: 1 } } };
 
 function errorBody(code: string): JsonSchema {
   return { type: 'object', properties: { error: { const: code } }, required: ['error'] };
@@ -260,7 +264,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
           '200': jsonResponse('SQL for the question, or an explanation of why there is none', ref('ask_answer')),
           '400': jsonResponse(`The body has no question of ${QUESTION_LENGTH.min} to ${QUESTION_LENGTH.max} characters`, errorBody('invalid_question')),
           '422': jsonResponse('The model gave nothing that prepares as a safe query', errorBody('unusable_output')),
-          '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions in a minute from one address`, errorBody('rate_limited')),
+          '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions in a minute from one address`, errorBody('rate_limited'), RETRY_AFTER),
           '500': jsonResponse('An unexpected failure', errorBody('internal')),
           '503': jsonResponse('Not answering: the monthly cap is reached, the service is not set up, or the model did not respond', ref('unavailable')),
         },
@@ -274,11 +278,15 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
           '200': jsonResponse('The question is kept for Alex', ref('send_answer')),
           '400': jsonResponse(`The body has no question of ${QUESTION_LENGTH.min} to ${QUESTION_LENGTH.max} characters, or it holds control or text-direction characters`, errorBody('invalid_question')),
           '403': jsonResponse(`The token is missing, not for this question, or older than ${SEND.windowSeconds / 60} minutes`, errorBody('invalid_token')),
-          '429': jsonResponse('Over the rate limit, or the day has taken all the questions it can', {
-            type: 'object',
-            properties: { error: { enum: ['rate_limited', 'daily_cap'] } },
-            required: ['error'],
-          }),
+          '429': jsonResponse(
+            'Over the rate limit, or the day has taken all the questions it can',
+            {
+              type: 'object',
+              properties: { error: { enum: ['rate_limited', 'daily_cap'] } },
+              required: ['error'],
+            },
+            RETRY_AFTER,
+          ),
           '500': jsonResponse('An unexpected failure', errorBody('internal')),
           '503': jsonResponse('Not answering: asking is switched off, the service is not set up, or the store did not respond', ref('unavailable')),
         },

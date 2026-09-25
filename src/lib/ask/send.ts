@@ -8,9 +8,9 @@ import { errorType } from './errors.ts';
 import { limitKey, readQuestion } from './handler.ts';
 import type { AskResult, LogEntry } from './handler.ts';
 import { normaliseQuestion } from './normalise.ts';
-import { StoreError } from './redis.ts';
+import { retryAfter, StoreError } from './redis.ts';
 import type { Store } from './redis.ts';
-import { keptFor, TTL } from './storage.ts';
+import { DAY, keptFor, TTL } from './storage.ts';
 
 // How long after an answer its question can be sent, and how far ahead of this server's clock a
 // token's time may be: tokens are minted and checked on different instances of the same host.
@@ -99,12 +99,14 @@ export async function handleSend(body: unknown, ip: string, deps: SendDeps): Pro
   }
 
   try {
-    if (!(await store.allow(limitKey(config.limitSecret, ip)))) return done(429, { error: 'rate_limited' }, 'rate_limit');
+    const allowance = await store.allow(limitKey(config.limitSecret, ip));
+    if (!allowance.allowed) return { ...done(429, { error: 'rate_limited' }, 'rate_limit'), headers: retryAfter(allowance.resetAt, now()) };
     // One clock reading for the day's count, the stored date and the expiry, so a send that
     // crosses midnight cannot land in two days.
     const day = dayOf(started);
     const dayKey = `ask:${config.env}:sent:${day.date}`;
-    if ((await store.peek(dayKey)) >= SEND.dailyCap) return done(429, { error: 'daily_cap' }, 'daily_cap');
+    // A full day opens again at the next UTC midnight.
+    if ((await store.peek(dayKey)) >= SEND.dailyCap) return { ...done(429, { error: 'daily_cap' }, 'daily_cap'), headers: retryAfter((day.start + DAY) * 1000, started) };
     // Keyed by the question, so the same question sent again is stored once and its expiry kept.
     const key = `ask:${config.env}:question:${createHash('sha256').update(normaliseQuestion(question)).digest('hex')}`;
     const written = await store.save(key, { question, date: day.date }, day.start + TTL.sentQuestion);

@@ -14,7 +14,7 @@ import { normaliseQuestion } from './normalise.ts';
 import { correctionTurn, PROMPT_VERSION, questionTurn, requestParams, schemaHash8 } from './prompt.ts';
 import type { AskOutput } from './prompt.ts';
 import { QUESTION_LENGTH } from './question.ts';
-import { StoreError } from './redis.ts';
+import { retryAfter, StoreError } from './redis.ts';
 import { TTL } from './storage.ts';
 import type { Store } from './redis.ts';
 import { explanationProblem, validateSql } from './validate-sql.ts';
@@ -52,6 +52,8 @@ export interface AskDeps {
 export interface AskResult {
   status: number;
   body: Record<string, unknown>;
+  // Headers beyond the fixed ones: a 429 carries Retry-After.
+  headers?: Record<string, string>;
 }
 
 const unusable = { error: 'unusable_output' };
@@ -94,7 +96,8 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
   if (!config.limitSecret) return done(503, { reason: 'config' }, 'limit_secret');
 
   try {
-    if (!(await store.allow(limitKey(config.limitSecret, ip)))) return done(429, { error: 'rate_limited' }, 'rate_limit');
+    const allowance = await store.allow(limitKey(config.limitSecret, ip));
+    if (!allowance.allowed) return { ...done(429, { error: 'rate_limited' }, 'rate_limit'), headers: retryAfter(allowance.resetAt, now()) };
 
     const { asked: askedKey, model: modelKey } = counterKeys(config.env, monthOf(now()));
     const key = cacheKey(config.env, question);
