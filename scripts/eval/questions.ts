@@ -26,7 +26,7 @@ export const questions: readonly EvalQuestion[] = [
   {
     question: 'Which technologies has Alex used on more than one project?',
     expect: 'sql',
-    mustInclude: ['React', 'Vercel'],
+    mustInclude: ['HTML', 'Vercel'],
   },
   { question: 'List the technologies in the ai category.', expect: 'sql', mustInclude: ['Anthropic API'] },
   { question: 'What courses is Alex taking in Fall 2026?', expect: 'sql', mustInclude: ['COMP 307'] },
@@ -42,7 +42,7 @@ export const questions: readonly EvalQuestion[] = [
   { question: 'Which project is featured on the home page?', expect: 'sql', mustInclude: ['SplitRoof AI assistant'] },
   { question: "What is Alex's GitHub?", expect: 'sql', mustInclude: ['github.com/AlexKachur98'] },
   { question: 'What is Alex studying and where?', expect: 'sql', mustInclude: ['Centennial College', 'COMP 307'] },
-  { question: 'Which technologies does Uraz Hoops use?', expect: 'sql', mustInclude: ['Next.js', 'Framer Motion'] },
+  { question: 'Which technologies does Uraz Hoops use?', expect: 'sql', mustInclude: ['FormSubmit', 'Vercel'] },
   { question: 'What kinds of projects has Alex done, and how many of each?', expect: 'sql', mustInclude: ['client'] },
   {
     question: 'Which projects are still ongoing?',

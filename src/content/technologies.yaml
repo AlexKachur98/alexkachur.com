@@ -59,7 +59,7 @@
 - id: next-js
   name: Next.js
   category: framework
-  core: 1
+  core: 0
   skill_area: Frontend
 - id: astro
   name: Astro
@@ -69,11 +69,6 @@
 - id: tailwind-css
   name: Tailwind CSS
   category: framework
-  core: 0
-  skill_area: Frontend
-- id: framer-motion
-  name: Framer Motion
-  category: library
   core: 0
   skill_area: Frontend
 - id: wpf
@@ -206,13 +201,13 @@
   category: service
   core: 0
   skill_area: Platforms and services
-- id: resend
-  name: Resend
+- id: web3forms
+  name: Web3Forms
   category: service
   core: 0
   skill_area: Platforms and services
-- id: web3forms
-  name: Web3Forms
+- id: formsubmit
+  name: FormSubmit
   category: service
   core: 0
   skill_area: Platforms and services

@@ -76,7 +76,7 @@ describe('build-db', () => {
       expect(query(`SELECT COUNT(*) AS n FROM ${table}`)[0]!.n, table).toBe(expected.length);
     }
     expect(rows.projects).toHaveLength(4);
-    expect(rows.technologies).toHaveLength(46);
+    expect(rows.technologies).toHaveLength(45);
     expect(rows.courses).toHaveLength(6);
     expect(rows.timeline).toHaveLength(8);
     expect(rows.pets).toHaveLength(2);
@@ -170,7 +170,8 @@ describe('build-db', () => {
     expect(before!.map((row) => row.title)).toEqual(['Manager', 'QA Tester']);
     expect(stored!.map((row) => Object.keys(row))[0]).toEqual(['item', 'kept_for', 'purpose']);
     expect(stored!.map((row) => row.kept_for)).toEqual(['30 days', '1 day', '2 minutes 1 second', '40 days', '90 days', '2 days', 'until you clear it']);
-    expect(shared).toContainEqual({ name: 'React', projects: 2 });
+    expect(shared).toContainEqual({ name: 'Vercel', projects: 2 });
+    expect(shared).toContainEqual({ name: 'HTML', projects: 2 });
     expect(courses).toHaveLength(6);
     expect(courses!.map((row) => row.code)).toContain('COMP 307');
     expect(pets!.map((row) => [row.name, row.born])).toEqual([
@@ -217,11 +218,10 @@ describe('build-db', () => {
     );
   });
 
-  it('marks exactly the seven core skills, each used by a project, and gives every technology a skill area', () => {
+  it('marks exactly the six core skills, each used by a project, and gives every technology a skill area', () => {
     expect(query('SELECT name FROM technologies WHERE core = 1 ORDER BY name').map((row) => row.name)).toEqual([
       'Anthropic API',
       'Jest',
-      'Next.js',
       'Node.js',
       'React',
       'SQL',
@@ -272,7 +272,7 @@ describe('build-db', () => {
   });
 
   it('fails hard on a project naming an unknown technology', () => {
-    expect(() => parse(edited('projects/uraz-hoops.md', 'framer-motion', 'vue'))).toThrow(
+    expect(() => parse(edited('projects/uraz-hoops.md', 'formsubmit', 'vue'))).toThrow(
       /project uraz-hoops names unknown technology vue/,
     );
   });
