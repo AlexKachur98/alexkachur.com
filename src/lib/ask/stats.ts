@@ -4,6 +4,7 @@ import type { AskConfig } from './config.ts';
 import { counterKeys, monthOf } from './counters.ts';
 import { StoreError } from './redis.ts';
 import type { Store } from './redis.ts';
+import { STATS_CACHE } from './storage.ts';
 
 export interface BuildInfo {
   commit: string;
@@ -27,9 +28,9 @@ export interface StatsDeps {
   now?: () => number;
 }
 
-// The CDN keeps a good answer for a minute and serves it for five more while it refreshes, so
-// the footer is at most about a minute stale. A failure is never kept.
-export const STATS_CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=300';
+// The CDN keeps a good answer for a minute and may serve it for five more while it refreshes, so
+// the footer is usually about a minute behind and at most about six. A failure is never kept.
+export const STATS_CACHE_CONTROL = `public, s-maxage=${STATS_CACHE.freshSeconds}, stale-while-revalidate=${STATS_CACHE.staleSeconds}`;
 
 function respond(status: number, body: Stats | { reason: string }): Response {
   return new Response(JSON.stringify(body), {

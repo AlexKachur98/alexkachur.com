@@ -13,6 +13,7 @@ import { errorType, reasonFor } from './errors.ts';
 import { normaliseQuestion } from './normalise.ts';
 import { correctionTurn, PROMPT_VERSION, questionTurn, requestParams, schemaHash8 } from './prompt.ts';
 import type { AskOutput } from './prompt.ts';
+import { QUESTION_LENGTH } from './question.ts';
 import { StoreError } from './redis.ts';
 import { TTL } from './storage.ts';
 import type { Store } from './redis.ts';
@@ -23,7 +24,7 @@ export const DEADLINE_MS = 27_000;
 // A corrective retry is a second attempt with its own timeout, so it only starts with this much left.
 export const RETRY_NEEDS_MS = 16_000;
 
-export const QUESTION_LENGTH = { min: 3, max: 200 } as const;
+export { QUESTION_LENGTH };
 
 export type AskRequest = ReturnType<typeof requestParams>;
 export type ModelReply = Pick<ParsedMessage<AskOutput>, 'parsed_output' | 'stop_reason'>;

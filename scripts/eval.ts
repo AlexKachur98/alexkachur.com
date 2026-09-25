@@ -18,6 +18,7 @@ import { readConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { AskResult, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
+import { PRICE } from '../src/lib/ask/pricing.ts';
 import { PROMPT_VERSION, schemaHash8 } from '../src/lib/ask/prompt.ts';
 import { skippedStore } from '../src/lib/ask/redis.ts';
 import { questions } from './eval/questions.ts';
@@ -48,8 +49,6 @@ type Kind = 'sql' | 'refusal' | 'error';
 
 // The console steps one row past the 50 it shows, so a check sees exactly what a visitor would.
 const ROW_LIMIT = 51;
-// USD per million tokens; only the default model's prices are known here.
-const PRICE = { input: 1, output: 5 };
 
 const mode = process.argv.includes('--record') ? 'record' : process.argv.includes('--live') ? 'live' : 'replay';
 const fixturePath = resolve(process.env.EVAL_FIXTURE ?? 'scripts/eval/fixtures.json');

@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import initSqlJs from 'sql.js';
 import type { SqlJsStatic } from 'sql.js';
 import { parse as parseYaml } from 'yaml';
@@ -53,10 +53,13 @@ import {
   timelineRows,
   usesRows,
 } from '../src/lib/rows.ts';
-import type { Entry } from '../src/lib/rows.ts';
-import { storageRows } from '../src/lib/ask/storage.ts';
+import type { Entry, SectionRow } from '../src/lib/rows.ts';
+import { DEFAULT_CAP, MODEL } from '../src/lib/ask/config.ts';
+import { CACHE_MINIMUM_TOKENS, PRICE, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
+import { QUESTION_LENGTH } from '../src/lib/ask/question.ts';
+import { keptFor, RATE_LIMIT, STATS_CACHE, storageRows, TTL } from '../src/lib/ask/storage.ts';
 import { renderBody } from '../src/lib/markdown.ts';
-import { countIn, fillNumbers } from '../src/lib/numbers.ts';
+import { countIn, fillNumbers, fillPlaceholders } from '../src/lib/numbers.ts';
 import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
 import { queryOf, resumeData, resumeText } from '../src/lib/resume.ts';
 import { siteOrigin } from '../src/lib/site.ts';
@@ -101,6 +104,7 @@ export const pageFiles: Readonly<Record<string, string>> = {
   'pages/about.md': '/#about',
   'pages/now.md': '/#now',
   'pages/404.md': '/404',
+  'pages/how-this-site-works.md': '/how-this-site-works',
 };
 
 function message(error: unknown): string {
@@ -250,28 +254,74 @@ export async function loadContent(paths: ContentPaths = { contentDir: 'src/conte
 
 export type Row = Record<string, string | number | null>;
 
-// The numbers a project highlight may name, each from the thing it counts: the eval's questions,
-// the OpenAPI version the API document declares, and the two SplitRoof test counts from the
-// case study's own sentence, where they sit beside the screenshot that shows them.
-export function highlightNumbers(sections: readonly { page: string; body: string }[]): Record<string, string> {
+const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+// The largest first call the eval recorded: the whole request as the model counts it, system
+// prompt, question and the shape of the answer. The fixture is committed, so every build reads
+// the same count until the eval is recorded again.
+export function recordedPromptTokens(path = fileURLToPath(new URL('./eval/fixtures.json', import.meta.url))): number {
+  const fixture = JSON.parse(readFileSync(path, 'utf8')) as { questions: { replies: { usage: { input_tokens: number } }[] }[] };
+  const counts = fixture.questions.map((entry) => entry.replies[0]?.usage.input_tokens ?? 0);
+  if (counts.length === 0 || counts.some((count) => count <= 0)) throw new Error(`${path}: a question has no recorded input token count`);
+  return Math.max(...counts);
+}
+
+// The numbers the site's text may name, each from the thing it counts, so a count typed in two
+// places can never go stale in one of them: the eval's questions, the OpenAPI version the API
+// document declares, the two SplitRoof test counts from the case study's own sentence (where they
+// sit beside the screenshot that shows them), the table count, the limits and lifetimes the code
+// stores with, and what a model call costs from the recorded eval and the published prices.
+export function siteNumbers(sections: readonly { page: string; body: string }[], promptTokens: number): Record<string, string> {
   const splitroof = sections.filter((section) => section.page === '/work/splitroof-ai-assistant').map((section) => section.body).join('\n');
   const where = 'projects/splitroof-ai-assistant.md';
+  // The page says the prompt is under the cache's floor, so a prompt that grows past it stops the build.
+  if (promptTokens >= CACHE_MINIMUM_TOKENS) {
+    throw new Error(`the prompt is ${promptTokens} tokens, at or over the ${CACHE_MINIMUM_TOKENS}-token cache floor; the caching paragraph on /how-this-site-works is no longer true`);
+  }
+  const monthCost = (DEFAULT_CAP * (promptTokens * PRICE.input + MODEL.maxTokens * PRICE.output)) / 1e6;
   return {
     eval_questions: String(questions.length),
     openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
     splitroof_tool_tests: String(countIn(splitroof, /(\w+) Jest tests before the model/g, where)),
     splitroof_model_tests: String(countIn(splitroof, /(\w+) more tests then run the assistant against the live model/g, where)),
+    table_count: String(Object.keys(tables).length),
+    question_min: String(QUESTION_LENGTH.min),
+    question_max: String(QUESTION_LENGTH.max),
+    rate_limit: String(RATE_LIMIT.requests),
+    monthly_cap: group(DEFAULT_CAP),
+    answer_cache: keptFor(TTL.answer),
+    refusal_cache: keptFor(TTL.refusal),
+    sent_question_kept: keptFor(TTL.sentQuestion),
+    stats_cache_seconds: String(STATS_CACHE.freshSeconds),
+    stats_stale_seconds: String(STATS_CACHE.staleSeconds),
+    prompt_tokens: group(promptTokens),
+    max_output_tokens: group(MODEL.maxTokens),
+    price_input: `$${PRICE.input}`,
+    price_output: `$${PRICE.output}`,
+    price_checked: PRICE_CHECKED,
+    cap_month_cost: `$${monthCost.toFixed(2)}`,
+    cache_minimum_tokens: group(CACHE_MINIMUM_TOKENS),
   };
 }
 
-export function tableRows(content: Content): Record<TableName, Row[]> {
-  const sections = sectionRows([
+// Every page's and case study's text as the table stores it, before its numbers are filled in.
+function rawSections(content: Content): SectionRow[] {
+  return sectionRows([
     ...content.pages.map((entry) => ({ page: entry.page, title: entry.data.title, html: content.rendered[entry.id]! })),
     ...[...content.projects]
       .sort((a, b) => a.data.order - b.data.order)
       .map((entry) => ({ page: `/work/${entry.id}`, html: content.rendered[`projects/${entry.id}.md`]! })),
   ]);
-  const numbers = highlightNumbers(sections);
+}
+
+export function siteNumbersFor(content: Content, promptTokens = recordedPromptTokens()): Record<string, string> {
+  return siteNumbers(rawSections(content), promptTokens);
+}
+
+export function tableRows(content: Content, promptTokens = recordedPromptTokens()): Record<TableName, Row[]> {
+  const raw = rawSections(content);
+  const numbers = siteNumbers(raw, promptTokens);
+  const sections = raw.map((row) => ({ ...row, body: fillPlaceholders(row.body, numbers, `${row.page} ${row.heading}`) }));
   return {
     facts: factRows(content.facts),
     projects: projectRows(content.projects).map((row) => ({
@@ -280,7 +330,10 @@ export function tableRows(content: Content): Record<TableName, Row[]> {
     })),
     technologies: technologyRows(content.technologies),
     project_technologies: projectTechnologyRows(content.projects, content.technologies),
-    project_images: projectImageRows(content.projects),
+    project_images: projectImageRows(content.projects).map((row) => ({
+      ...row,
+      caption: row.caption === null ? null : fillPlaceholders(row.caption, numbers, `project ${row.project_id} screenshot ${row.position}`),
+    })),
     courses: courseRows(content.courses),
     timeline: timelineRows(content.timeline),
     pets: petRows(content.pets),
@@ -514,6 +567,7 @@ export async function main(root = process.cwd()): Promise<void> {
     base64Module('sqlWasmBase64', readFileSync(wasmPath()), `sql-wasm.wasm from sql.js ${sqlJsVersion}.`),
   );
   writeFileSync(join(generated, 'schema.json'), `${JSON.stringify(schemaJson(content), null, 2)}\n`);
+  writeFileSync(join(generated, 'numbers.json'), `${JSON.stringify(siteNumbersFor(content), null, 2)}\n`);
   writeFileSync(join(generated, 'build-info.json'), `${JSON.stringify(buildInfo(), null, 2)}\n`);
 
   // The server-side validator trusts the module, so prove it decodes to the file just written.

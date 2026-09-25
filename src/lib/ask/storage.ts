@@ -11,6 +11,10 @@ export const TTL = { counter: 40 * DAY, answer: 30 * DAY, refusal: DAY, sentQues
 
 export const RATE_LIMIT = { requests: 10, windowSeconds: 60 } as const;
 
+// How long the CDN keeps a /api/stats answer, and for how much longer it may serve that answer
+// while it fetches a fresh one; the footer's readouts can be that far behind.
+export const STATS_CACHE = { freshSeconds: 60, staleSeconds: 300 } as const;
+
 // The sliding window sets each key to expire two windows and a second after it is written.
 export const LIMITER_KEY_SECONDS = 2 * RATE_LIMIT.windowSeconds + 1;
 

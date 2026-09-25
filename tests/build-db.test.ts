@@ -11,18 +11,22 @@ import {
   ddl,
   decodeBase64Module,
   dumpSql,
-  highlightNumbers,
   loadSqlJs,
   main,
   parseContent,
   readContentFiles,
+  recordedPromptTokens,
   renderMarkdown,
   schemaJson,
+  siteNumbers,
   tableRows,
 } from '../scripts/build-db.ts';
 import type { ContentFiles } from '../scripts/build-db.ts';
 import { chips, examples } from '../src/data/examples.ts';
 import { tables } from '../src/content/schemas.ts';
+import { DEFAULT_CAP, MODEL } from '../src/lib/ask/config.ts';
+import { CACHE_MINIMUM_TOKENS, PRICE, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
+import { keptFor, RATE_LIMIT, STATS_CACHE, TTL } from '../src/lib/ask/storage.ts';
 import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
 import { questions } from '../scripts/eval/questions.ts';
 
@@ -334,16 +338,44 @@ describe('build-db', () => {
     expect(query('SELECT COUNT(*) AS n FROM project_images')[0]!.n).toBe(8);
   });
 
-  it('fills each number in a project highlight from the thing it counts, and leaves no placeholder in any cell', () => {
-    expect(highlightNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[])).toEqual({
+  it('fills each number in a highlight, a caption or a page from the thing it counts, and leaves no placeholder in any cell', () => {
+    const promptTokens = recordedPromptTokens();
+    const fixture = JSON.parse(readFileSync('scripts/eval/fixtures.json', 'utf8')) as { questions: { replies: { usage: { input_tokens: number } }[] }[] };
+    expect(promptTokens).toBe(Math.max(...fixture.questions.map((entry) => entry.replies[0]!.usage.input_tokens)));
+    expect(promptTokens).toBeLessThan(CACHE_MINIMUM_TOKENS);
+    const cost = (DEFAULT_CAP * (promptTokens * PRICE.input + MODEL.maxTokens * PRICE.output)) / 1e6;
+    expect(siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], promptTokens)).toEqual({
       eval_questions: String(questions.length),
       openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
       splitroof_tool_tests: '12',
       splitroof_model_tests: '5',
+      table_count: String(Object.keys(tables).length),
+      question_min: '3',
+      question_max: '200',
+      rate_limit: String(RATE_LIMIT.requests),
+      monthly_cap: '2,000',
+      answer_cache: keptFor(TTL.answer),
+      refusal_cache: keptFor(TTL.refusal),
+      sent_question_kept: keptFor(TTL.sentQuestion),
+      stats_cache_seconds: String(STATS_CACHE.freshSeconds),
+      stats_stale_seconds: String(STATS_CACHE.staleSeconds),
+      prompt_tokens: promptTokens.toLocaleString('en-US'),
+      max_output_tokens: String(MODEL.maxTokens),
+      price_input: `$${PRICE.input}`,
+      price_output: `$${PRICE.output}`,
+      price_checked: PRICE_CHECKED,
+      cap_month_cost: `$${cost.toFixed(2)}`,
+      cache_minimum_tokens: '4,096',
     });
+    expect(() => siteNumbers([], CACHE_MINIMUM_TOKENS)).toThrow(/cache floor/);
     const portfolio = query("SELECT highlights FROM projects WHERE slug = 'this-site'")[0]!.highlights as string;
     expect(portfolio).toContain(`CI replays a ${questions.length}-question evaluation`);
     expect(query("SELECT highlights FROM projects WHERE kind = 'client'").map((row) => row.highlights)).toEqual([null, null]);
+    const works = query("SELECT heading, body FROM sections WHERE page = '/how-this-site-works' ORDER BY position");
+    expect(works[0]).toMatchObject({ heading: 'How this site works' });
+    expect(works.map((row) => row.heading)).toContain('Cost and the cap');
+    expect(works.map((row) => row.body).join('\n')).toContain(`${Object.keys(tables).length} tables`);
+    expect(works.map((row) => row.body).join('\n')).toContain(`${keptFor(TTL.sentQuestion)}.`);
     for (const table of Object.keys(tables)) {
       for (const row of query(`SELECT * FROM ${table}`)) expect(JSON.stringify(row), table).not.toMatch(/\{[a-z_]+\}/);
     }
@@ -375,13 +407,14 @@ describe('build-db', () => {
 
   it('holds the text of the other pages, then every case study in site order, one row per section shown', () => {
     const rows = query('SELECT page, position, heading, body FROM sections');
-    expect(rows.slice(0, 3).map(({ page, position, heading }) => [page, position, heading])).toEqual([
+    expect(rows.slice(0, 4).map(({ page, position, heading }) => [page, position, heading])).toEqual([
       ['/#about', 1, 'About'],
       ['/#now', 1, 'Now'],
       ['/404', 1, 'Nothing at this address.'],
+      ['/how-this-site-works', 1, 'How this site works'],
     ]);
     const projects = query('SELECT slug FROM projects ORDER BY id').map((row) => `/work/${row.slug}`);
-    expect([...new Set(rows.slice(3).map((row) => row.page))]).toEqual(projects);
+    expect([...new Set(rows.slice(3).map((row) => row.page))]).toEqual(['/how-this-site-works', ...projects]);
     for (const row of rows) expect(row.body, `${row.page} ${row.heading}`).not.toBe('');
   });
 

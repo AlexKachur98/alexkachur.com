@@ -6,8 +6,9 @@ import initSqlJs from 'sql.js';
 import { describe, expect, it } from 'vitest';
 import { answerExample, chips, examples, storageQuery } from '../src/data/examples.ts';
 import { validateSql } from '../src/lib/ask/validate-sql.ts';
+import { INSIGHTS } from '../src/lib/loaded-scripts.ts';
 import { blockText, inlineText } from '../src/lib/page-text.ts';
-import { highlightNumbers, pageFiles } from '../scripts/build-db.ts';
+import { pageFiles, recordedPromptTokens, siteNumbers } from '../scripts/build-db.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
@@ -544,8 +545,10 @@ describe(`built output in ${root}`, () => {
   });
 
   // The sections table holds each page's text as the page shows it: every section of every case
-  // study but Screenshots, which is the page's own, with the flow diagram inside What I built left
-  // out; the About and Now text on the home page; and the 404's heading and lead.
+  // study but Screenshots, which is the page's own; the About and Now text on the home page; the
+  // 404's heading and lead; and the lead and sections of /how-this-site-works. What only a page
+  // can add, the flow diagram inside What I built and the blocks marked data-page-only, is left
+  // out of the comparison.
   it('shows on every page exactly the text its rows in the sections table hold', async () => {
     const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
     const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
@@ -555,10 +558,15 @@ describe(`built output in ${root}`, () => {
       rows.set(page!, [...(rows.get(page!) ?? []), { heading: heading!, body: body! }]);
     }
     const html = (url: string) => pages.find((page) => page.url === url)!.html;
+    const pageOnly = /<(figure|pre|p|ul|div)\b[^>]*\sdata-page-only\b[^>]*>[\s\S]*?<\/\1>/g;
     const sections = (source: string) =>
       [...source.matchAll(/<section class="section"[^>]*\sid="([^"]*)"[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)<\/section>/g)].map(
-        ([, id, heading, body]) => ({ id: id!, heading: inlineText(heading!), body: body!.replace(/<figure\b[\s\S]*?<\/figure>/g, '') }),
+        ([, id, heading, body]) => ({ id: id!, heading: inlineText(heading!), body: body!.replace(pageOnly, '') }),
       );
+    const leadOf = (source: string) => ({
+      heading: inlineText(source.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)![1]!),
+      body: blockText(source.match(/<div class="lead"[^>]*>([\s\S]*?)<\/div>/)![1]!),
+    });
     const shown = new Map<string, { heading: string; body: string }[]>();
     for (const page of pages.filter(({ url }) => url.startsWith('/work/'))) {
       shown.set(
@@ -573,15 +581,38 @@ describe(`built output in ${root}`, () => {
     shown.set('/#about', [{ heading: home.find((section) => section.id === 'about')!.heading, body: blockText(about) }]);
     const now = home.find((section) => section.id === 'now')!;
     shown.set('/#now', [{ heading: now.heading, body: blockText(now.body) }]);
-    const missing = html('/404');
-    const lead = missing.match(/<div class="lead"[^>]*>([\s\S]*?)<\/div>/)![1]!;
-    shown.set('/404', [{ heading: inlineText(missing.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)![1]!), body: blockText(lead) }]);
+    shown.set('/404', [leadOf(html('/404'))]);
+    const works = html('/how-this-site-works');
+    shown.set('/how-this-site-works', [leadOf(works), ...sections(works).map((section) => ({ heading: section.heading, body: blockText(section.body) }))]);
+    expect(works.match(pageOnly)?.length ?? 0).toBeGreaterThanOrEqual(4);
 
     expect([...shown.keys()].sort()).toEqual([...rows.keys()].sort());
     for (const [page, expected] of rows) expect(shown.get(page), page).toEqual(expected);
     // Every markdown page is in the table.
     const markdown = readdirSync('src/content/pages').filter((name) => name.endsWith('.md')).map((name) => `pages/${name}`);
     expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
+  });
+
+  // The sizes /how-this-site-works gives for the scripts a page loads before interaction are the
+  // built files' own, gzipped as the bootstrap budget above measures them, and the beacon's is
+  // the one measured from the live site.
+  it('lists the four scripts every page loads first with the sizes of the files in the build', () => {
+    const works = pages.find(({ url }) => url === '/how-this-site-works')!.html;
+    const list = works.match(/<section class="section"[^>]*\sid="performance"[^>]*>[\s\S]*?<ul\b[^>]*\sdata-page-only\b[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? '';
+    const lines = [...list.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/g)].map(([, line]) => decode(line!.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim());
+    const size = (line: string) => Number(line.match(/, ([\d,]+) bytes/)![1]!.replaceAll(',', ''));
+    const assets = readdirSync(join(root, '_astro')).filter((name) => name.endsWith('.js'));
+    const bootstrap = assets.find((name) => /^Base\.astro_astro_type_script_index_0_lang\./.test(name))!;
+    const analytics = assets.find((name) => readFileSync(join(root, '_astro', name), 'utf8').includes(INSIGHTS.name))!;
+    const gzipped = (path: string) => gzipSync(readFileSync(path)).length;
+    expect(lines).toHaveLength(4);
+    expect(lines[0]).toMatch(/^\/theme\.js, /);
+    expect(size(lines[0]!)).toBe(gzipped(join(root, 'theme.js')));
+    expect(size(lines[1]!)).toBe(gzipped(join(root, '_astro', bootstrap)));
+    expect(size(lines[2]!)).toBe(gzipped(join(root, '_astro', analytics)));
+    expect(lines[3]).toContain(INSIGHTS.name);
+    expect(size(lines[3]!)).toBe(INSIGHTS.bytes);
+    expect(lines[3]).toContain(INSIGHTS.measured);
   });
 
   it('lists on /uses every row of the uses table in order, under its section, with the day it was last updated', async () => {
@@ -599,14 +630,14 @@ describe(`built output in ${root}`, () => {
     expect(uses).toContain(`Last updated: ${updated}`);
   });
 
-  // The numbers a resume bullet names are filled in by build-db; none may reach a page, a file or
-  // an endpoint as its placeholder.
+  // The numbers a resume bullet, a caption or a page names are filled in by build-db; none may
+  // reach a page, a file or an endpoint as its placeholder.
   it('holds no unfilled number placeholder anywhere', async () => {
     const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
     const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
     const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
     const sections = (db.exec('SELECT page, body FROM sections')[0]!.values as string[][]).map(([page, body]) => ({ page: page!, body: body! }));
-    const placeholder = new RegExp(`\\{(?:${Object.keys(highlightNumbers(sections)).join('|')})\\}`);
+    const placeholder = new RegExp(`\\{(?:${Object.keys(siteNumbers(sections, recordedPromptTokens())).join('|')})\\}`);
     for (const path of files.filter((file) => !vendored(file))) expect(readFileSync(path, 'utf8'), path).not.toMatch(placeholder);
     expect(readFileSync(join(root, 'resume.txt'), 'utf8')).not.toMatch(placeholder);
   });

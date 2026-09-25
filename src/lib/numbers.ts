@@ -1,10 +1,10 @@
-// Numbers in a resume bullet are never typed: a bullet names one as {key}, and the build fills it
-// in from the thing it counts, so a count can never go stale while the bullet stays the same.
-// The keys and where each value comes from live in scripts/build-db.ts.
+// Numbers in the site's text are never typed twice: a resume bullet, a caption or a page names one
+// as {key}, and the build fills it in from the thing it counts, so a count can never go stale while
+// the sentence stays the same. The keys and where each value comes from live in scripts/build-db.ts.
 const numberWords = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
-export function fillNumbers(text: string, values: Readonly<Record<string, string>>, where: string): string {
-  if (/\d/.test(text.replace(/\{[a-z_]+\}/g, ''))) throw new Error(`${where}: a number is typed; write it as {key}`);
+// Every {key} replaced by its value; an unknown key or a leftover brace fails the build.
+export function fillPlaceholders(text: string, values: Readonly<Record<string, string>>, where: string): string {
   const filled = text.replace(/\{([a-z_]+)\}/g, (whole, key: string) => {
     const value = values[key];
     if (value === undefined) throw new Error(`${where}: ${whole} is not a number the build knows`);
@@ -12,6 +12,12 @@ export function fillNumbers(text: string, values: Readonly<Record<string, string
   });
   if (/[{}]/.test(filled)) throw new Error(`${where}: a brace is left after the numbers were filled in`);
   return filled;
+}
+
+// A resume bullet holds no digit of its own: every number in it is a placeholder.
+export function fillNumbers(text: string, values: Readonly<Record<string, string>>, where: string): string {
+  if (/\d/.test(text.replace(/\{[a-z_]+\}/g, ''))) throw new Error(`${where}: a number is typed; write it as {key}`);
+  return fillPlaceholders(text, values, where);
 }
 
 // The one count a sentence of Alex's prose gives, as digits or as a word up to twelve. A sentence
