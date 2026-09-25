@@ -737,11 +737,17 @@ describe(`built output in ${root}`, () => {
     const expected = rows.map(([section, item, details]) => [section, details!.startsWith(item!) ? details : `${item}: ${details}`]);
     const uses = pages.find((page) => page.url === '/uses')!.html;
     const shown = [...uses.matchAll(/<section class="section"[^>]*>\s*<h2[^>]*>([^<]*)<\/h2>([\s\S]*?)<\/section>/g)].flatMap(([, section, body]) =>
-      [...body!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, line]) => [section, decode(line!)]),
+      [...body!.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, line]) => [section, decode(line!.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim()]),
     );
     expect(shown).toEqual(expected);
+    // The item of every row is set in bold at the left edge, the rest of the row plain.
+    const bold = [...uses.matchAll(/<li[^>]*>\s*<b[^>]*>([\s\S]*?)<\/b>/g)].map(([, item]) => decode(item!));
+    expect(bold).toEqual(rows.map(([, item]) => item));
     const updated = db.exec("SELECT value FROM facts WHERE key = 'uses_updated'")[0]!.values[0]![0];
     expect(uses).toContain(`Last updated: ${updated}`);
+    // The query the page runs is shown under the date, with the same rows linked as JSON.
+    expect(decode(uses.match(/<pre\b[^>]*><code\b[^>]*>([^<]*)<\/code><\/pre>/)![1]!)).toBe(usesQuery);
+    expect(uses).toMatch(/<a href="\/api\/uses\.json"[^>]*>\/api\/uses\.json<\/a>/);
   });
 
   // The numbers a resume bullet, a caption or a page names are filled in by build-db; none may

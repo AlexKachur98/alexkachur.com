@@ -2,13 +2,18 @@
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
 import { select } from '../lib/query.ts';
+import { usesQuery } from '../lib/uses-query.ts';
 
 // The page shows the uses table as a visitor's query returns it, grouped under its sections in
-// page order. A row whose details already begin with the item reads as the details alone.
-const { rows } = await select('SELECT section, item, details FROM uses ORDER BY position');
-const sections = new Map<string, string[]>();
+// page order, with the item in bold at the left edge, where a reader scanning the list looks.
+// A row whose details already begin with the item reads as the details alone, the item still
+// bold. The query itself sits under the date with a link to the same rows as JSON, both marked
+// data-nosnippet as interface text.
+const { rows } = await select(usesQuery);
+const sections = new Map<string, { item: string; rest: string }[]>();
 for (const [section, item, details] of rows as string[][]) {
-  sections.set(section!, [...(sections.get(section!) ?? []), details!.startsWith(item!) ? details! : `${item}: ${details}`]);
+  const rest = details!.startsWith(item!) ? details!.slice(item!.length) : `: ${details}`;
+  sections.set(section!, [...(sections.get(section!) ?? []), { item: item!, rest }]);
 }
 const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated'")).rows[0]?.[0];
 ---
@@ -18,13 +23,20 @@ const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated
     <header class="page-head">
       <h1>Uses</h1>
       {updated && <p class="updated">Last updated: {updated}</p>}
+      <div data-nosnippet>
+        <pre><code>{usesQuery}</code></pre>
+        <p class="rows-link">The same rows as JSON: <a href="/api/uses.json">/api/uses.json</a></p>
+      </div>
     </header>
     {
       [...sections].map(([section, lines]) => (
         <Section id={section.toLowerCase()} title={section}>
           <ul>
             {lines.map((line) => (
-              <li>{line}</li>
+              <li>
+                <b>{line.item}</b>
+                {line.rest}
+              </li>
             ))}
           </ul>
         </Section>
@@ -39,11 +51,20 @@ const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated
   }
 
   .updated {
-    margin: 0;
+    margin: 0 0 var(--space-4);
     color: var(--muted);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: var(--leading-mono);
+  }
+
+  .rows-link {
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+
+  b {
+    font-weight: 600;
   }
 
   @media (min-width: 768px) {

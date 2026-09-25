@@ -59,6 +59,16 @@ describe('repository hygiene', () => {
     expect(offenders).toEqual([]);
   });
 
+  // The date under the /uses title is a fact set by hand, so a commit that stages the uses rows
+  // must set it to the day of the commit; the pre-commit hook runs this test, and in CI nothing
+  // is staged.
+  it('dates the uses page on the day its rows are staged', () => {
+    const staged = execFileSync('git', ['diff', '--cached', '--name-only'], { encoding: 'utf8' }).split('\n').filter(Boolean);
+    if (!staged.includes('src/content/uses.yaml')) return;
+    const today = new Date().toISOString().slice(0, 10);
+    expect(readFileSync('src/content/facts.yaml', 'utf8'), `uses.yaml is staged, so uses_updated must be ${today}`).toContain(`value: "${today}"`);
+  });
+
   it('finds no invisible character in any text file', () => {
     const offenders: string[] = [];
     for (const file of textFiles) {
