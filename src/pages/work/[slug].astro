@@ -6,6 +6,7 @@ import Figure from '../../components/Figure.astro';
 import Section from '../../components/Section.astro';
 import SplitRoofFlow from '../../components/SplitRoofFlow.astro';
 import Base from '../../layouts/Base.astro';
+import { hasCaseStudy } from '../../lib/rows.ts';
 import { splitSections } from '../../lib/sections.ts';
 
 type Project = CollectionEntry<'projects'>;
@@ -17,8 +18,10 @@ interface Props {
   stack: string[];
 }
 
+// One page per project that has a case study; a project another page covers gets none, and the
+// pager runs over the case studies alone.
 export async function getStaticPaths() {
-  const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+  const projects = (await getCollection('projects')).filter((entry) => hasCaseStudy(entry.id, entry.data.page)).sort((a, b) => a.data.order - b.data.order);
   const technologies = await getCollection('technologies');
   const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
   return projects.map((project, index) => ({

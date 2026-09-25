@@ -154,9 +154,23 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  it('links back to the work list from every case study pager, between Previous and Next', () => {
+  // A project has a case study under /work/ unless another page covers it; then its old address
+  // redirects there for good, with no page of its own in the build.
+  it('links back to the work list from every case study pager, between Previous and Next', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const projects = (db.exec('SELECT slug, page FROM projects ORDER BY id')[0]!.values as string[][]).map(([slug, page]) => ({ slug: slug!, page: page! }));
+    db.close();
     const studies = pages.filter(({ url }) => url.startsWith('/work/'));
-    expect(studies).toHaveLength(readdirSync('src/content/projects').filter((file) => file.endsWith('.md')).length);
+    expect(studies.map(({ url }) => url).sort()).toEqual(projects.map(({ page }) => page).filter((page) => page.startsWith('/work/')).sort());
+    expect(studies.length).toBeLessThan(projects.length);
+    const { routes } = JSON.parse(readFileSync('.vercel/output/config.json', 'utf8')) as { routes: { src: string; status?: number; headers?: Record<string, string> }[] };
+    for (const { slug, page } of projects.filter((project) => !project.page.startsWith('/work/'))) {
+      expect(pages.some(({ url }) => url === `/work/${slug}`), slug).toBe(false);
+      expect(routes.find((route) => route.src === `^/work/${slug}$`), slug).toMatchObject({ status: 301, headers: { Location: page } });
+      expect(pages.some(({ url }) => url === page), slug).toBe(true);
+    }
     for (const { url, html } of studies) {
       const pager = html.match(/<nav\b[^>]*\saria-label="Case studies"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? '';
       expect(pager, url).toMatch(/<a\b[^>]*\shref="\/#work"[^>]*>All work<\/a>/);

@@ -61,6 +61,15 @@ function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+// A project's page: its case study under /work/ unless its file names another page that covers it.
+export function projectPage(id: string, page?: string | undefined): string {
+  return page ?? `/work/${id}`;
+}
+
+export function hasCaseStudy(id: string, page?: string | undefined): boolean {
+  return projectPage(id, page) === `/work/${id}`;
+}
+
 function rejectRepeats<T>(rows: T[], key: (row: T) => string | number, what: string): void {
   rows.forEach((row, index) => {
     const previous = rows[index - 1];
@@ -81,8 +90,8 @@ export function projectRows(entries: Entry<ProjectInput>[]): ProjectRow[] {
   rejectRepeats(sorted, (entry) => entry.data.order, 'project order');
   // Only the project listed first is featured, so the flag can never disagree with the order.
   return sorted.map(({ id, data }, index) => {
-    const { order, card, team, highlights, technologies, screenshots, ...row } = data;
-    return { id: order, slug: id, ...row, featured: index === 0 ? 1 : 0, card, team: team ?? null, highlights: highlights?.join('\n') ?? null };
+    const { order, page, card, team, highlights, technologies, screenshots, ...row } = data;
+    return { id: order, slug: id, page: projectPage(id, page), ...row, featured: index === 0 ? 1 : 0, card, team: team ?? null, highlights: highlights?.join('\n') ?? null };
   });
 }
 

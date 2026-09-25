@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   courseRows,
   factRows,
+  hasCaseStudy,
   petRows,
+  projectPage,
   projectRows,
   projectTechnologyRows,
   technologyRows,
@@ -51,6 +53,20 @@ describe('rows', () => {
     ]);
     expect(Object.keys(rows[0]!)).not.toContain('order');
     expect(Object.keys(rows[0]!)).not.toContain('technologies');
+  });
+
+  it("gives a project the case study under /work/ as its page unless its file names another", () => {
+    const covered = project('c', 3, []);
+    covered.data.page = '/how-this-site-works';
+    const rows = projectRows([project('a', 1, []), covered]);
+    expect(rows.map((row) => [row.slug, row.page])).toEqual([
+      ['a', '/work/a'],
+      ['c', '/how-this-site-works'],
+    ]);
+    expect(Object.keys(rows[0]!).slice(0, 3)).toEqual(['id', 'slug', 'page']);
+    expect(hasCaseStudy('a')).toBe(true);
+    expect(hasCaseStudy('c', '/how-this-site-works')).toBe(false);
+    expect(projectPage('c', '/how-this-site-works')).toBe('/how-this-site-works');
   });
 
   it('features the project listed first and no other, whatever order the entries arrive in', () => {

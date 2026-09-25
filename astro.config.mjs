@@ -12,5 +12,6 @@ export default defineConfig({
   build: { inlineStylesheets: 'never' },
   markdown,
   vite: { build: { assetsInlineLimit: 0 } },
-  redirects: { '/resume': '/Alex-Kachur-Resume.pdf' },
+  // The Portfolio site's case study is its write-up, so its old address goes there for good.
+  redirects: { '/resume': '/Alex-Kachur-Resume.pdf', '/work/this-site': '/how-this-site-works' },
 });

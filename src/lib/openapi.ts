@@ -226,7 +226,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
       return {
         operationId: 'getProject',
         parameters: [
-          { name: 'slug', in: 'path', required: true, description: 'The slug of the case-study page under /work/', schema: { type: 'string' } },
+          { name: 'slug', in: 'path', required: true, description: "The project's slug, its short name in URLs", schema: { type: 'string' } },
         ],
         responses: {
           '200': jsonResponse('The project and its technologies', ref('project_detail')),

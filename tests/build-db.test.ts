@@ -413,9 +413,27 @@ describe('build-db', () => {
       ['/404', 1, 'Nothing at this address.'],
       ['/how-this-site-works', 1, 'How this site works'],
     ]);
-    const projects = query('SELECT slug FROM projects ORDER BY id').map((row) => `/work/${row.slug}`);
-    expect([...new Set(rows.slice(3).map((row) => row.page))]).toEqual(['/how-this-site-works', ...projects]);
+    const studies = query("SELECT page FROM projects WHERE page LIKE '/work/%' ORDER BY id").map((row) => row.page);
+    expect(studies).toHaveLength(3);
+    expect([...new Set(rows.slice(3).map((row) => row.page))]).toEqual(['/how-this-site-works', ...studies]);
     for (const row of rows) expect(row.body, `${row.page} ${row.heading}`).not.toBe('');
+  });
+
+  // The Portfolio site's write-up is /how-this-site-works, so its row points there, it has no
+  // case study and no sections of its own, and text in its file would be a mistake.
+  it('gives every project its page, the case study under /work/ unless the file names another', () => {
+    expect(query('SELECT slug, page FROM projects ORDER BY id')).toEqual([
+      { slug: 'splitroof-ai-assistant', page: '/work/splitroof-ai-assistant' },
+      { slug: 'think-smarter-review-funnel', page: '/work/think-smarter-review-funnel' },
+      { slug: 'uraz-hoops', page: '/work/uraz-hoops' },
+      { slug: 'this-site', page: '/how-this-site-works' },
+    ]);
+    expect(query("SELECT COUNT(*) AS n FROM sections WHERE page = '/work/this-site'")).toEqual([{ n: 0 }]);
+    expect(ddl()).toContain('page TEXT NOT NULL, --');
+    const withText = { ...files, 'projects/this-site.md': `${files['projects/this-site.md']}\n## The problem\n\nText.\n` };
+    return expect(renderMarkdown(withText).then((again) => parseContent(withText, undefined, again))).rejects.toThrow(
+      /projects\/this-site.md: its page is \/how-this-site-works, so the text in the file has no page/,
+    );
   });
 
   it('keeps the photos of the other pages with the alt text and captions their files give', () => {

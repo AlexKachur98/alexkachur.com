@@ -42,14 +42,16 @@ describe('stripComments', () => {
     expect(html).not.toContain('gone');
   });
 
-  it('strips every comment in the four project files and the Now page', async () => {
+  // The case studies and the Now page carry their open items as comments; a project file that is
+  // frontmatter alone has none to strip.
+  it('strips every comment in the project files and the Now page', async () => {
     const files = [
       ...readdirSync('src/content/projects').map((name) => `src/content/projects/${name}`),
       'src/content/pages/now.md',
     ];
-    for (const file of files) {
-      const source = readFileSync(file, 'utf8').replace(/^---[\s\S]*?\n---\n/, '');
-      expect(source, `${file} fixture still has comments to strip`).toContain('<!--');
+    const sources = files.map((file) => ({ file, source: readFileSync(file, 'utf8').replace(/^---[\s\S]*?\n---\n?/, '') }));
+    expect(sources.filter(({ source }) => source.includes('<!--')).length).toBeGreaterThanOrEqual(3);
+    for (const { file, source } of sources) {
       const html = await render(source);
       expect(html, file).not.toContain('<!--');
       expect(html, file).not.toContain('TODO:');

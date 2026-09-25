@@ -56,7 +56,8 @@ export const factRow = z.object({
 
 export const projectRow = z.object({
   id: z.number().int().describe('Position in the site order, 1 first'),
-  slug: z.string().describe('URL slug of the case-study page under /work/'),
+  slug: z.string().describe("The project's short name in URLs, for example uraz-hoops"),
+  page: z.string().describe("The page on this site about the project: its case study under /work/, or the page that covers it instead"),
   name: z.string().describe('Project name'),
   kind: z.enum(projectKinds).describe('client, team, course or personal'),
   summary: z.string().describe('One-line summary'),
@@ -280,8 +281,9 @@ export const screenshot = z.strictObject({
 });
 
 export const projectContent = z.strictObject({
-  ...projectRow.omit({ id: true, slug: true, featured: true, team: true, highlights: true }).shape,
+  ...projectRow.omit({ id: true, slug: true, page: true, featured: true, team: true, highlights: true }).shape,
   order: z.number().int().positive().describe('Site order; also drives projects.id'),
+  page: z.string().optional().describe('The page that covers the project when it has no case study of its own under /work/'),
   team: z.string().optional().describe(projectRow.shape.team.description ?? ''),
   highlights: z.array(z.string().min(1)).min(1).optional().describe('The resume bullets, word for word, with each number written as {key}'),
   technologies: z.array(z.string()).describe('Ids from technologies.yaml used on this project'),

@@ -42,6 +42,7 @@ import {
   courseRows,
   experienceRows,
   factRows,
+  hasCaseStudy,
   interestRows,
   pageImageRows,
   petRows,
@@ -244,6 +245,12 @@ export function parseContent(
   for (const name of Object.keys(files).filter((key) => key.endsWith('.md'))) {
     if (rendered[name] === undefined) throw new Error(`${name}: not rendered`);
   }
+  // A project covered by another page has no case study, so any text in its file would reach no page.
+  for (const project of content.projects) {
+    if (!hasCaseStudy(project.id, project.data.page) && rendered[`projects/${project.id}.md`]!.trim() !== '') {
+      throw new Error(`projects/${project.id}.md: its page is ${project.data.page}, so the text in the file has no page to appear on`);
+    }
+  }
   return content;
 }
 
@@ -309,6 +316,7 @@ function rawSections(content: Content): SectionRow[] {
   return sectionRows([
     ...content.pages.map((entry) => ({ page: entry.page, title: entry.data.title, html: content.rendered[entry.id]! })),
     ...[...content.projects]
+      .filter((entry) => hasCaseStudy(entry.id, entry.data.page))
       .sort((a, b) => a.data.order - b.data.order)
       .map((entry) => ({ page: `/work/${entry.id}`, html: content.rendered[`projects/${entry.id}.md`]! })),
   ]);

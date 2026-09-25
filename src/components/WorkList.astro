@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import Figure from './Figure.astro';
 import Section from './Section.astro';
+import { projectPage } from '../lib/rows.ts';
 
 // Rows separated by rules, never cards, every one laid out alike: the screenshot takes four of
 // the twelve columns from 768px and six from 1200px, where it fills the column, so screenshots
@@ -31,11 +32,12 @@ const rowSizes =
       projects.map((project, index) => {
         const { name, card, role, year_start, screenshots } = project.data;
         const shot = screenshots[0];
+        const page = projectPage(project.id, project.data.page);
         return (
           <li class="work-row grid">
             <div class="work-text">
               <h3>
-                <a href={`/work/${project.id}`}>{name}</a>
+                <a href={page}>{name}</a>
               </h3>
               <p>{card}</p>
               <p class="work-meta">
@@ -57,7 +59,7 @@ const rowSizes =
                   widths={rowWidths}
                   sizes={rowSizes}
                   eager={index === 0}
-                  href={`/work/${project.id}`}
+                  href={page}
                 />
               </div>
             )}
