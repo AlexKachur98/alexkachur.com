@@ -31,9 +31,10 @@ function vendored(path: string): boolean {
 
 const files = walk(root).filter((path) => textTypes.has(extname(path)));
 
-// Each built page with the path it is served at: uses/index.html is /uses, 404.html is /404.
+// Each built page with the path it is served at: uses/index.html is /uses, 404.html is /404. The
+// Search Console verification file at the root is a token, not a page.
 const pages = files
-  .filter((path) => path.endsWith('.html'))
+  .filter((path) => path.endsWith('.html') && !/google[0-9a-f]+[.]html$/.test(path))
   .map((path) => {
     const file = relative(root, path).replaceAll('\\', '/');
     return { url: `/${file.replace(/(^|\/)index\.html$/, '').replace(/\.html$/, '')}`, html: readFileSync(path, 'utf8') };
