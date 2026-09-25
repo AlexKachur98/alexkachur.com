@@ -49,7 +49,7 @@ A read-only assistant. The model, Claude Haiku 4.5 through the Anthropic API, ge
 
 ## What went wrong or what I would change
 
-<!-- TODO: fill this in after the first iteration ships. -->
+Nothing has gone wrong yet, because what exists is the spike I built before the team started. I will write this section after the team's first iteration ships.
 
 ## Outcome
 
