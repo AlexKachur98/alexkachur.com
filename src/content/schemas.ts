@@ -47,6 +47,37 @@ export const skillAreas = [
   'Testing',
   'Platforms and services',
 ] as const;
+// The broad areas the interest categories fall under, in the order Alex listed them.
+export const interestAreas = [
+  'Games',
+  'Movies and TV',
+  'History and reading',
+  'Music',
+  'YouTube and podcasts',
+  'Sports',
+  'Travel',
+] as const;
+
+// The area of each category, Alex's grouping. The build fills interests.area from it, so the
+// content file never repeats it, and a category left without an area fails the type check.
+export const interestAreaOf: Readonly<Record<(typeof interestCategories)[number], (typeof interestAreas)[number]>> = {
+  'video game': 'Games',
+  'game genre': 'Games',
+  'playing now': 'Games',
+  'board game': 'Games',
+  movie: 'Movies and TV',
+  'TV show': 'Movies and TV',
+  'watching now': 'Movies and TV',
+  'history topic': 'History and reading',
+  'reading now': 'History and reading',
+  'music genre': 'Music',
+  'music artist': 'Music',
+  'YouTube or podcast': 'YouTube and podcasts',
+  sport: 'Sports',
+  following: 'Sports',
+  'travelled to': 'Travel',
+  'wants to visit': 'Travel',
+};
 
 // The drawings a home page row can show in place of a screenshot: the site's architecture and the
 // SplitRoof flow, each a component of its own.
@@ -139,6 +170,9 @@ export const experienceRow = z.object({
 export const interestRow = z.object({
   id: z.number().int().describe('Position in the list, 1 first'),
   category: z.enum(interestCategories).describe(`${interestCategories.slice(0, -1).join(', ')}, or ${interestCategories.at(-1)}`),
+  area: z
+    .enum(interestAreas)
+    .describe(interestAreas.map((area) => `${area}: ${interestCategories.filter((category) => interestAreaOf[category] === area).join(', ')}`).join('; ')),
   name: z.string().describe('The game, show, team, place or other thing'),
   note: z.string().nullable().describe("Alex's note on it, NULL if none"),
 });
@@ -277,8 +311,8 @@ export type TableName = keyof typeof tables;
 
 // Content shapes: what the files under src/content hold, strict so a misspelled key fails the
 // build. Values the build derives (projects.id and projects.featured from order, technologies.id
-// from name order, timeline.id from date order) are not in the files; the file loader's id is the
-// natural key.
+// from name order, timeline.id from date order, interests.area from the category) are not in the
+// files; the file loader's id is the natural key.
 
 const contentId = z.string().describe('Id of this row in its file');
 
@@ -309,7 +343,7 @@ export const courseContent = z.strictObject({ id: contentId, ...courseRow.shape 
 export const timelineContent = z.strictObject({ id: contentId, ...timelineRow.omit({ id: true }).shape });
 export const petContent = z.strictObject({ id: contentId, ...petRow.shape });
 export const factContent = z.strictObject({ id: contentId, ...factRow.omit({ key: true }).shape });
-export const interestContent = z.strictObject({ id: contentId, ...interestRow.omit({ id: true }).shape });
+export const interestContent = z.strictObject({ id: contentId, ...interestRow.omit({ id: true, area: true }).shape });
 export const usesContent = z.strictObject({ id: contentId, ...usesRow.omit({ position: true }).shape });
 export const experienceContent = z.strictObject({
   id: contentId,

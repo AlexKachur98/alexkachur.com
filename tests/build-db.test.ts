@@ -100,6 +100,9 @@ describe('build-db', () => {
     expect(text).toContain('code TEXT PRIMARY KEY NOT NULL');
     expect(text).toContain("category TEXT NOT NULL CHECK (category IN ('language', 'framework', 'library', 'runtime', 'database', 'ai', 'service', 'testing', 'tooling', 'platform'))");
     expect(text).toContain('end TEXT, -- The same form as start, NULL if current');
+    expect(text).toContain(
+      "area TEXT NOT NULL CHECK (area IN ('Games', 'Movies and TV', 'History and reading', 'Music', 'YouTube and podcasts', 'Sports', 'Travel')), -- Games: video game, game genre, playing now, board game; Movies and TV: movie, TV show, watching now; History and reading: history topic, reading now; Music: music genre, music artist; YouTube and podcasts: YouTube or podcast; Sports: sport, following; Travel: travelled to, wants to visit",
+    );
     expect(text.match(/CREATE TABLE/g)).toHaveLength(14);
   });
 
@@ -258,6 +261,36 @@ describe('build-db', () => {
     expect(note('Japan', 'history topic')).toBeNull();
   });
 
+  it('files every interest under the area its category belongs to', () => {
+    expect(query('SELECT area, COUNT(*) AS n FROM interests GROUP BY area ORDER BY MIN(id)')).toEqual([
+      { area: 'Games', n: 12 },
+      { area: 'Movies and TV', n: 9 },
+      { area: 'History and reading', n: 5 },
+      { area: 'Music', n: 6 },
+      { area: 'YouTube and podcasts', n: 2 },
+      { area: 'Sports', n: 9 },
+      { area: 'Travel', n: 4 },
+    ]);
+    expect(query('SELECT area, category FROM interests GROUP BY area, category ORDER BY MIN(id)').map((row) => `${row.area}: ${row.category}`)).toEqual([
+      'Games: video game',
+      'Games: game genre',
+      'Games: playing now',
+      'Games: board game',
+      'Movies and TV: movie',
+      'Movies and TV: TV show',
+      'Movies and TV: watching now',
+      'History and reading: history topic',
+      'History and reading: reading now',
+      'Music: music genre',
+      'Music: music artist',
+      'YouTube and podcasts: YouTube or podcast',
+      'Sports: sport',
+      'Sports: following',
+      'Travel: travelled to',
+      'Travel: wants to visit',
+    ]);
+  });
+
   it('keeps every pets photo under public', () => {
     for (const pet of content.pets) expect(existsSync(join('public', pet.data.photo_url)), pet.id).toBe(true);
   });
@@ -289,6 +322,10 @@ describe('build-db', () => {
     );
     expect(() => parse(edited('projects/this-site.md', 'role: everything', 'rol: everything'))).toThrow(
       /projects\/this-site.md: .*Unrecognized key/,
+    );
+    // The area comes from the category, so the content file cannot carry one of its own.
+    expect(() => parse(edited('interests.yaml', '- id: counter-strike\n  category: video game', '- id: counter-strike\n  category: video game\n  area: Games'))).toThrow(
+      /interests.yaml row counter-strike: .*Unrecognized key/,
     );
   });
 

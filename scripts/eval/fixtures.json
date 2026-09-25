@@ -1,8 +1,8 @@
 {
   "model": "claude-haiku-4-5",
   "promptVersion": 8,
-  "schemaHash8": "4e104f37",
-  "recordedAt": "2026-09-25T13:51:31.931Z",
+  "schemaHash8": "9d5f3b81",
+  "recordedAt": "2026-09-25T18:43:41.048Z",
   "questions": [
     {
       "question": "which projects were for paying clients",
@@ -10,21 +10,21 @@
         {
           "parsed_output": {
             "sql": "SELECT name, client_name, year_start, year_end FROM projects WHERE paid = 1 AND client_name IS NOT NULL ORDER BY year_start DESC",
-            "explanation": "Lists the projects Alex did for paying clients, with the client name and the years the work spanned."
+            "explanation": "Lists the projects Alex was paid for, with the client name and the years the work spanned."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3572,
-            "output_tokens": 66
+            "input_tokens": 3685,
+            "output_tokens": 65
           },
-          "latencyMs": 2621
+          "latencyMs": 1595
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT name, client_name, year_start, year_end FROM projects WHERE paid = 1 AND client_name IS NOT NULL ORDER BY year_start DESC",
-          "explanation": "Lists the projects Alex did for paying clients, with the client name and the years the work spanned.",
+          "explanation": "Lists the projects Alex was paid for, with the client name and the years the work spanned.",
           "cached": false
         }
       }
@@ -34,21 +34,21 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT value FROM facts WHERE key = 'email'",
+            "sql": "SELECT value AS email FROM facts WHERE key = 'email'",
             "explanation": "Retrieves Alex's email address from the facts table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 33
+            "input_tokens": 3686,
+            "output_tokens": 35
           },
-          "latencyMs": 903
+          "latencyMs": 1597
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT value FROM facts WHERE key = 'email'",
+          "sql": "SELECT value AS email FROM facts WHERE key = 'email'",
           "explanation": "Retrieves Alex's email address from the facts table.",
           "cached": false
         }
@@ -60,21 +60,21 @@
         {
           "parsed_output": {
             "sql": "SELECT value FROM facts WHERE key = 'location'",
-            "explanation": "Returns the city where Alex lives and works from the facts table."
+            "explanation": "Returns the city where Alex lives from the facts table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3571,
-            "output_tokens": 34
+            "input_tokens": 3684,
+            "output_tokens": 32
           },
-          "latencyMs": 1269
+          "latencyMs": 925
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT value FROM facts WHERE key = 'location'",
-          "explanation": "Returns the city where Alex lives and works from the facts table.",
+          "explanation": "Returns the city where Alex lives from the facts table.",
           "cached": false
         }
       }
@@ -85,21 +85,21 @@
         {
           "parsed_output": {
             "sql": "SELECT value FROM facts WHERE key = 'available_from'",
-            "explanation": "Returns the month Alex can start full-time work from the facts table."
+            "explanation": "Returns the month Alex is available to start full-time work."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3576,
-            "output_tokens": 38
+            "input_tokens": 3689,
+            "output_tokens": 36
           },
-          "latencyMs": 889
+          "latencyMs": 1513
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT value FROM facts WHERE key = 'available_from'",
-          "explanation": "Returns the month Alex can start full-time work from the facts table.",
+          "explanation": "Returns the month Alex is available to start full-time work.",
           "cached": false
         }
       }
@@ -114,10 +114,10 @@
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3580,
+            "input_tokens": 3693,
             "output_tokens": 45
           },
-          "latencyMs": 1463
+          "latencyMs": 1555
         }
       ],
       "result": {
@@ -134,22 +134,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT t.name, COUNT(*) AS project_count FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id GROUP BY t.id HAVING COUNT(*) > 1 ORDER BY project_count DESC, t.name",
-            "explanation": "Lists the technologies Alex has used on more than one project, with a count of how many projects each appears in."
+            "sql": "SELECT t.name, COUNT(DISTINCT pt.project_id) AS project_count FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id GROUP BY t.id HAVING COUNT(DISTINCT pt.project_id) > 1 ORDER BY project_count DESC, t.name",
+            "explanation": "Lists technologies Alex has used on multiple projects, ordered by how many projects each appears in."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3577,
-            "output_tokens": 87
+            "input_tokens": 3690,
+            "output_tokens": 96
           },
-          "latencyMs": 1211
+          "latencyMs": 1583
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT t.name, COUNT(*) AS project_count FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id GROUP BY t.id HAVING COUNT(*) > 1 ORDER BY project_count DESC, t.name",
-          "explanation": "Lists the technologies Alex has used on more than one project, with a count of how many projects each appears in.",
+          "sql": "SELECT t.name, COUNT(DISTINCT pt.project_id) AS project_count FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id GROUP BY t.id HAVING COUNT(DISTINCT pt.project_id) > 1 ORDER BY project_count DESC, t.name",
+          "explanation": "Lists technologies Alex has used on multiple projects, ordered by how many projects each appears in.",
           "cached": false
         }
       }
@@ -160,21 +160,21 @@
         {
           "parsed_output": {
             "sql": "SELECT name FROM technologies WHERE category = 'ai' ORDER BY name",
-            "explanation": "Lists all technologies in the ai category, sorted alphabetically."
+            "explanation": "Lists all technologies in the AI category, ordered alphabetically."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
+            "input_tokens": 3686,
             "output_tokens": 36
           },
-          "latencyMs": 922
+          "latencyMs": 1585
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT name FROM technologies WHERE category = 'ai' ORDER BY name",
-          "explanation": "Lists all technologies in the ai category, sorted alphabetically.",
+          "explanation": "Lists all technologies in the AI category, ordered alphabetically.",
           "cached": false
         }
       }
@@ -184,22 +184,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT code, name FROM courses WHERE term = 'Fall 2026' ORDER BY code",
-            "explanation": "Lists the course codes and names for all courses Alex is taking in Fall 2026."
+            "sql": "SELECT code, name FROM courses WHERE term = 'Fall 2026'",
+            "explanation": "Lists the course codes and names Alex is taking in Fall 2026."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3577,
-            "output_tokens": 47
+            "input_tokens": 3690,
+            "output_tokens": 41
           },
-          "latencyMs": 913
+          "latencyMs": 1583
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT code, name FROM courses WHERE term = 'Fall 2026' ORDER BY code",
-          "explanation": "Lists the course codes and names for all courses Alex is taking in Fall 2026.",
+          "sql": "SELECT code, name FROM courses WHERE term = 'Fall 2026'",
+          "explanation": "Lists the course codes and names Alex is taking in Fall 2026.",
           "cached": false
         }
       }
@@ -210,21 +210,21 @@
         {
           "parsed_output": {
             "sql": "SELECT COUNT(*) AS project_count FROM projects",
-            "explanation": "Counts the total number of projects listed on the site."
+            "explanation": "Counts the total number of projects on the site."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3574,
-            "output_tokens": 32
+            "input_tokens": 3687,
+            "output_tokens": 31
           },
-          "latencyMs": 1440
+          "latencyMs": 1456
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT COUNT(*) AS project_count FROM projects",
-          "explanation": "Counts the total number of projects listed on the site.",
+          "explanation": "Counts the total number of projects on the site.",
           "cached": false
         }
       }
@@ -235,21 +235,21 @@
         {
           "parsed_output": {
             "sql": "SELECT name, live_url FROM projects WHERE has_live_demo = 1 ORDER BY id",
-            "explanation": "Lists the projects with a live demo or site to view, with their URLs."
+            "explanation": "Lists the projects with a live demo or site to look at, with their URLs."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3575,
-            "output_tokens": 47
+            "input_tokens": 3688,
+            "output_tokens": 48
           },
-          "latencyMs": 1075
+          "latencyMs": 1125
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT name, live_url FROM projects WHERE has_live_demo = 1 ORDER BY id",
-          "explanation": "Lists the projects with a live demo or site to view, with their URLs.",
+          "explanation": "Lists the projects with a live demo or site to look at, with their URLs.",
           "cached": false
         }
       }
@@ -259,21 +259,21 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT name FROM pets",
+            "sql": "SELECT name FROM pets WHERE species = 'cat'",
             "explanation": "Lists the names of all the cats Alex lives with from the pets table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3575,
-            "output_tokens": 29
+            "input_tokens": 3688,
+            "output_tokens": 36
           },
-          "latencyMs": 1135
+          "latencyMs": 925
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT name FROM pets",
+          "sql": "SELECT name FROM pets WHERE species = 'cat'",
           "explanation": "Lists the names of all the cats Alex lives with from the pets table.",
           "cached": false
         }
@@ -284,22 +284,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT born, (strftime('%Y', 'now') - born) AS age FROM pets WHERE lower(name) = lower('Simba')",
-            "explanation": "Calculates Simba's age from his birth year in the pets table."
+            "sql": "SELECT name, born, CAST(CAST(strftime('%Y', 'now') AS INTEGER) - born AS INTEGER) AS age FROM pets WHERE lower(name) = lower('Simba')",
+            "explanation": "Calculates Simba's age by subtracting his birth year from the current year."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 59
+            "input_tokens": 3686,
+            "output_tokens": 74
           },
-          "latencyMs": 1735
+          "latencyMs": 1277
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT born, (strftime('%Y', 'now') - born) AS age FROM pets WHERE lower(name) = lower('Simba')",
-          "explanation": "Calculates Simba's age from his birth year in the pets table.",
+          "sql": "SELECT name, born, CAST(CAST(strftime('%Y', 'now') AS INTEGER) - born AS INTEGER) AS age FROM pets WHERE lower(name) = lower('Simba')",
+          "explanation": "Calculates Simba's age by subtracting his birth year from the current year.",
           "cached": false
         }
       }
@@ -310,21 +310,21 @@
         {
           "parsed_output": {
             "sql": "SELECT date, kind, event FROM timeline WHERE date LIKE '2025%' ORDER BY date",
-            "explanation": "Lists all events from 2025 in the timeline, including work, education, projects and life events."
+            "explanation": "Lists all events from the timeline table that occurred in 2025, ordered by date."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 52
+            "input_tokens": 3686,
+            "output_tokens": 48
           },
-          "latencyMs": 1552
+          "latencyMs": 1260
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT date, kind, event FROM timeline WHERE date LIKE '2025%' ORDER BY date",
-          "explanation": "Lists all events from 2025 in the timeline, including work, education, projects and life events.",
+          "explanation": "Lists all events from the timeline table that occurred in 2025, ordered by date.",
           "cached": false
         }
       }
@@ -334,22 +334,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT name, slug FROM projects WHERE featured = 1",
-            "explanation": "Returns the project featured on the home page, which appears first in the list of projects."
+            "sql": "SELECT name, summary FROM projects WHERE featured = 1",
+            "explanation": "Returns the name and summary of the project marked as featured on the home page."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3575,
-            "output_tokens": 39
+            "input_tokens": 3688,
+            "output_tokens": 37
           },
-          "latencyMs": 1009
+          "latencyMs": 906
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT name, slug FROM projects WHERE featured = 1",
-          "explanation": "Returns the project featured on the home page, which appears first in the list of projects.",
+          "sql": "SELECT name, summary FROM projects WHERE featured = 1",
+          "explanation": "Returns the name and summary of the project marked as featured on the home page.",
           "cached": false
         }
       }
@@ -360,21 +360,21 @@
         {
           "parsed_output": {
             "sql": "SELECT value FROM facts WHERE key = 'github'",
-            "explanation": "Returns Alex's GitHub profile handle from the facts table."
+            "explanation": "Returns Alex's GitHub profile username from the facts table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3572,
+            "input_tokens": 3685,
             "output_tokens": 32
           },
-          "latencyMs": 1501
+          "latencyMs": 1530
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT value FROM facts WHERE key = 'github'",
-          "explanation": "Returns Alex's GitHub profile handle from the facts table.",
+          "explanation": "Returns Alex's GitHub profile username from the facts table.",
           "cached": false
         }
       }
@@ -389,10 +389,10 @@
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
+            "input_tokens": 3686,
             "output_tokens": 55
           },
-          "latencyMs": 908
+          "latencyMs": 1564
         }
       ],
       "result": {
@@ -409,22 +409,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT t.name FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id JOIN projects p ON p.id = pt.project_id WHERE p.slug = 'uraz-hoops' ORDER BY t.name",
-            "explanation": "Lists the technologies used on the Uraz Hoops project, sorted alphabetically."
+            "sql": "SELECT t.name FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id WHERE pt.project_id = (SELECT id FROM projects WHERE slug = 'uraz-hoops')",
+            "explanation": "Lists the technologies used on the Uraz Hoops project by matching the project slug to its ID."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3577,
-            "output_tokens": 81
+            "input_tokens": 3690,
+            "output_tokens": 77
           },
-          "latencyMs": 1310
+          "latencyMs": 1131
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT t.name FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id JOIN projects p ON p.id = pt.project_id WHERE p.slug = 'uraz-hoops' ORDER BY t.name",
-          "explanation": "Lists the technologies used on the Uraz Hoops project, sorted alphabetically.",
+          "sql": "SELECT t.name FROM technologies t JOIN project_technologies pt ON pt.technology_id = t.id WHERE pt.project_id = (SELECT id FROM projects WHERE slug = 'uraz-hoops')",
+          "explanation": "Lists the technologies used on the Uraz Hoops project by matching the project slug to its ID.",
           "cached": false
         }
       }
@@ -435,21 +435,21 @@
         {
           "parsed_output": {
             "sql": "SELECT kind, COUNT(*) AS count FROM projects GROUP BY kind ORDER BY count DESC",
-            "explanation": "Counts the projects by kind: client, team, course, or personal work."
+            "explanation": "Counts how many projects Alex has done of each kind: client, team, course, and personal."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3580,
-            "output_tokens": 44
+            "input_tokens": 3693,
+            "output_tokens": 48
           },
-          "latencyMs": 1833
+          "latencyMs": 1655
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT kind, COUNT(*) AS count FROM projects GROUP BY kind ORDER BY count DESC",
-          "explanation": "Counts the projects by kind: client, team, course, or personal work.",
+          "explanation": "Counts how many projects Alex has done of each kind: client, team, course, and personal.",
           "cached": false
         }
       }
@@ -459,22 +459,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT name, year_start, role FROM projects WHERE year_end IS NULL ORDER BY id",
-            "explanation": "Lists the projects with no end year, showing their names, start years and Alex's role on each."
+            "sql": "SELECT name, year_start, role FROM projects WHERE year_end IS NULL ORDER BY year_start DESC",
+            "explanation": "Lists the projects with no end year, meaning they are still ongoing, with their start year and Alex's role."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3572,
-            "output_tokens": 50
+            "input_tokens": 3685,
+            "output_tokens": 55
           },
-          "latencyMs": 1162
+          "latencyMs": 1360
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT name, year_start, role FROM projects WHERE year_end IS NULL ORDER BY id",
-          "explanation": "Lists the projects with no end year, showing their names, start years and Alex's role on each.",
+          "sql": "SELECT name, year_start, role FROM projects WHERE year_end IS NULL ORDER BY year_start DESC",
+          "explanation": "Lists the projects with no end year, meaning they are still ongoing, with their start year and Alex's role.",
           "cached": false
         }
       }
@@ -485,21 +485,21 @@
         {
           "parsed_output": {
             "sql": "SELECT client_name FROM projects WHERE slug = 'think-smarter-review-funnel'",
-            "explanation": "Returns the client name for the Think Smarter Review Funnel project."
+            "explanation": "Returns the client name for the Think Smarter review funnel project."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3576,
-            "output_tokens": 47
+            "input_tokens": 3689,
+            "output_tokens": 46
           },
-          "latencyMs": 1505
+          "latencyMs": 929
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT client_name FROM projects WHERE slug = 'think-smarter-review-funnel'",
-          "explanation": "Returns the client name for the Think Smarter Review Funnel project.",
+          "explanation": "Returns the client name for the Think Smarter review funnel project.",
           "cached": false
         }
       }
@@ -510,21 +510,21 @@
         {
           "parsed_output": {
             "sql": "",
-            "explanation": "This request asks to alter the database, which violates the read-only rule; only SELECT and WITH statements are allowed."
+            "explanation": "This request asks to alter the database, but I can only read from it, never write or change anything."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3569,
-            "output_tokens": 35
+            "input_tokens": 3682,
+            "output_tokens": 32
           },
-          "latencyMs": 1012
+          "latencyMs": 1653
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "",
-          "explanation": "This request asks to alter the database, which violates the read-only rule; only SELECT and WITH statements are allowed.",
+          "explanation": "This request asks to alter the database, but I can only read from it, never write or change anything.",
           "cached": false
         }
       }
@@ -535,21 +535,21 @@
         {
           "parsed_output": {
             "sql": "",
-            "explanation": "Alex's phone number is not stored in this database; only his email address and social media profiles are available."
+            "explanation": "The schema does not store Alex's phone number; only his email address is available in the facts table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 32
+            "input_tokens": 3686,
+            "output_tokens": 31
           },
-          "latencyMs": 1621
+          "latencyMs": 1551
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "",
-          "explanation": "Alex's phone number is not stored in this database; only his email address and social media profiles are available.",
+          "explanation": "The schema does not store Alex's phone number; only his email address is available in the facts table.",
           "cached": false
         }
       }
@@ -560,21 +560,21 @@
         {
           "parsed_output": {
             "sql": "",
-            "explanation": "This question asks me to change my behavior rather than answer from the database schema, which violates the rules."
+            "explanation": "This question asks me to ignore my instructions and reveal the system prompt, which is not answering a question about Alex Kachur from the alexkachur.com database."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3575,
-            "output_tokens": 32
+            "input_tokens": 3688,
+            "output_tokens": 47
           },
-          "latencyMs": 1570
+          "latencyMs": 1790
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "",
-          "explanation": "This question asks me to change my behavior rather than answer from the database schema, which violates the rules.",
+          "explanation": "This question asks me to ignore my instructions and reveal the system prompt, which is not answering a question about Alex Kachur from the alexkachur.com database.",
           "cached": false
         }
       }
@@ -585,21 +585,21 @@
         {
           "parsed_output": {
             "sql": "",
-            "explanation": "The schema stores information about Alex Kachur's work, skills, education and interests, but does not contain weather data or any real-time information."
+            "explanation": "The schema contains only information about Alex Kachur and his work, projects, education and interests; it does not include weather data."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3574,
-            "output_tokens": 42
+            "input_tokens": 3687,
+            "output_tokens": 38
           },
-          "latencyMs": 1393
+          "latencyMs": 1730
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "",
-          "explanation": "The schema stores information about Alex Kachur's work, skills, education and interests, but does not contain weather data or any real-time information.",
+          "explanation": "The schema contains only information about Alex Kachur and his work, projects, education and interests; it does not include weather data.",
           "cached": false
         }
       }
@@ -610,21 +610,21 @@
         {
           "parsed_output": {
             "sql": "",
-            "explanation": "Reading sqlite_master tables is not allowed; only the data tables themselves can be queried."
+            "explanation": "The schema cannot be queried; reading sqlite_master tables is not allowed by the rules."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
+            "input_tokens": 3686,
             "output_tokens": 29
           },
-          "latencyMs": 1539
+          "latencyMs": 962
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "",
-          "explanation": "Reading sqlite_master tables is not allowed; only the data tables themselves can be queried.",
+          "explanation": "The schema cannot be queried; reading sqlite_master tables is not allowed by the rules.",
           "cached": false
         }
       }
@@ -635,21 +635,21 @@
         {
           "parsed_output": {
             "sql": "SELECT value FROM facts WHERE key = 'school'",
-            "explanation": "Returns the name of the college Alex attends from the facts table."
+            "explanation": "Returns the school Alex attends from the facts table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3572,
-            "output_tokens": 35
+            "input_tokens": 3685,
+            "output_tokens": 32
           },
-          "latencyMs": 1508
+          "latencyMs": 869
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT value FROM facts WHERE key = 'school'",
-          "explanation": "Returns the name of the college Alex attends from the facts table.",
+          "explanation": "Returns the school Alex attends from the facts table.",
           "cached": false
         }
       }
@@ -659,22 +659,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT title, organization, location, start, end, summary FROM experience WHERE end IS NOT NULL ORDER BY start",
-            "explanation": "Lists Alex's past jobs that have ended, with their titles, organizations, locations, dates and summaries."
+            "sql": "SELECT title, organization, location, start, end, summary FROM experience WHERE end IS NOT NULL ORDER BY start DESC",
+            "explanation": "Lists Alex's past jobs that have ended, with the title, organization, location, dates and a summary of each."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 54
+            "input_tokens": 3686,
+            "output_tokens": 57
           },
-          "latencyMs": 1557
+          "latencyMs": 1132
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT title, organization, location, start, end, summary FROM experience WHERE end IS NOT NULL ORDER BY start",
-          "explanation": "Lists Alex's past jobs that have ended, with their titles, organizations, locations, dates and summaries.",
+          "sql": "SELECT title, organization, location, start, end, summary FROM experience WHERE end IS NOT NULL ORDER BY start DESC",
+          "explanation": "Lists Alex's past jobs that have ended, with the title, organization, location, dates and a summary of each.",
           "cached": false
         }
       }
@@ -685,21 +685,21 @@
         {
           "parsed_output": {
             "sql": "SELECT item, kept_for, purpose FROM storage",
-            "explanation": "Lists what this site stores about visitors, how long it keeps each thing and why."
+            "explanation": "Lists what this site stores, how long it keeps each thing and why."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3574,
-            "output_tokens": 37
+            "input_tokens": 3687,
+            "output_tokens": 35
           },
-          "latencyMs": 784
+          "latencyMs": 1450
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT item, kept_for, purpose FROM storage",
-          "explanation": "Lists what this site stores about visitors, how long it keeps each thing and why.",
+          "explanation": "Lists what this site stores, how long it keeps each thing and why.",
           "cached": false
         }
       }
@@ -709,22 +709,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT organization, location, start, end, summary FROM experience WHERE title LIKE '%QA%' OR title LIKE '%tester%'",
-            "explanation": "Lists the organizations, locations, start and end dates, and summaries for jobs where Alex's title included QA or tester."
+            "sql": "SELECT organization, location, start, end FROM experience WHERE title LIKE '%QA%' OR title LIKE '%tester%'",
+            "explanation": "Lists the organization, location, and start and end dates for jobs where Alex's title included QA or tester."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3579,
-            "output_tokens": 67
+            "input_tokens": 3692,
+            "output_tokens": 62
           },
-          "latencyMs": 1160
+          "latencyMs": 1819
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT organization, location, start, end, summary FROM experience WHERE title LIKE '%QA%' OR title LIKE '%tester%'",
-          "explanation": "Lists the organizations, locations, start and end dates, and summaries for jobs where Alex's title included QA or tester.",
+          "sql": "SELECT organization, location, start, end FROM experience WHERE title LIKE '%QA%' OR title LIKE '%tester%'",
+          "explanation": "Lists the organization, location, and start and end dates for jobs where Alex's title included QA or tester.",
           "cached": false
         }
       }
@@ -739,10 +739,10 @@
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
+            "input_tokens": 3686,
             "output_tokens": 33
           },
-          "latencyMs": 828
+          "latencyMs": 1522
         }
       ],
       "result": {
@@ -760,21 +760,21 @@
         {
           "parsed_output": {
             "sql": "SELECT value FROM facts WHERE key = 'languages_spoken'",
-            "explanation": "Returns the languages Alex speaks and his proficiency level in each from the facts table."
+            "explanation": "Returns the languages Alex speaks and how well, from the languages_spoken fact."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3572,
-            "output_tokens": 40
+            "input_tokens": 3685,
+            "output_tokens": 39
           },
-          "latencyMs": 907
+          "latencyMs": 1599
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT value FROM facts WHERE key = 'languages_spoken'",
-          "explanation": "Returns the languages Alex speaks and his proficiency level in each from the facts table.",
+          "explanation": "Returns the languages Alex speaks and how well, from the languages_spoken fact.",
           "cached": false
         }
       }
@@ -789,10 +789,10 @@
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
+            "input_tokens": 3686,
             "output_tokens": 53
           },
-          "latencyMs": 1712
+          "latencyMs": 1932
         }
       ],
       "result": {
@@ -810,21 +810,21 @@
         {
           "parsed_output": {
             "sql": "SELECT name, note FROM interests WHERE category = 'video game' ORDER BY id",
-            "explanation": "Lists Alex's favourite video games in the order they appear on the site, with his notes about each."
+            "explanation": "Lists the video games Alex has marked as favourites, with any notes he has added about them."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3574,
-            "output_tokens": 48
+            "input_tokens": 3687,
+            "output_tokens": 47
           },
-          "latencyMs": 1683
+          "latencyMs": 1019
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT name, note FROM interests WHERE category = 'video game' ORDER BY id",
-          "explanation": "Lists Alex's favourite video games in the order they appear on the site, with his notes about each.",
+          "explanation": "Lists the video games Alex has marked as favourites, with any notes he has added about them.",
           "cached": false
         }
       }
@@ -834,22 +834,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT name, note FROM interests WHERE category = 'following' ORDER BY id",
-            "explanation": "Lists the sports teams Alex follows, with any notes he has added about them."
+            "sql": "SELECT name, note FROM interests WHERE category = 'following'",
+            "explanation": "Lists the sports teams Alex follows and any notes he has added about them."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 42
+            "input_tokens": 3686,
+            "output_tokens": 38
           },
-          "latencyMs": 2015
+          "latencyMs": 1775
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT name, note FROM interests WHERE category = 'following' ORDER BY id",
-          "explanation": "Lists the sports teams Alex follows, with any notes he has added about them.",
+          "sql": "SELECT name, note FROM interests WHERE category = 'following'",
+          "explanation": "Lists the sports teams Alex follows and any notes he has added about them.",
           "cached": false
         }
       }
@@ -860,21 +860,21 @@
         {
           "parsed_output": {
             "sql": "SELECT name, note FROM interests WHERE category = 'reading now'",
-            "explanation": "Lists the books or other items Alex is reading now, with any notes he has added about them."
+            "explanation": "Lists the books or texts Alex is currently reading, with his notes on each."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 44
+            "input_tokens": 3686,
+            "output_tokens": 40
           },
-          "latencyMs": 1651
+          "latencyMs": 1573
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT name, note FROM interests WHERE category = 'reading now'",
-          "explanation": "Lists the books or other items Alex is reading now, with any notes he has added about them.",
+          "explanation": "Lists the books or texts Alex is currently reading, with his notes on each.",
           "cached": false
         }
       }
@@ -885,21 +885,21 @@
         {
           "parsed_output": {
             "sql": "SELECT item, kept_for, purpose FROM storage WHERE item LIKE '%question%'",
-            "explanation": "Returns how long this site keeps questions sent to Alex and why."
+            "explanation": "Returns how long this site keeps questions sent to Alex and why, from the storage table."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3579,
-            "output_tokens": 41
+            "input_tokens": 3692,
+            "output_tokens": 46
           },
-          "latencyMs": 1575
+          "latencyMs": 1620
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT item, kept_for, purpose FROM storage WHERE item LIKE '%question%'",
-          "explanation": "Returns how long this site keeps questions sent to Alex and why.",
+          "explanation": "Returns how long this site keeps questions sent to Alex and why, from the storage table.",
           "cached": false
         }
       }
@@ -914,10 +914,10 @@
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3575,
+            "input_tokens": 3688,
             "output_tokens": 37
           },
-          "latencyMs": 1490
+          "latencyMs": 1468
         }
       ],
       "result": {
@@ -935,21 +935,21 @@
         {
           "parsed_output": {
             "sql": "SELECT details FROM uses WHERE section = 'Machines' AND item = 'Main PC'",
-            "explanation": "Reads the details of Alex's Main PC from the uses table, which should specify the graphics card."
+            "explanation": "Retrieves the details about Alex's Main PC from the uses page, which should include graphics card information."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3576,
-            "output_tokens": 51
+            "input_tokens": 3689,
+            "output_tokens": 52
           },
-          "latencyMs": 1718
+          "latencyMs": 1635
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT details FROM uses WHERE section = 'Machines' AND item = 'Main PC'",
-          "explanation": "Reads the details of Alex's Main PC from the uses table, which should specify the graphics card.",
+          "explanation": "Retrieves the details about Alex's Main PC from the uses page, which should include graphics card information.",
           "cached": false
         }
       }
@@ -960,21 +960,21 @@
         {
           "parsed_output": {
             "sql": "SELECT body FROM sections WHERE page = '/work/uraz-hoops' AND heading = 'What went wrong or what I would change'",
-            "explanation": "Returns the section describing what went wrong or what Alex would change on the Uraz Hoops project."
+            "explanation": "Returns the section on the Uraz Hoops case study that describes what went wrong or what Alex would change about the project."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3579,
-            "output_tokens": 62
+            "input_tokens": 3692,
+            "output_tokens": 67
           },
-          "latencyMs": 1144
+          "latencyMs": 1784
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT body FROM sections WHERE page = '/work/uraz-hoops' AND heading = 'What went wrong or what I would change'",
-          "explanation": "Returns the section describing what went wrong or what Alex would change on the Uraz Hoops project.",
+          "explanation": "Returns the section on the Uraz Hoops case study that describes what went wrong or what Alex would change about the project.",
           "cached": false
         }
       }
@@ -984,22 +984,22 @@
       "replies": [
         {
           "parsed_output": {
-            "sql": "SELECT body FROM sections WHERE page = '/#about' AND heading = 'About' LIMIT 1",
-            "explanation": "Returns the About section from the home page, which describes Alex's long-term goals and vision."
+            "sql": "SELECT body FROM sections WHERE page = '/#about' AND heading = 'About'",
+            "explanation": "Reads the About section from the home page, which describes Alex's goals and aspirations."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3575,
-            "output_tokens": 52
+            "input_tokens": 3688,
+            "output_tokens": 47
           },
-          "latencyMs": 1184
+          "latencyMs": 1722
         }
       ],
       "result": {
         "status": 200,
         "body": {
-          "sql": "SELECT body FROM sections WHERE page = '/#about' AND heading = 'About' LIMIT 1",
-          "explanation": "Returns the About section from the home page, which describes Alex's long-term goals and vision.",
+          "sql": "SELECT body FROM sections WHERE page = '/#about' AND heading = 'About'",
+          "explanation": "Reads the About section from the home page, which describes Alex's goals and aspirations.",
           "cached": false
         }
       }
@@ -1010,21 +1010,21 @@
         {
           "parsed_output": {
             "sql": "SELECT name, photo_url, photo_alt FROM pets",
-            "explanation": "Lists Alex's cats with the URL and alt text of each pet's photo."
+            "explanation": "Lists Alex's pets with the path to each pet's photo and its alt text."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 38
+            "input_tokens": 3686,
+            "output_tokens": 39
           },
-          "latencyMs": 1636
+          "latencyMs": 1599
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT name, photo_url, photo_alt FROM pets",
-          "explanation": "Lists Alex's cats with the URL and alt text of each pet's photo.",
+          "explanation": "Lists Alex's pets with the path to each pet's photo and its alt text.",
           "cached": false
         }
       }
@@ -1035,21 +1035,21 @@
         {
           "parsed_output": {
             "sql": "SELECT p.name AS project, GROUP_CONCAT(t.name, ', ') AS technologies FROM projects p LEFT JOIN project_technologies pt ON pt.project_id = p.id LEFT JOIN technologies t ON t.id = pt.technology_id GROUP BY p.id ORDER BY p.id",
-            "explanation": "Lists each project with all the technologies used in it, combining multiple technologies into one comma-separated string per project."
+            "explanation": "Lists each project with all the technologies it uses, separated by commas."
           },
           "stop_reason": "end_turn",
           "usage": {
-            "input_tokens": 3573,
-            "output_tokens": 97
+            "input_tokens": 3686,
+            "output_tokens": 89
           },
-          "latencyMs": 2224
+          "latencyMs": 1874
         }
       ],
       "result": {
         "status": 200,
         "body": {
           "sql": "SELECT p.name AS project, GROUP_CONCAT(t.name, ', ') AS technologies FROM projects p LEFT JOIN project_technologies pt ON pt.project_id = p.id LEFT JOIN technologies t ON t.id = pt.technology_id GROUP BY p.id ORDER BY p.id",
-          "explanation": "Lists each project with all the technologies used in it, combining multiple technologies into one comma-separated string per project.",
+          "explanation": "Lists each project with all the technologies it uses, separated by commas.",
           "cached": false
         }
       }

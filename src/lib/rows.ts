@@ -26,6 +26,7 @@ import type {
   UsesContent,
   usesRow,
 } from '../content/schemas.ts';
+import { interestAreaOf } from '../content/schemas.ts';
 import { blockText } from './page-text.ts';
 import { splitSections } from './sections.ts';
 
@@ -184,9 +185,10 @@ export function experienceRows(entries: Entry<ExperienceContent>[]): ExperienceR
     .map((row, index) => ({ id: index + 1, ...row }));
 }
 
-// In the order Alex listed them, which is the file's order.
+// In the order Alex listed them, which is the file's order, each under the area its category
+// belongs to.
 export function interestRows(entries: Entry<InterestContent>[]): InterestRow[] {
-  return entries.map(({ data: { id, ...row } }, index) => ({ id: index + 1, ...row }));
+  return entries.map(({ data: { category, name, note } }, index) => ({ id: index + 1, category, area: interestAreaOf[category], name, note }));
 }
 
 // In the order Alex listed them, which is the file's order and the page's.

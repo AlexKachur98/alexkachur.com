@@ -3,6 +3,7 @@ import {
   courseRows,
   factRows,
   hasCaseStudy,
+  interestRows,
   petRows,
   projectPage,
   projectRows,
@@ -11,6 +12,7 @@ import {
   timelineRows,
 } from '../src/lib/rows.ts';
 import type { Entry, ProjectInput, TechnologyRef } from '../src/lib/rows.ts';
+import { interestAreaOf, interestAreas, interestCategories } from '../src/content/schemas.ts';
 import type { TechnologyContent } from '../src/content/schemas.ts';
 
 function project(id: string, order: number, technologies: TechnologyRef[]): Entry<ProjectInput> {
@@ -151,5 +153,21 @@ describe('rows', () => {
     ]);
     expect(pets.map((row) => row.name)).toEqual(['Moura', 'Simba']);
     expect(Object.keys(pets[0]!)).not.toContain('id');
+  });
+
+  it('files each interest under the area of its category, in the order Alex listed the areas', () => {
+    expect(Object.keys(interestAreaOf)).toEqual([...interestCategories]);
+    expect(interestCategories.map((category) => interestAreas.indexOf(interestAreaOf[category]))).toEqual([
+      0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6,
+    ]);
+    const rows = interestRows([
+      { id: 'catan', data: { id: 'catan', category: 'board game', name: 'Catan', note: null } },
+      { id: 'nfl', data: { id: 'nfl', category: 'following', name: 'NFL', note: 'n' } },
+    ]);
+    expect(rows).toEqual([
+      { id: 1, category: 'board game', area: 'Games', name: 'Catan', note: null },
+      { id: 2, category: 'following', area: 'Sports', name: 'NFL', note: 'n' },
+    ]);
+    expect(Object.keys(rows[0]!)).toEqual(['id', 'category', 'area', 'name', 'note']);
   });
 });
