@@ -254,7 +254,7 @@ describe(`built output in ${root}`, () => {
     const api = pages.find(({ url }) => url === '/api')!.html;
     expect(api).toMatch(/<section\b[^>]*id="api-questions"/);
     expect(text(api)).toContain('Each answer also carries a token: to send that question to Alex, pass it to /api/questions within 10 minutes.');
-    expect(text(api)).toContain('no older than 10 minutes, and keeps only the question and the day it was sent, for 90 days.');
+    expect(text(api)).toContain('It is kept for 90 days, and no endpoint ever returns it.');
   });
 
   // The Ask box on the home page and the 404: four chips, the privacy note with no link, and the

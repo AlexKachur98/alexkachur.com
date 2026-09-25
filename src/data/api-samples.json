@@ -1,0 +1,13 @@
+{
+  "stats": {
+    "recorded": "2026-09-25",
+    "body": {
+      "questionsThisMonth": 55,
+      "modelCallsThisMonth": 30,
+      "cap": 2000,
+      "model": "claude-haiku-4-5",
+      "commit": "5d212c76a0f4c7bb94f6a1de9a75e1d3d5bbd2fd",
+      "builtAt": "2026-09-25T05:31:43.690Z"
+    }
+  }
+}

@@ -9,8 +9,15 @@ import { endpoints } from './endpoints.ts';
 import type { Endpoint } from './endpoints.ts';
 import { OPENAPI_VERSION } from './openapi-version.ts';
 
-// What /api/resume.json is, for the /api page and this document alike.
-export const RESUME_DESCRIPTION = "Alex's resume in the JSON Resume format, built from the same tables.";
+// What each endpoint is, for the /api page and this document alike, so the two cannot drift. Third
+// person, Alex named, the API caller addressed as "you" where it must be.
+export const PROJECT_DESCRIPTION = 'The projects row with this slug, plus the names of its technologies. Its screenshots are the project_images rows with its id, at /api/project_images.json.';
+export const SCHEMA_DESCRIPTION =
+  'The tables and columns of the database, the SQL that created them, the keys of the facts table with what each means, the pages and headings of the sections table, and a hash covering all of those. The SQL and those three lists are the schema the Ask box sends to the model.';
+export const RESUME_DESCRIPTION = "Alex's resume in the JSON Resume format, built from the same database as everything else.";
+export const ASK_DESCRIPTION =
+  "Send a question and get back SQL that answers it from this site's database, checked against the real database first, or a short refusal when the data can't answer it. It never runs the SQL; you do.";
+export const STATS_DESCRIPTION = 'The numbers behind the footer: questions answered this month, model calls this month and the monthly cap, the model the Ask box runs on, and the commit and time of the build.';
 
 export interface SchemaColumn {
   name: string;
@@ -94,9 +101,9 @@ const shapes: Record<string, JsonSchema> = {
   },
   database_schema: {
     type: 'object',
-    description: 'The tables and columns of the database, the DDL that created it and a hash of both',
+    description: SCHEMA_DESCRIPTION,
     properties: {
-      hash: { type: 'string', description: 'SHA-256 of the DDL, the table list, the fact keys with their descriptions and the section headings' },
+      hash: { type: 'string', description: 'SHA-256 of the DDL, the table list, the fact keys with their descriptions, and the pages and headings of the sections table' },
       ddl: { type: 'string', description: 'The CREATE TABLE statements, with a comment per column' },
       tables: {
         type: 'array',
@@ -225,6 +232,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
     case '/api/projects/{slug}.json':
       return {
         operationId: 'getProject',
+        description: PROJECT_DESCRIPTION,
         parameters: [
           { name: 'slug', in: 'path', required: true, description: "The project's slug, its short name in URLs", schema: { type: 'string' } },
         ],
@@ -234,7 +242,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
         },
       };
     case '/api/schema.json':
-      return { operationId: 'getSchema', responses: { '200': jsonResponse('The database schema', ref('database_schema')) } };
+      return { operationId: 'getSchema', description: SCHEMA_DESCRIPTION, responses: { '200': jsonResponse('The database schema', ref('database_schema')) } };
     case '/api/resume.json':
       return {
         operationId: 'getResume',
@@ -244,7 +252,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
     case '/api/ask':
       return {
         operationId: 'ask',
-        description: `Rate limits: ${RATE_LIMIT.requests} questions a minute per address and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`,
+        description: `${ASK_DESCRIPTION} Rate limits: ${RATE_LIMIT.requests} questions a minute per address and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`,
         requestBody: { required: true, content: { 'application/json': { schema: ref('ask_request') } } },
         responses: {
           '200': jsonResponse('SQL for the question, or an explanation of why there is none', ref('ask_answer')),
@@ -276,6 +284,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
     case '/api/stats':
       return {
         operationId: 'getStats',
+        description: STATS_DESCRIPTION,
         responses: {
           '200': jsonResponse('The counters for the current month and the build', ref('stats')),
           '503': jsonResponse('The counters could not be read', ref('unavailable')),

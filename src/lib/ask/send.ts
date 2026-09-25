@@ -17,7 +17,7 @@ import { keptFor, TTL } from './storage.ts';
 export const SEND = { windowSeconds: 600, skewSeconds: 60, dailyCap: 50 } as const;
 
 // What POST /api/questions does, for the /api page and the OpenAPI document alike.
-export const SEND_DESCRIPTION = `Stores a question the site could not answer, for Alex to read, only when the visitor chooses to send it. It needs the token /api/ask returned with that question, no older than ${SEND.windowSeconds / 60} minutes, and keeps only the question and the day it was sent, for ${keptFor(TTL.sentQuestion)}.`;
+export const SEND_DESCRIPTION = `Sends Alex a question the site could not answer, only when the visitor chooses to send it, using the token /api/ask returned with it. It is kept for ${keptFor(TTL.sentQuestion)}, and no endpoint ever returns it.`;
 
 const TOKEN = /^(\d{1,12})\.([A-Za-z0-9_-]{43})$/;
 // Control characters and text-direction controls, which can be pasted into the Ask input and

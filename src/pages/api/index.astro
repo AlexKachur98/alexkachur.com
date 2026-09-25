@@ -8,7 +8,8 @@ import type { TableName } from '../../content/schemas.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
 import { select } from '../../lib/query.ts';
-import { RESUME_DESCRIPTION } from '../../lib/openapi.ts';
+import { ASK_DESCRIPTION, PROJECT_DESCRIPTION, RESUME_DESCRIPTION, SCHEMA_DESCRIPTION, STATS_DESCRIPTION } from '../../lib/openapi.ts';
+import recorded from '../../data/api-samples.json';
 import { queryOf, resumeData, resumeJson } from '../../lib/resume.ts';
 import { openDatabase } from '../../lib/ask/db.ts';
 
@@ -31,20 +32,22 @@ const shownRows: Partial<Record<TableName, number>> = { projects: 1, pets: 1, te
 const storage = await select(storageQuery);
 const question = chips[0]!.label;
 
-// A curl line and a truncated response for each path in the shared endpoint list.
+// A curl line and a truncated response for each path in the shared endpoint list. The two
+// on-demand endpoints whose bodies carry live values show a response recorded from the deployed
+// site on the day given, since the build cannot know those numbers.
 const minutes = SEND.windowSeconds / 60;
-const samples: Record<string, { curl: string; response?: string; description?: string }> = {
+const samples: Record<string, { curl: string; response?: string; description?: string; recorded?: string }> = {
   ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableRows(rows), { items: shownRows[rows] ?? 2 }) }]))),
-  '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, response: previewJson(single) },
-  '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, response: previewJson(schema, { items: 1, chars: 60 }) },
+  '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, description: PROJECT_DESCRIPTION, response: previewJson(single) },
+  '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, description: SCHEMA_DESCRIPTION, response: previewJson(schema, { items: 1, chars: 60 }) },
   '/api/resume.json': { curl: `curl ${url('/api/resume.json')}`, description: RESUME_DESCRIPTION, response: previewJson(resume, { items: 1, chars: 60 }) },
-  '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'` },
+  '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'`, description: ASK_DESCRIPTION },
   '/api/questions': {
     curl: `curl -X POST ${url('/api/questions')} -H 'content-type: application/json' -d '${JSON.stringify({ question: 'A question the site could not answer', token: '<token from /api/ask>' })}'`,
     description: SEND_DESCRIPTION,
     response: previewJson({ sent: true }),
   },
-  '/api/stats': { curl: `curl ${url('/api/stats')}` },
+  '/api/stats': { curl: `curl ${url('/api/stats')}`, description: STATS_DESCRIPTION, response: previewJson(recorded.stats.body), recorded: recorded.stats.recorded },
 };
 
 const docs = endpoints.map((endpoint) => {
@@ -115,7 +118,10 @@ for (const path of Object.keys(samples)) {
             </Fragment>
           )}
           {endpoint.response ? (
-            <pre><code>{endpoint.response}</code></pre>
+            <Fragment>
+              <pre><code>{endpoint.response}</code></pre>
+              {endpoint.recorded && <p class="recorded">A sample from {endpoint.recorded}.</p>}
+            </Fragment>
           ) : (
             <Fragment>
               <!-- TODO: record an example response for this endpoint from the deployed site; its numbers cannot be baked at build without making them up. -->
@@ -143,6 +149,13 @@ for (const path of Object.keys(samples)) {
   /* The table of what is stored can be wider than a phone, so it scrolls inside its own box. */
   .stored {
     overflow-x: auto;
+  }
+
+  /* The day a recorded sample was taken, under its code block in the caption style. */
+  .recorded {
+    margin-top: calc(-1 * var(--space-2));
+    color: var(--muted);
+    font-size: var(--text-sm);
   }
 
   /* A heading inside an endpoint's section stays at the body size, below the endpoint title's, and a
