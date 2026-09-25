@@ -23,6 +23,8 @@ import '../styles/console.css';
 // With example, the box sets the answer beside the form from 1200px, and until the first question
 // or chip that pane shows an example answer: its SQL run here at build time against the built
 // database and written into the page, so it needs no request and no script.
+// The whole box is marked data-nosnippet: its label, chips, notes and the example table are
+// controls and data rather than the page's text, so a search result should not quote them.
 interface Props {
   editable?: boolean;
   example?: boolean;
@@ -50,7 +52,7 @@ const shown = example ? answerExample : undefined;
 const answer = shown ? await run(shown.sql) : undefined;
 ---
 
-<div class:list={['console cut ask', { 'ask-split': example }]} data-ask data-kb={kb} data-db-url={database.url}>
+<div class:list={['console cut ask', { 'ask-split': example }]} data-ask data-nosnippet data-kb={kb} data-db-url={database.url}>
   <!-- Enter submits through the form. Its method makes the browser's own submission a no-op
        (there is no dialog around it), so a question typed before the script has loaded, or
        with scripts off, never lands in the URL; the submit event still fires for the script. -->

@@ -6,12 +6,14 @@ import '../styles/console.css';
 // fetches the file through the versioned URL baked in here, so the immutable cache never serves
 // a returning visitor an older database than this page was built with. The panel is wired by
 // src/scripts/console.ts once the bootstrap loads it on the first interaction; the two live
-// regions are always present and are emptied, never removed, so they announce.
+// regions are always present and are emptied, never removed, so they announce. The panel is
+// marked data-nosnippet like the schema list beside it, so a search result never quotes its
+// header line or button as the page's text.
 const database = dataFile('portfolio.sqlite');
 const kb = Math.round(database.bytes / 1000);
 ---
 
-<div class="console cut" data-console data-kb={kb} data-db-url={database.url}>
+<div class="console cut" data-console data-nosnippet data-kb={kb} data-db-url={database.url}>
   <p class="console-head">
     <span id="console-label">query</span>
     <span class="console-dot" aria-hidden="true">·</span>

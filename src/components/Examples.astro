@@ -3,19 +3,24 @@ import { examples } from '../data/examples.ts';
 
 // The example queries as buttons carrying their SQL. The bootstrap hands a click
 // to the console chunk, which shows the SQL in the panel and runs it.
+// The list sits in a div marked data-nosnippet (a div, since Google honours the attribute only on
+// div, span and section): the labels are buttons rather than the page's text, and most of them
+// name Alex, so a search result for the name would otherwise quote them.
 ---
 
-<ul class="examples" role="list" data-examples>
-  {
-    examples.map((example) => (
-      <li>
-        <button type="button" class="button chip" data-sql={example.sql}>
-          {example.label}
-        </button>
-      </li>
-    ))
-  }
-</ul>
+<div data-nosnippet>
+  <ul class="examples" role="list" data-examples>
+    {
+      examples.map((example) => (
+        <li>
+          <button type="button" class="button chip" data-sql={example.sql}>
+            {example.label}
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+</div>
 
 <style>
   .examples {
