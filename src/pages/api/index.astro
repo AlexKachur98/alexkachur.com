@@ -130,7 +130,7 @@ for (const path of Object.keys(samples)) {
           {endpoint.note && <p class="recorded">{endpoint.note}</p>}
           {endpoint.fields && endpoint.statuses && (
             <Fragment>
-              <p class="recorded">The fields of a 200 body:</p>
+              <p class="label">The fields of a 200 body:</p>
               <div class="wide" role="region" aria-label={`Fields of the ${endpoint.path} body`} tabindex="0">
                 <table class="shape">
                   <thead>
@@ -151,7 +151,7 @@ for (const path of Object.keys(samples)) {
                   </tbody>
                 </table>
               </div>
-              <p class="recorded">Every status it answers:</p>
+              <p class="label">Every status it answers:</p>
               <div class="wide" role="region" aria-label={`Statuses of ${endpoint.path}`} tabindex="0">
                 <table class="shape">
                   <thead>
@@ -245,6 +245,17 @@ for (const path of Object.keys(samples)) {
   .shape td:first-child,
   .shape td:nth-child(2) {
     white-space: nowrap;
+  }
+
+  /* The line naming each table, in the caption style, with room above it after the block before. */
+  .label {
+    margin: var(--space-5) 0 var(--space-2);
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+
+  .wide {
+    margin-bottom: var(--space-4);
   }
 
   /* The day a recorded sample was taken, or the note under a curl line, in the caption style. */
