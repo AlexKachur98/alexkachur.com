@@ -57,7 +57,7 @@ const dataUrl = /(?<=["'=(])\/(?:data|vendor)\/[^"'\s)<>]*/g;
 const versioned = /\?v=[0-9a-f]{8}$|^\/vendor\/[^/]+-\d+\.\d+\.\d+\//;
 
 interface VercelConfig {
-  headers: { source: string; headers: { key: string; value: string }[] }[];
+  headers: { source: string; has?: { type: string; key: string }[]; headers: { key: string; value: string }[] }[];
 }
 
 const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
@@ -561,13 +561,19 @@ describe(`built output in ${root}`, () => {
     expect(shown).toEqual(rows.map((row) => row.map((value) => (value === null ? 'NULL' : String(value)))));
   });
 
-  it('makes only /_astro/, /vendor/ and /data/ immutable in vercel.json', () => {
+  // A fixed name is never cached immutable: the /data/ files keep their names, so only a request
+  // that carries a version in its query gets the immutable header; the bare address revalidates.
+  it('makes only /_astro/, /vendor/ and versioned /data/ addresses immutable in vercel.json', () => {
     const config = JSON.parse(readFileSync('vercel.json', 'utf8')) as VercelConfig;
-    const immutable = config.headers
-      .filter((rule) => rule.headers.some((header) => header.key === 'Cache-Control' && header.value.includes('immutable')))
-      .map((rule) => rule.source)
-      .sort();
-    expect(immutable).toEqual(['/_astro/(.*)', '/data/(.*)', '/vendor/(.*)']);
+    const immutable = config.headers.filter((rule) => rule.headers.some((header) => header.key === 'Cache-Control' && header.value.includes('immutable')));
+    expect(immutable.map((rule) => rule.source).sort()).toEqual(['/_astro/(.*)', '/data/(.*)', '/vendor/(.*)']);
+    const data = config.headers.filter((rule) => rule.source === '/data/(.*)');
+    expect(data).toHaveLength(2);
+    const [bare, versioned] = data;
+    expect(bare!.has).toBeUndefined();
+    expect(bare!.headers.find((header) => header.key === 'Cache-Control')?.value).not.toContain('immutable');
+    expect(versioned!.has).toEqual([{ type: 'query', key: 'v' }]);
+    expect(versioned!.headers.find((header) => header.key === 'Cache-Control')?.value).toContain('immutable');
   });
 
   // The sections table holds each page's text as the page shows it: every section of every case
