@@ -48,9 +48,11 @@ One page with seven sections: About, Services, Training, Pricing, Reviews, FAQ a
 
 The first draft of the handoff document had wrong pricing in it because I trusted an old reference file. Now every number I hand to a client gets checked against the live source.
 
+The performance score in the outcome below also tells me what I would change first: the Google Fonts stylesheet blocks the first paint, and the photos weigh far more than they need to.
+
 ## Outcome
 
-Live at urazhoops.com. <!-- TODO: add visits and enquiries if the owner shares them. -->
+Live at urazhoops.com. On {lighthouse_date} the live page scored Performance {uraz_performance}, Accessibility {uraz_accessibility}, Best Practices {uraz_best_practices} and SEO {uraz_seo}. That is {lighthouse_tool} on the mobile preset, the median of five runs in headless Chrome, and the page's HTML is {uraz_html_kb} KB. Whether the site works for the owner would show in visits and enquiries, which are his numbers, and I do not have them yet. <!-- TODO: add visits and enquiries if the owner shares them. -->
 
 ## Credits
 

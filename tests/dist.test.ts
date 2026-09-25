@@ -649,6 +649,9 @@ describe(`built output in ${root}`, () => {
     expect(works).toMatch(new RegExp(`<a href="https://github\\.com/[^"]+/blob/${info.commit}/SECURITY\\.md"[^>]*>SECURITY\\.md</a> in the repository says how to tell me`));
     expect(existsSync(join(process.cwd(), 'SECURITY.md'))).toBe(true);
     expect(text(works)).toContain(`Together ${numbers.cap_month_cost}. Measured on ${numbers.fixture_model} at prompt version ${numbers.fixture_prompt_version}`);
+    // The Lighthouse sentence carries the record's scores, tool and day.
+    expect(text(works)).toContain(`${numbers.lighthouse_tool} on ${numbers.lighthouse_date}, mobile preset, median of five runs in headless Chrome, on the live site: the home page scores ${numbers.home_performance} for performance`);
+    expect(text(works)).toContain(`with a layout shift of ${numbers.works_cls}.`);
     expect(works).toContain('curl -A curl/8.0 https://alexkachur.com');
     expect(text(works)).toContain(readFileSync(join(root, 'resume.txt'), 'utf8').split('\n')[0]!);
 

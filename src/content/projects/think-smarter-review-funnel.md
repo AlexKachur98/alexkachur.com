@@ -44,7 +44,7 @@ My first design used a green and gold theme I liked. It did not match the client
 
 ## Outcome
 
-The demo is live at think-smarter-review.pages.dev. Going live on the client's own domain is waiting on the client. <!-- TODO: update this when she confirms. -->
+The demo is live at think-smarter-review.pages.dev. Going live on the client's own domain is waiting on the client. On {lighthouse_date} the live demo scored Performance {think_smarter_performance}, Accessibility {think_smarter_accessibility}, Best Practices {think_smarter_best_practices} and SEO {think_smarter_seo}. That is {lighthouse_tool} on the mobile preset, the median of five runs in headless Chrome, and all of its own code is one HTML file of {think_smarter_html_kb} KB. The SEO score is low only because the demo tells search engines not to index it. <!-- TODO: update this when she confirms. -->
 
 ## Credits
 

@@ -16,6 +16,7 @@ import {
   parseContent,
   readContentFiles,
   recordedEval,
+  recordedMeasurements,
   recordedPromptTokens,
   renderMarkdown,
   schemaJson,
@@ -24,6 +25,7 @@ import {
 } from '../scripts/build-db.ts';
 import type { ContentFiles } from '../scripts/build-db.ts';
 import { chips, examples } from '../src/data/examples.ts';
+import measurements from '../src/data/measurements.json';
 import { tables } from '../src/content/schemas.ts';
 import { DEFAULT_CAP, MODEL } from '../src/lib/ask/config.ts';
 import { CACHE_MINIMUM_TOKENS, PRICE, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
@@ -391,8 +393,34 @@ describe('build-db', () => {
       price_checked: PRICE_CHECKED,
       cap_month_cost: `$${cost.toFixed(2)}`,
       cache_minimum_tokens: '4,096',
+      lighthouse_date: measurements.lighthouse.date,
+      lighthouse_tool: measurements.lighthouse.tool,
+      ...Object.fromEntries(
+        Object.entries(measurements.lighthouse.pages).flatMap(([name, page]) => [
+          [`${name}_performance`, String(page.performance)],
+          [`${name}_accessibility`, String(page.accessibility)],
+          [`${name}_best_practices`, String(page.best_practices)],
+          [`${name}_seo`, String(page.seo)],
+        ]),
+      ),
+      home_cls: '0',
+      works_cls: '0',
+      think_smarter_html_kb: String(Math.round(measurements.html_bytes.think_smarter / 1000)),
+      uraz_html_kb: String(Math.round(measurements.html_bytes.uraz / 1000)),
     });
     expect(() => siteNumbers([], CACHE_MINIMUM_TOKENS)).toThrow(/cache floor/);
+    // The measurements record is checked as it is read: a score outside 0 to 100 or a bad date stops the build.
+    const measured = recordedMeasurements();
+    expect(measured.lighthouse.pages.home.url).toBe('https://alexkachur.com/');
+    const sections = query('SELECT page, body FROM sections') as { page: string; body: string }[];
+    const shifted = { ...measured, lighthouse: { ...measured.lighthouse, pages: { ...measured.lighthouse.pages, home: { ...measured.lighthouse.pages.home, cls: 0.05 } } } };
+    expect(siteNumbers(sections, recorded, shifted).home_cls).toBe('0.050');
+    const broken = join(tmpdir(), `measurements-${process.pid}.json`);
+    writeFileSync(broken, JSON.stringify({ ...measured, lighthouse: { ...measured.lighthouse, pages: { ...measured.lighthouse.pages, home: { ...measured.lighthouse.pages.home, seo: 101 } } } }));
+    expect(() => recordedMeasurements(broken)).toThrow(/home\.seo is not a score/);
+    writeFileSync(broken, JSON.stringify({ ...measured, lighthouse: { ...measured.lighthouse, date: '25/09/2026' } }));
+    expect(() => recordedMeasurements(broken)).toThrow(/not YYYY-MM-DD/);
+    rmSync(broken);
     const portfolio = query("SELECT highlights FROM projects WHERE slug = 'this-site'")[0]!.highlights as string;
     expect(portfolio).toContain(`CI replays a ${questions.length}-question evaluation`);
     expect(query("SELECT highlights FROM projects WHERE kind = 'client'").map((row) => row.highlights)).toEqual([null, null]);

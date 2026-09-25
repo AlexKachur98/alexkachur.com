@@ -294,12 +294,47 @@ export function recordedPromptTokens(path = fixturePath): number {
   return recordedEval(path).promptTokens;
 }
 
+export const measurementsPath = fileURLToPath(new URL('../src/data/measurements.json', import.meta.url));
+
+interface MeasuredPage {
+  url: string;
+  performance: number;
+  accessibility: number;
+  best_practices: number;
+  seo: number;
+  cls: number;
+}
+
+export interface Measurements {
+  lighthouse: { date: string; tool: string; chrome: string; method: string; pages: Record<'home' | 'works' | 'case_study' | 'uraz' | 'think_smarter', MeasuredPage> };
+  html_bytes: { date: string; think_smarter: number; uraz: number };
+}
+
+// The Lighthouse medians and page sizes measured on the live pages, with the day and the tool, so
+// every sentence that quotes them is filled from this one record and measuring again is one edit.
+export function recordedMeasurements(path = measurementsPath): Measurements {
+  const measured = JSON.parse(readFileSync(path, 'utf8')) as Measurements;
+  const day = /^\d{4}-\d{2}-\d{2}$/;
+  if (!day.test(measured.lighthouse.date) || !day.test(measured.html_bytes.date)) throw new Error(`${path}: a date is not YYYY-MM-DD`);
+  for (const [name, page] of Object.entries(measured.lighthouse.pages)) {
+    for (const key of ['performance', 'accessibility', 'best_practices', 'seo'] as const) {
+      if (!Number.isInteger(page[key]) || page[key] < 0 || page[key] > 100) throw new Error(`${path}: ${name}.${key} is not a score from 0 to 100`);
+    }
+    if (typeof page.cls !== 'number' || page.cls < 0) throw new Error(`${path}: ${name}.cls is not a layout shift score`);
+  }
+  for (const site of ['think_smarter', 'uraz'] as const) {
+    if (!Number.isInteger(measured.html_bytes[site]) || measured.html_bytes[site] <= 0) throw new Error(`${path}: html_bytes.${site} is not a byte count`);
+  }
+  return measured;
+}
+
 // The numbers the site's text may name, each from the thing it counts, so a count typed in two
 // places can never go stale in one of them: the eval's questions, the OpenAPI version the API
 // document declares, the two SplitRoof test counts from the case study's own sentence (where they
 // sit beside the screenshot that shows them), the table count, the limits and lifetimes the code
-// stores with, and what a model call costs from the recorded eval and the published prices.
-export function siteNumbers(sections: readonly { page: string; body: string }[], eval_: RecordedEval | number): Record<string, string> {
+// stores with, what a model call costs from the recorded eval and the published prices, and the
+// Lighthouse scores and page sizes from the measurements record.
+export function siteNumbers(sections: readonly { page: string; body: string }[], eval_: RecordedEval | number, measured: Measurements = recordedMeasurements()): Record<string, string> {
   const recorded = typeof eval_ === 'number' ? { promptTokens: eval_, model: MODEL.id, promptVersion: 0, outputMin: 0, outputMax: 0 } : eval_;
   const { promptTokens } = recorded;
   const splitroof = sections.filter((section) => section.page === '/work/splitroof-ai-assistant').map((section) => section.body).join('\n');
@@ -315,6 +350,17 @@ export function siteNumbers(sections: readonly { page: string; body: string }[],
   const monthInputCost = dollars((monthInputTokens * PRICE.input) / 1e6);
   const monthOutputCost = dollars((monthOutputTokens * PRICE.output) / 1e6);
   const monthCost = monthInputCost + monthOutputCost;
+  // A layout shift is shown the way Lighthouse shows it, to three places, or as 0 when nothing moved.
+  const shift = (n: number): string => (n === 0 ? '0' : n.toFixed(3));
+  const kilobytes = (bytes: number): string => String(Math.round(bytes / 1000));
+  const scores = Object.fromEntries(
+    Object.entries(measured.lighthouse.pages).flatMap(([name, page]) => [
+      [`${name}_performance`, String(page.performance)],
+      [`${name}_accessibility`, String(page.accessibility)],
+      [`${name}_best_practices`, String(page.best_practices)],
+      [`${name}_seo`, String(page.seo)],
+    ]),
+  );
   return {
     month_input_tokens: group(monthInputTokens),
     month_input_cost: `$${monthInputCost.toFixed(2)}`,
@@ -345,6 +391,13 @@ export function siteNumbers(sections: readonly { page: string; body: string }[],
     price_checked: PRICE_CHECKED,
     cap_month_cost: `$${monthCost.toFixed(2)}`,
     cache_minimum_tokens: group(CACHE_MINIMUM_TOKENS),
+    lighthouse_date: measured.lighthouse.date,
+    lighthouse_tool: measured.lighthouse.tool,
+    ...scores,
+    home_cls: shift(measured.lighthouse.pages.home.cls),
+    works_cls: shift(measured.lighthouse.pages.works.cls),
+    think_smarter_html_kb: kilobytes(measured.html_bytes.think_smarter),
+    uraz_html_kb: kilobytes(measured.html_bytes.uraz),
   };
 }
 

@@ -40,7 +40,7 @@ Answers are cached in Redis for {answer_cache}, refusals for {refusal_cache}. Th
 
 Nothing heavy loads until you ask for it. sql.js and the database only download once you click or tab into the Ask box or the console, so the first visit stays fast, even on a phone. The cost is that the database may still be loading when the model answers, so your first question can take a moment longer, which is why the Ask box shows its status the second you click.
 
-<!-- TODO: add the Lighthouse mobile scores and CLS once they are measured on the finished page. -->
+Fast is a claim, so here are the numbers. {lighthouse_tool} on {lighthouse_date}, mobile preset, median of five runs in headless Chrome, on the live site: the home page scores {home_performance} for performance, {home_accessibility} for accessibility, {home_best_practices} for best practices and {home_seo} for SEO, with a layout shift of {home_cls}. This page scores {works_performance}, {works_accessibility}, {works_best_practices} and {works_seo} in the same order, with a layout shift of {works_cls}. The Uraz Hoops case study, the third page measured, scores {case_study_performance}, {case_study_accessibility}, {case_study_best_practices} and {case_study_seo}.
 
 ## What broke
 
