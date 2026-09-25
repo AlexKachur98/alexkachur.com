@@ -1,4 +1,14 @@
 {
+  "ask": {
+    "recorded": "2026-09-25",
+    "question": "What has Alex built for paying clients?",
+    "body": {
+      "sql": "SELECT name, client_name, year_start, year_end, summary, live_url FROM projects WHERE paid = 1 ORDER BY year_start DESC",
+      "explanation": "Lists the projects Alex was paid for, with client names, years, summaries and live URLs if available.",
+      "cached": false,
+      "token": "1790343268.nDY5-7-5ypA6kFe4-glW05L6A7S43ykdVpM4vw3Fv0Q"
+    }
+  },
   "stats": {
     "recorded": "2026-09-25",
     "body": {

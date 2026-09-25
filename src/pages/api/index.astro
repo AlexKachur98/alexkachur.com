@@ -61,12 +61,19 @@ const question = chips[0]!.label;
 // on-demand endpoints whose bodies carry live values show a response recorded from the deployed
 // site on the day given, since the build cannot know those numbers.
 const minutes = SEND.windowSeconds / 60;
-const samples: Record<string, { curl: string; response?: string; description?: string; recorded?: string; note?: string }> = {
+// The recorded ask must answer the question the curl line sends, or the page would show a reply to something else.
+if (recorded.ask.question !== question) throw new Error(`the recorded /api/ask sample answers "${recorded.ask.question}", not the page's example "${question}"`);
+const samples: Record<string, { curl: string; response: string; description?: string; recorded?: string; note?: string }> = {
   ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableRows(rows), { items: shownRows[rows] ?? 2 }) }]))),
   '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, description: PROJECT_DESCRIPTION, response: previewJson(single) },
   '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, description: SCHEMA_DESCRIPTION, response: previewJson(schema, { items: 1, chars: 60 }) },
   '/api/resume.json': { curl: `curl ${url('/api/resume.json')}`, description: RESUME_DESCRIPTION, response: previewJson(resume, { items: 1, chars: 60 }) },
-  '/api/ask': { curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'`, description: ASK_DESCRIPTION },
+  '/api/ask': {
+    curl: `curl -X POST ${url('/api/ask')} -H 'content-type: application/json' -d '${JSON.stringify({ question })}'`,
+    description: ASK_DESCRIPTION,
+    response: previewJson(recorded.ask.body),
+    recorded: recorded.ask.recorded,
+  },
   '/api/questions': {
     curl: `curl -X POST ${url('/api/questions')} -H 'content-type: application/json' -d '${JSON.stringify({ question: 'A question the site could not answer', token: 'TOKEN' })}'`,
     description: SEND_DESCRIPTION,
@@ -206,16 +213,8 @@ for (const path of Object.keys(samples)) {
               <p>Vercel, which hosts the site, keeps its request logs, that failed-request line included, for one hour on this site's plan, and counts page views for Web Analytics without cookies, discarding the visitor hash after 24 hours.</p>
             </Fragment>
           )}
-          {endpoint.response ? (
-            <Fragment>
-              <pre><code>{endpoint.response}</code></pre>
-              {endpoint.recorded && <p class="recorded">A sample from {endpoint.recorded}.</p>}
-            </Fragment>
-          ) : (
-            <Fragment>
-              <!-- TODO: record an example response for this endpoint from the deployed site; its numbers cannot be baked at build without making them up. -->
-            </Fragment>
-          )}
+          <pre><code>{endpoint.response}</code></pre>
+          {endpoint.recorded && <p class="recorded">A sample from {endpoint.recorded}.</p>}
         </section>
       ))
     }
