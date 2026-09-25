@@ -634,6 +634,7 @@ describe(`built output in ${root}`, () => {
     const now = home.find((section) => section.id === 'now')!;
     shown.set('/#now', [{ heading: now.heading, body: blockText(now.body) }]);
     shown.set('/404', [leadOf(html('/404'))]);
+    shown.set('/uses', [leadOf(html('/uses'))]);
     const works = html('/how-this-site-works');
     shown.set('/how-this-site-works', [leadOf(works), ...sections(works).map((section) => ({ heading: section.heading, body: blockText(section.body) }))]);
     expect(works.match(pageOnly)?.length ?? 0).toBeGreaterThanOrEqual(8);

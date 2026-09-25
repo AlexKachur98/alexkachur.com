@@ -1,14 +1,19 @@
 ---
+import { getEntry } from 'astro:content';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
 import { select } from '../lib/query.ts';
 import { usesQuery } from '../lib/uses-query.ts';
 
-// The page shows the uses table as a visitor's query returns it, grouped under its sections in
+// The page opens with the one-sentence lead from its page entry, the text the sections table
+// holds, then shows the uses table as a visitor's query returns it, grouped under its sections in
 // page order, with the item in bold at the left edge, where a reader scanning the list looks.
 // A row whose details already begin with the item reads as the details alone, the item still
 // bold. The query itself sits under the date with a link to the same rows as JSON, both marked
 // data-nosnippet as interface text.
+const page = await getEntry('pages', 'uses');
+if (!page?.data.title) throw new Error('src/content/pages/uses.md is missing, or has no title');
+const lead = page.rendered?.html ?? '';
 const { rows } = await select(usesQuery);
 const sections = new Map<string, { item: string; rest: string }[]>();
 for (const [section, item, details] of rows as string[][]) {
@@ -21,7 +26,8 @@ const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated
 <Base title="Uses" description="The machines, peripherals and software Alex Kachur uses, and what he is learning.">
   <main id="main" class="container">
     <header class="page-head">
-      <h1>Uses</h1>
+      <h1>{page.data.title}</h1>
+      <div class="lead"><Fragment set:html={lead} /></div>
       {updated && <p class="updated">Last updated: {updated}</p>}
       <div data-nosnippet>
         <pre><code>{usesQuery}</code></pre>

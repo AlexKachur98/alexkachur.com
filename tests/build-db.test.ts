@@ -460,15 +460,16 @@ describe('build-db', () => {
 
   it('holds the text of the other pages, then every case study in site order, one row per section shown', () => {
     const rows = query('SELECT page, position, heading, body FROM sections');
-    expect(rows.slice(0, 4).map(({ page, position, heading }) => [page, position, heading])).toEqual([
+    expect(rows.slice(0, 5).map(({ page, position, heading }) => [page, position, heading])).toEqual([
       ['/#about', 1, 'About'],
       ['/#now', 1, 'Now'],
       ['/404', 1, 'Nothing at this address.'],
+      ['/uses', 1, 'Uses'],
       ['/how-this-site-works', 1, 'How this site works'],
     ]);
     const studies = query("SELECT page FROM projects WHERE page LIKE '/work/%' ORDER BY id").map((row) => row.page);
     expect(studies).toHaveLength(3);
-    expect([...new Set(rows.slice(3).map((row) => row.page))]).toEqual(['/how-this-site-works', ...studies]);
+    expect([...new Set(rows.slice(4).map((row) => row.page))]).toEqual(['/how-this-site-works', ...studies]);
     for (const row of rows) expect(row.body, `${row.page} ${row.heading}`).not.toBe('');
   });
 

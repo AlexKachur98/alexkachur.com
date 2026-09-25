@@ -159,7 +159,7 @@ export const usesRow = z.object({
 });
 
 export const sectionRow = z.object({
-  page: z.string().describe("Where the text appears: /#about or /#now on the home page, /404, /how-this-site-works, or /work/ followed by a project's slug, such as /work/uraz-hoops"),
+  page: z.string().describe("Where the text appears: /#about or /#now on the home page, /404, /uses, /how-this-site-works, or /work/ followed by a project's slug, such as /work/uraz-hoops"),
   position: z.number().int().positive().describe('Order on the page, 1 first'),
   heading: z.string().describe("The section's heading as the page shows it"),
   body: z.string().describe('The section\'s text as the page shows it; a blank line between paragraphs, list items starting with "- "'),

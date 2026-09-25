@@ -105,6 +105,7 @@ export const pageFiles: Readonly<Record<string, string>> = {
   'pages/about.md': '/#about',
   'pages/now.md': '/#now',
   'pages/404.md': '/404',
+  'pages/uses.md': '/uses',
   'pages/how-this-site-works.md': '/how-this-site-works',
 };
 
