@@ -473,6 +473,8 @@ interface AskUi extends Panel {
   box: HTMLElement;
   form: HTMLElement;
   input: HTMLInputElement;
+  // The control that clears the question field, shown while the field holds text.
+  clear: HTMLElement;
   question: HTMLElement;
   explanation: HTMLElement;
   sql: HTMLElement;
@@ -909,6 +911,46 @@ function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean, more
   });
 }
 
+// The question field's clear control, apart from the page so its rules can be tested without one.
+// Clearing touches only the field and the control, so the answer stays until the next question.
+export interface QuestionField {
+  value: string;
+  focus(options?: FocusOptions): void;
+}
+
+// The parts of a keydown that decide whether Escape clears.
+export interface ClearKey {
+  key: string;
+  isComposing: boolean;
+  keyCode: number;
+}
+
+export function showClear(field: Pick<QuestionField, 'value'>, control: Pick<HTMLElement, 'hidden'>): void {
+  control.hidden = field.value === '';
+}
+
+// Focus goes back to the field before the control hides, so it is never left on a hidden control.
+export function clearQuestion(field: QuestionField, control: Pick<HTMLElement, 'hidden'>): void {
+  field.value = '';
+  field.focus({ preventScroll: true });
+  control.hidden = true;
+}
+
+// Escape clears only a field with text in it, and never during an input method's composition.
+export function escapeClears(event: ClearKey, value: string): boolean {
+  return event.key === 'Escape' && !event.isComposing && event.keyCode !== 229 && value !== '';
+}
+
+// Typing in the question field, which the bootstrap forwards.
+export function askTyped(): void {
+  if (askUi) showClear(askUi.input, askUi.clear);
+}
+
+// A keydown of Escape in the question field, which the bootstrap forwards.
+export function askEscape(event: ClearKey): void {
+  if (askUi && escapeClears(event, askUi.input.value)) clearQuestion(askUi.input, askUi.clear);
+}
+
 // Moves the SQL into the raw console for editing and brings the console into view: the answer's,
 // or the example's, which its button carries.
 function edit(sql: string | undefined): void {
@@ -919,7 +961,8 @@ function edit(sql: string | undefined): void {
 }
 
 // The bootstrap owns every listener and forwards a click on an example, a chip, Run, Edit this
-// query or the send button here, whether it landed before this module was loaded or after.
+// query, the question field's clear control or the send button here, whether it landed before
+// this module was loaded or after.
 // Edit this query is checked before the chips: a click on the example's button can arrive after a
 // question has already taken the example off the page, and it still means edit, not run.
 export function click(button: HTMLElement): void {
@@ -930,6 +973,10 @@ export function click(button: HTMLElement): void {
   }
   if (button.hasAttribute('data-ask-edit')) {
     edit(sql);
+    return;
+  }
+  if (button.hasAttribute('data-ask-clear')) {
+    if (askUi) clearQuestion(askUi.input, askUi.clear);
     return;
   }
   if (askUi?.box.contains(button)) {
@@ -976,6 +1023,7 @@ export function init(): void {
       box: askRoot,
       form: element(askRoot, '[data-ask-form]'),
       input: element(askRoot, '[data-ask-input]'),
+      clear: element(askRoot, '[data-ask-clear]'),
       question: element(askRoot, '[data-ask-question]'),
       explanation: element(askRoot, '[data-ask-explanation]'),
       sql: element(askRoot, '[data-ask-sql]'),
@@ -991,6 +1039,8 @@ export function init(): void {
       head: element(askRoot, '[data-ask-head]'),
       reveal: undefined,
     };
+    // Text typed, or restored by the browser, before this module ran shows the control too.
+    showClear(askUi.input, askUi.clear);
     // A resize can cap or uncap the box, which changes whether it overflows without a new answer.
     const ui = askUi;
     new ResizeObserver(() => markOverflow(ui.results, ui.scrollCue, capped(ui.results))).observe(ui.results);

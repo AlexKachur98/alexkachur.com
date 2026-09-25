@@ -59,7 +59,16 @@ const answer = shown ? await run(shown.sql) : undefined;
   <form class="ask-form" method="dialog" data-ask-form>
     <label class="ask-label" for="ask-input">Ask about Alex in plain English. The site writes SQL, and you can read it.</label>
     <div class="ask-row">
-      <input class="input" id="ask-input" type="text" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
+      <!-- The clear control sits over the field's right end and shows while the field holds text.
+           Escape in the field does the same from the keyboard, so the control is not a Tab stop and
+           Tab from the field still goes to Ask. -->
+      <div class="ask-field">
+        <input class="input" id="ask-input" type="text" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
+        <button type="button" class="ask-clear" tabindex="-1" data-ask-clear hidden>
+          <span class="visually-hidden">Clear question</span>
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
       <button type="submit" class="button button-primary cut">Ask</button>
     </div>
     <ul class="ask-chips" role="list">
@@ -203,9 +212,43 @@ const answer = shown ? await run(shown.sql) : undefined;
     margin-bottom: var(--space-3);
   }
 
-  .ask-row .input {
+  /* The field and its clear control share a box. The control's target is a 44px square, one control
+     height and a step, standing 2px proud of the 40px field above and below; it has no fill or
+     frame, so the field's edge shows through. The field keeps that width free of text whether or
+     not the control shows, so typed text never runs under it or moves when it appears. */
+  .ask-field {
+    position: relative;
     flex: 1;
     min-width: 0;
+  }
+
+  .ask-field .input {
+    display: block;
+    width: 100%;
+    padding-right: calc(var(--control) + var(--space-1));
+  }
+
+  .ask-clear {
+    position: absolute;
+    top: calc(var(--space-1) / -2);
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--control) + var(--space-1));
+    height: calc(var(--control) + var(--space-1));
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--console-muted);
+    font-size: var(--text-lg);
+    transition: color var(--duration) var(--ease);
+  }
+
+  @media (hover: hover) {
+    .ask-clear:hover {
+      color: var(--console-accent);
+    }
   }
 
   /* One chip per line at every width, so the questions read down the form as a list. */

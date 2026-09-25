@@ -311,6 +311,27 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // The clear control sits in the question field's box after the input, starts hidden, is a button
+  // of its own type so Enter still asks, stays out of the Tab order, and takes its name from hidden
+  // words beside the glyph. Ask stays the form's one submit button, after the field.
+  it('puts a hidden clear control inside the question field in every Ask box', () => {
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    for (const url of ['/', '/404']) {
+      const html = pages.find((page) => page.url === url)!.html;
+      const form = html.match(/<form\b[^>]*data-ask-form[^>]*>([\s\S]*?)<\/form>/)?.[1] ?? '';
+      const row = form.match(/<div class="ask-field"[^>]*>(<input\b[^>]*\sdata-ask-input\b[^>]*>)(<button\b([^>]*)>([\s\S]*?)<\/button>)<\/div>(<button\b[^>]*>)Ask<\/button>/);
+      expect(row, url).not.toBeNull();
+      const [, , , attributes, inside, ask] = row!;
+      expect(attributes, url).toMatch(/^ type="button" class="ask-clear" tabindex="-1" data-ask-clear hidden\b/);
+      expect(attributes, url).not.toMatch(/aria-label/);
+      expect(inside, url).toMatch(/^<span class="visually-hidden"[^>]*>Clear question<\/span><span aria-hidden="true"[^>]*>×<\/span>$/);
+      expect(text(inside!), url).toBe('Clear question×');
+      expect(ask, url).toMatch(/\stype="submit"/);
+      expect(form.match(/type="submit"/g), url).toHaveLength(1);
+      expect(form.match(/<button\b(?![^>]*\stype=)/g), url).toBeNull();
+    }
+  });
+
   // The page scrolls the live answer's head into sight, so that head carries the hook and the
   // build-time example's does not.
   it("marks the live answer's head, and only it, in every Ask box", () => {
