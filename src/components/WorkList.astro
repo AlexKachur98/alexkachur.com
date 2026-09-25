@@ -120,14 +120,21 @@ const rowSizes =
     transition: border-color var(--duration) var(--ease);
   }
 
-  /* A drawing gets the frame and the overlay link a screenshot has; the component's figure keeps
-     no margin of its own inside the row. */
+  /* A drawing gets the frame and the overlay link a screenshot has, and fills the column the way
+     a screenshot does: the drawing scales with its viewBox, words included, and the column is
+     never narrower than the drawing where a row shows one, so the words only ever grow. The
+     component's figure keeps no margin of its own inside the row. */
   .work-diagram .linked {
     position: relative;
-    width: fit-content;
-    max-width: 100%;
     border: 1px solid var(--rule);
     transition: border-color var(--duration) var(--ease);
+  }
+
+  /* Only width and height: the component decides which of its two drawings is displayed. */
+  .work-diagram :global(svg) {
+    width: 100%;
+    height: auto;
+    vertical-align: top;
   }
 
   .work-diagram .linked a {
@@ -200,10 +207,6 @@ const rowSizes =
 
     .work-shot :global(img) {
       width: 100%;
-    }
-
-    .work-diagram .linked {
-      width: fit-content;
     }
   }
 </style>
