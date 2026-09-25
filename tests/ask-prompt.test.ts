@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import schema from '../src/generated/schema.json';
 import { openDatabase } from '../src/lib/ask/db.ts';
-import { validateSql } from '../src/lib/ask/validate-sql.ts';
+import { explanationProblem, validateSql } from '../src/lib/ask/validate-sql.ts';
 import {
   PROMPT_VERSION,
   askOutput,
@@ -96,7 +96,7 @@ describe('systemPrompt', () => {
   });
 
   it('shows the worked examples with their SQL and no trailing semicolon', () => {
-    expect(workedExamples).toHaveLength(8);
+    expect(workedExamples).toHaveLength(11);
     for (const entry of workedExamples) {
       expect(entry.sql).not.toMatch(/;\s*$/);
       expect(prompt).toContain(entry.sql);
@@ -113,6 +113,13 @@ describe('systemPrompt', () => {
   it('states how to name result columns, keeping photo_url for the thumbnails', () => {
     expect(prompt).toContain('lowercase snake_case without quotes');
     expect(prompt).toContain('Never rename photo_url');
+  });
+
+  it('asks for an overview of a whole table by its broad column, and the rows of a named group', () => {
+    expect(prompt).toContain("8. A question about all of Alex's interests, all his technologies or everything he uses, with no filter,");
+    expect(prompt).toContain('(interests.area, technologies.skill_area, uses.section)');
+    expect(prompt).toContain('one row per group with a count');
+    expect(prompt).toContain('A question that names a group or a category, filters the table in any other way (the core skills, for example), or asks for the full list, gets the rows.');
   });
 });
 
@@ -167,6 +174,44 @@ describe('the worked examples', () => {
     expect(result.values).toHaveLength(courses);
     const school = result.columns.indexOf('school');
     expect(result.values.every((row) => row[school] === 'Centennial College')).toBe(true);
+  });
+
+  // Rule 8 names these three columns because each table holds more rows than an overview should
+  // show and the column splits it into few enough groups; the model never sees a row count itself.
+  it('groups only tables longer than an overview, each into at most eight named groups', async () => {
+    const db = await openDatabase();
+    for (const [table, column] of [
+      ['interests', 'area'],
+      ['technologies', 'skill_area'],
+      ['uses', 'section'],
+    ] as const) {
+      const [rows, groups] = db.exec(`SELECT COUNT(*), COUNT(DISTINCT ${column}) FROM ${table}`)[0]!.values[0]! as number[];
+      expect(rows, table).toBeGreaterThan(8);
+      expect(groups, table).toBeLessThanOrEqual(8);
+      const values = schema.tables.find((entry) => entry.name === table)!.columns.find((entry) => entry.name === column)!.values;
+      expect(values, table).toHaveLength(groups!);
+    }
+  });
+
+  it('shows an overview of the interests, one row per area, and the rows of one area', async () => {
+    const db = await openDatabase();
+    const [overview, drill] = workedExamples.slice(0, 2);
+    const areas = db.exec(overview!.sql)[0]!;
+    expect(areas.columns).toEqual(['area', 'interests']);
+    const values = schema.tables.find((entry) => entry.name === 'interests')!.columns.find((entry) => entry.name === 'area')!.values;
+    expect(areas.values.map((row) => row[0])).toEqual(values);
+    const total = Number(db.exec('SELECT COUNT(*) FROM interests')[0]!.values[0]![0]);
+    expect(areas.values.reduce((sum, row) => sum + Number(row[1]), 0)).toBe(total);
+    expect(overview!.explanation).toMatch(/ask about one area/);
+    const movies = db.exec(drill!.sql)[0]!;
+    const named = Number(db.exec("SELECT COUNT(*) FROM interests WHERE area = 'Movies and TV'")[0]!.values[0]![0]);
+    expect(movies.values).toHaveLength(named);
+    expect(named).toBeGreaterThan(8);
+    expect(movies.values.every((row) => ['movie', 'TV show', 'watching now'].includes(String(row[0])))).toBe(true);
+  });
+
+  it('keeps every explanation within the rules the handler checks', () => {
+    for (const entry of workedExamples) expect(explanationProblem(entry.explanation), entry.question).toBeNull();
   });
 });
 
