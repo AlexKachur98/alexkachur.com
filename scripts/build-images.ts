@@ -187,19 +187,26 @@ function png(image: string): Promise<Buffer> {
   return sharp(Buffer.from(image)).removeAlpha().png({ compressionLevel: 9 }).toBuffer();
 }
 
-// An ICO file holding one PNG: a 6-byte header and one 16-byte directory entry, little-endian.
-function icoFromPng(image: Uint8Array, size: number): Uint8Array {
-  const file = new Uint8Array(22 + image.length);
+// An ICO file holding one PNG per frame: a 6-byte header, a 16-byte directory entry per frame,
+// then the images, all little-endian.
+function ico(frames: { image: Uint8Array; size: number }[]): Uint8Array {
+  const directory = 6 + 16 * frames.length;
+  const file = new Uint8Array(directory + frames.reduce((total, { image }) => total + image.length, 0));
   const view = new DataView(file.buffer);
   view.setUint16(2, 1, true);
-  view.setUint16(4, 1, true);
-  view.setUint8(6, size);
-  view.setUint8(7, size);
-  view.setUint16(10, 1, true);
-  view.setUint16(12, 24, true);
-  view.setUint32(14, image.length, true);
-  view.setUint32(18, 22, true);
-  file.set(image, 22);
+  view.setUint16(4, frames.length, true);
+  let offset = directory;
+  frames.forEach(({ image, size }, index) => {
+    const entry = 6 + 16 * index;
+    view.setUint8(entry, size);
+    view.setUint8(entry + 1, size);
+    view.setUint16(entry + 4, 1, true);
+    view.setUint16(entry + 6, 24, true);
+    view.setUint32(entry + 8, image.length, true);
+    view.setUint32(entry + 12, offset, true);
+    file.set(image, offset);
+    offset += image.length;
+  });
   return file;
 }
 
@@ -236,7 +243,10 @@ export async function main(root = process.cwd()): Promise<void> {
   writeFileSync(join(generated, 'link-preview.png'), await png(previewSvg(tokens, fonts, await cardFacts(root))));
   writeFileSync(join(generated, 'icon.svg'), iconSvg(tokens, fonts));
   writeFileSync(join(generated, 'apple-touch-icon.png'), await png(iconSvg(tokens, fonts, 4, 180)));
-  writeFileSync(join(root, 'public', 'favicon.ico'), icoFromPng(await png(iconSvg(tokens, fonts, 0, icon.size)), icon.size));
+  // Google Search recommends a favicon larger than 48 pixels, so the file carries a 64-pixel frame
+  // beside the 32-pixel one.
+  const frames = await Promise.all([icon.size, 64].map(async (size) => ({ image: await png(iconSvg(tokens, fonts, 0, size)), size })));
+  writeFileSync(join(root, 'public', 'favicon.ico'), ico(frames));
 }
 
 // Node resolves the entry module through its real path, so a symlinked checkout must compare the same way.

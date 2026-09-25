@@ -429,21 +429,25 @@ describe(`built output in ${root}`, () => {
     for (const { url, html } of pages) {
       const icons = head(html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
       expect(icons.map(({ rel, href, sizes, type }) => `${rel} ${href.replace(/\.[\w-]+\.(svg|png)$/, '.$1')} ${sizes ?? ''} ${type ?? ''}`), url).toEqual([
-        'icon /favicon.ico 32x32 ',
+        'icon /favicon.ico 32x32 64x64 ',
         'icon /_astro/icon.svg  image/svg+xml',
         'apple-touch-icon /_astro/apple-touch-icon.png  ',
       ]);
     }
     const [, svg, touch] = head(pages[0]!.html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
 
-    // An ICO header, one directory entry, and the PNG it points at.
+    // An ICO header, a directory entry per frame, and the PNG each entry points at.
     const ico = readFileSync(join(root, 'favicon.ico'));
     const view = new DataView(ico.buffer, ico.byteOffset, ico.byteLength);
-    expect([view.getUint16(0, true), view.getUint16(2, true), view.getUint16(4, true), ico[6], ico[7]]).toEqual([0, 1, 1, 32, 32]);
-    const offset = view.getUint32(18, true);
-    const embedded = pngHeader(ico.subarray(offset, offset + view.getUint32(14, true)));
-    expect([embedded.width, embedded.height, embedded.depth]).toEqual([32, 32, 8]);
-    expect([2, 6]).toContain(embedded.colour);
+    expect([view.getUint16(0, true), view.getUint16(2, true), view.getUint16(4, true)]).toEqual([0, 1, 2]);
+    [32, 64].forEach((size, index) => {
+      const entry = 6 + 16 * index;
+      expect([ico[entry], ico[entry + 1]]).toEqual([size, size]);
+      const offset = view.getUint32(entry + 12, true);
+      const embedded = pngHeader(ico.subarray(offset, offset + view.getUint32(entry + 8, true)));
+      expect([embedded.width, embedded.height, embedded.depth]).toEqual([size, size, 8]);
+      expect([2, 6]).toContain(embedded.colour);
+    });
 
     const icon = readFileSync(join(root, svg!.href), 'utf8');
     expect(icon).toMatch(/^<svg\b[^>]*\sviewBox="0 0 32 32"/);
