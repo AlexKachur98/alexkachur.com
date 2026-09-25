@@ -85,6 +85,11 @@ const resumeHead = `${readFileSync(join(process.cwd(), 'public', 'resume.txt'), 
               Right now it is <span data-model />.
             </p>
           )}
+          {section.id === 'what-the-validator-rejects-and-why' && (
+            <p data-page-only>
+              If you find a hole in any of this, <a href={source('SECURITY.md')}>SECURITY.md</a> in the repository says how to tell me.
+            </p>
+          )}
           {section.id === 'cost-and-the-cap' && (
             <ul data-page-only>
               <li>

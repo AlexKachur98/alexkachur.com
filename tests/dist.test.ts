@@ -645,6 +645,9 @@ describe(`built output in ${root}`, () => {
     expect(pairs.map(([, value]) => value)).toEqual([numbers.table_count, numbers.monthly_cap, numbers.prompt_tokens, numbers.cap_month_cost, numbers.eval_questions]);
     const info = JSON.parse(readFileSync('src/generated/build-info.json', 'utf8')) as { commit: string };
     expect(works).toMatch(new RegExp(`<a href="https://github\\.com/[^"]+/blob/${info.commit}/scripts/build-db\\.ts"[^>]*>scripts/build-db\\.ts</a>`));
+    // The validator section ends with the way to report a hole, the policy file at the same commit.
+    expect(works).toMatch(new RegExp(`<a href="https://github\\.com/[^"]+/blob/${info.commit}/SECURITY\\.md"[^>]*>SECURITY\\.md</a> in the repository says how to tell me`));
+    expect(existsSync(join(process.cwd(), 'SECURITY.md'))).toBe(true);
     expect(text(works)).toContain(`Together ${numbers.cap_month_cost}. Measured on ${numbers.fixture_model} at prompt version ${numbers.fixture_prompt_version}`);
     expect(works).toContain('curl -A curl/8.0 https://alexkachur.com');
     expect(text(works)).toContain(readFileSync(join(root, 'resume.txt'), 'utf8').split('\n')[0]!);
