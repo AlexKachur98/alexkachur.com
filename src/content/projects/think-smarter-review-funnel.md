@@ -2,7 +2,7 @@
 order: 2
 name: Think Smarter Insurance review funnel
 kind: client
-summary: A single-file review page for an Ontario insurance brokerage that routes happy customers to Google and unhappy ones to the owner, with a compliance toggle built in.
+summary: A one-file review page for an Ontario insurance brokerage that sends happy customers to Google and the rest to the owner, with a compliance toggle.
 card: A one-file review page for an Ontario brokerage, with a compliance toggle I argued for. Client work, 2026.
 role: design, build, compliance research, delivery
 year_start: 2026
@@ -18,10 +18,10 @@ technologies: [html, css, javascript, cloudflare-pages, web3forms]
 screenshots:
   - src: ../../assets/work/think-smarter-review-funnel/think-smarter-1.jpg
     alt: The review page, a navy card with the Think Smarter Insurance logo, the question How did we do? and five empty stars, above a From our clients section
-    # TODO: write the caption.
+    caption: Everyone starts here. Four and five stars go straight to the Google review link.
   - src: ../../assets/work/think-smarter-review-funnel/think-smarter-2.jpg
     alt: The private feedback form, Tell us what went wrong, with fields for what happened, name and email, and a Send privately button
-    # TODO: write the caption.
+    caption: One to three stars open this instead, so the owner hears about a problem first. Sending people to Google by their rating goes against Google's rules, so the compliance toggle I built switches the page to asking everyone for a Google review.
 ---
 
 ## The problem
@@ -44,7 +44,7 @@ My first design used a green and gold theme I liked. It did not match the client
 
 ## Outcome
 
-The demo is live at think-smarter-review.pages.dev. Go-live on the client's domain is waiting on her next steps. <!-- TODO: update this when she confirms. -->
+The demo is live at think-smarter-review.pages.dev. Going live on the client's own domain is waiting on the client. <!-- TODO: update this when she confirms. -->
 
 ## Credits
 
