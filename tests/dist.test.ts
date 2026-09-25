@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import sharp from 'sharp';
@@ -191,20 +191,32 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  // A link to a spot on a page lands on nothing when the id is missing; the page opens at its top.
-  it('points every same-site fragment link at an id on the page it names', () => {
+  // Every same-site link lands somewhere: a file in the build (the path, path/index.html or
+  // path.html), an on-demand endpoint, or a redirect the Vercel config carries; and a link to a
+  // spot on a page names an id that page has, since a missing id opens the page at its top.
+  it('points every same-site link at a page, a file, an endpoint or a redirect, and every fragment at an id', () => {
     const ids = new Map(pages.map(({ url, html }) => [url, new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(([, id]) => id))]));
+    const onDemand = new Set(['/api/ask', '/api/questions', '/api/stats']);
+    const { routes } = JSON.parse(readFileSync('.vercel/output/config.json', 'utf8')) as { routes: { src: string; status?: number; headers?: Record<string, string> }[] };
+    const redirects = new Set(routes.filter((route) => route.headers?.Location && route.status && route.status >= 300 && route.status < 400).map((route) => route.src));
+    const served = (pathname: string) => {
+      const file = join(root, decodeURIComponent(pathname));
+      return [file, join(file, 'index.html'), `${file}.html`].some((candidate) => existsSync(candidate) && statSync(candidate).isFile());
+    };
     const links: string[] = [];
     const broken: string[] = [];
     for (const { url, html } of pages) {
-      for (const [, href] of html.matchAll(/<a\b[^>]*\shref="([^"]*#[^"]*)"/g)) {
-        const target = new URL(href!, `https://site.test${url}`);
+      for (const [, href] of html.matchAll(/<a\b[^>]*\shref="([^"]*)"/g)) {
+        const target = new URL(decode(href!), `https://site.test${url}`);
         if (target.host !== 'site.test') continue;
         links.push(href!);
-        if (!ids.get(target.pathname)?.has(decodeURIComponent(target.hash.slice(1)))) broken.push(`${url}: ${href}`);
+        const path = target.pathname.replace(/(.)\/$/, '$1');
+        const reachable = onDemand.has(path) || redirects.has(`^${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) || served(path);
+        if (!reachable) broken.push(`${url}: ${href} (nothing at ${path})`);
+        if (target.hash && !ids.get(path)?.has(decodeURIComponent(target.hash.slice(1)))) broken.push(`${url}: ${href} (no id)`);
       }
     }
-    expect(links).toEqual(expect.arrayContaining(['#main', '/#work']));
+    expect(links).toEqual(expect.arrayContaining(['#main', '/#work', '/api/uses.json']));
     expect(broken).toEqual([]);
   });
 
