@@ -607,6 +607,30 @@ describe(`built output in ${root}`, () => {
     expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
   });
 
+  // Each case study's screenshots carry the alt text and caption of its project_images rows,
+  // numbers filled in, so a visitor's query and the page cannot disagree.
+  it('captions every case-study screenshot as its project_images row does', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const rows = db.exec('SELECT p.slug, i.alt, i.caption FROM project_images i JOIN projects p ON p.id = i.project_id ORDER BY p.id, i.position')[0]!.values as (string | null)[][];
+    db.close();
+    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    let captioned = 0;
+    for (const page of pages.filter(({ url }) => url.startsWith('/work/'))) {
+      const slug = page.url.slice('/work/'.length);
+      const expected = rows.filter(([s]) => s === slug).map(([, alt, caption]) => ({ alt, caption }));
+      const shots = page.html.match(/<section class="section"[^>]*\sid="screenshots"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? '';
+      const figures = [...shots.matchAll(/<figure\b[^>]*>([\s\S]*?)<\/figure>/g)].map(([, figure]) => ({
+        alt: decode(figure!.match(/<img\b[^>]*\salt="([^"]*)"/)![1]!),
+        caption: figure!.match(/<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/) ? text(figure!.match(/<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/)![1]!) : null,
+      }));
+      expect(figures, page.url).toEqual(expected);
+      captioned += figures.filter(({ caption }) => caption !== null).length;
+    }
+    expect(captioned).toBeGreaterThan(0);
+  });
+
   // The sizes /how-this-site-works gives for the scripts a page loads before interaction are the
   // built files' own, gzipped as the bootstrap budget above measures them, and the beacon's is
   // the one measured from the live site.

@@ -6,6 +6,8 @@ import Figure from '../../components/Figure.astro';
 import Section from '../../components/Section.astro';
 import SplitRoofFlow from '../../components/SplitRoofFlow.astro';
 import Base from '../../layouts/Base.astro';
+import numbers from '../../generated/numbers.json';
+import { fillPlaceholders } from '../../lib/numbers.ts';
 import { hasCaseStudy } from '../../lib/rows.ts';
 import { splitSections } from '../../lib/sections.ts';
 
@@ -41,8 +43,11 @@ const year = year_end === null || year_end === year_start ? String(year_start) :
 const links = [repo_url, live_url].filter((url): url is string => url !== null);
 
 // Page order: the markdown sections, then Screenshots, then Credits (the last markdown
-// section). The SplitRoof flow diagram sits inside What I built.
-const sections = splitSections(project.rendered?.html ?? '');
+// section). The SplitRoof flow diagram sits inside What I built. The numbers a section or a
+// caption names are filled in the way the database's copy was.
+const where = `projects/${project.id}.md`;
+const fill = (text: string) => fillPlaceholders(text, numbers, where);
+const sections = splitSections(project.rendered?.html ?? '').map((section) => ({ ...section, body: fill(section.body) }));
 const creditsAt = sections.findIndex((section) => section.id === 'credits');
 const before = creditsAt === -1 ? sections : sections.slice(0, creditsAt);
 const after = creditsAt === -1 ? [] : sections.slice(creditsAt);
@@ -115,7 +120,7 @@ const ogImage = shot && preview ? { src: preview.src, width: 1200, height: 630, 
         <Section id="screenshots" title="Screenshots">
           <div class="shots">
             {screenshots.map((shot) => (
-              <Figure src={shot.src} alt={shot.alt} caption={shot.caption} width={984} sizes={shotSizes} />
+              <Figure src={shot.src} alt={shot.alt} caption={shot.caption === undefined ? undefined : fill(shot.caption)} width={984} sizes={shotSizes} />
             ))}
           </div>
         </Section>

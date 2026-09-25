@@ -2,6 +2,8 @@
 import { getCollection } from 'astro:content';
 import Figure from './Figure.astro';
 import Section from './Section.astro';
+import numbers from '../generated/numbers.json';
+import { fillPlaceholders } from '../lib/numbers.ts';
 import { projectPage } from '../lib/rows.ts';
 
 // Rows separated by rules, never cards, every one laid out alike: the screenshot takes four of
@@ -54,7 +56,7 @@ const rowSizes =
                 <Figure
                   src={shot.src}
                   alt={shot.alt}
-                  caption={shot.caption}
+                  caption={shot.caption === undefined ? undefined : fillPlaceholders(shot.caption, numbers, `projects/${project.id}.md`)}
                   width={312}
                   widths={rowWidths}
                   sizes={rowSizes}

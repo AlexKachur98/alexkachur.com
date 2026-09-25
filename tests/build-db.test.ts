@@ -27,6 +27,7 @@ import { tables } from '../src/content/schemas.ts';
 import { DEFAULT_CAP, MODEL } from '../src/lib/ask/config.ts';
 import { CACHE_MINIMUM_TOKENS, PRICE, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
 import { keptFor, RATE_LIMIT, STATS_CACHE, TTL } from '../src/lib/ask/storage.ts';
+import { fillPlaceholders } from '../src/lib/numbers.ts';
 import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
 import { questions } from '../scripts/eval/questions.ts';
 
@@ -330,11 +331,21 @@ describe('build-db', () => {
     expect(query('SELECT slug, card, team FROM projects ORDER BY id')).toEqual(
       [...content.projects].sort((a, b) => a.data.order - b.data.order).map(({ id, data }) => ({ slug: id, card: data.card, team: data.team ?? null })),
     );
+    // A caption's numbers are filled in from their sources, as a highlight's are.
+    const numbers = siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], recordedPromptTokens());
     expect(query('SELECT project_id, position, alt, caption FROM project_images')).toEqual(
       [...content.projects]
         .sort((a, b) => a.data.order - b.data.order)
-        .flatMap(({ data }) => data.screenshots.map((shot, index) => ({ project_id: data.order, position: index + 1, alt: shot.alt, caption: shot.caption ?? null }))),
+        .flatMap(({ data }) =>
+          data.screenshots.map((shot, index) => ({
+            project_id: data.order,
+            position: index + 1,
+            alt: shot.alt,
+            caption: shot.caption === undefined ? null : fillPlaceholders(shot.caption, numbers, 'caption'),
+          })),
+        ),
     );
+    expect(query('SELECT caption FROM project_images WHERE project_id = 1 AND position = 1')[0]!.caption).toContain('12 tests on the three tools');
     expect(query('SELECT COUNT(*) AS n FROM project_images')[0]!.n).toBe(8);
   });
 

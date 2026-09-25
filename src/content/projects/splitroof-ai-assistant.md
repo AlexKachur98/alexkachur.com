@@ -23,10 +23,10 @@ technologies: [react, node-js, express, firebase, anthropic-api, jest]
 screenshots:
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-1.png
     alt: A terminal in VS Code after npm test in splitroof-assistant-spike, with tools.test.js and assistant.test.js passing, 17 tests in total
-    # TODO: write the caption.
+    caption: "The spike's test run: {splitroof_tool_tests} tests on the three tools before the model was wired in, then {splitroof_model_tests} against the live model."
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-2.png
     alt: VS Code with src/assistant.js open on the system prompt, which tells the model that every number must come from a tool result
-    # TODO: write the caption.
+    caption: "The system prompt: every number must come from a tool result, so the model words the answer but never does the math."
 ---
 
 ## The problem
@@ -49,8 +49,8 @@ A read-only assistant. The model, Claude Haiku 4.5 through the Anthropic API, ge
 
 ## Outcome
 
-In progress. <!-- TODO: add the demo date, what the team shipped, and anything measurable, such as questions answered correctly in testing and response time. -->
+In progress. Demo in December 2026. <!-- TODO: add what the team shipped and anything measurable, such as questions answered correctly in testing and response time, after the demo. -->
 
 ## Credits
 
-Group project. <!-- TODO: add the team size and names, if they agree. --> I own the AI integration, keep the project documentation, and keep us on schedule.
+Group project, team of 8. I own the AI assistant end to end, and I also keep the project documentation and the schedule. The spike is all mine: I built it before the team started, because I like being ahead.
