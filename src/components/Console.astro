@@ -32,6 +32,11 @@ const kb = Math.round(database.bytes / 1000);
     aria-labelledby="console-label"
     data-console-input></textarea>
   <button type="button" class="console-run" data-console-run>Run</button>
+  <!-- Clear starts hidden; the console module shows it while the editor, the results or the error
+       line hold something, and the stylesheet hides it while a query runs. Its name says what it
+       clears, since the Ask box above has a clear control of its own, and starts with the word
+       shown, so a voice command for the visible word still finds it. -->
+  <button type="button" class="console-clear" data-console-clear hidden><span class="visually-hidden">Clear query</span><span aria-hidden="true">Clear</span></button>
   <p class="console-error" role="alert" data-console-error></p>
   <div class="console-results" role="region" aria-labelledby="console-label console-status" data-console-results></div>
 </div>

@@ -332,6 +332,17 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // The console's Clear follows Run with nothing between them, so Run's box never moves, starts
+  // hidden, and is named Clear query, the shown word first; the 404 page has no console and no Clear.
+  it("puts the console's Clear, hidden, straight after Run", () => {
+    const home = pages.find((page) => page.url === '/')!.html;
+    expect(home).toContain(
+      '<button type="button" class="console-run" data-console-run>Run</button><button type="button" class="console-clear" data-console-clear hidden><span class="visually-hidden">Clear query</span><span aria-hidden="true">Clear</span></button><p class="console-error"',
+    );
+    expect(home.match(/data-console-clear/g)).toHaveLength(1);
+    expect(pages.find((page) => page.url === '/404')!.html).not.toContain('data-console-clear');
+  });
+
   // The page scrolls the live answer's head into sight, so that head carries the hook and the
   // build-time example's does not.
   it("marks the live answer's head, and only it, in every Ask box", () => {

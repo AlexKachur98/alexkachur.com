@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { createExecutor, guard, markOverflow, onScreen, renderCell, ROWS, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { clearable, clearConsole, createExecutor, guard, markOverflow, onScreen, renderCell, ROWS, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
@@ -649,5 +649,109 @@ describe('bringing the answer into sight', () => {
     const bring = source.slice(source.indexOf('function bring('), source.indexOf('function watch('));
     expect(bring).toContain('ui.form.contains(focused)');
     expect(bring).toContain("focused.matches(':focus-visible')");
+  });
+});
+
+describe("the console's Clear", () => {
+  const source = readFileSync('src/scripts/console.ts', 'utf8');
+  const bootstrap = readFileSync('src/scripts/bootstrap.ts', 'utf8');
+  const css = readFileSync('src/styles/console.css', 'utf8');
+  const markup = readFileSync('src/components/Console.astro', 'utf8');
+
+  it('has something to clear only with text in the editor, a result under it or a message on the error line', () => {
+    const none = { childElementCount: 0 };
+    const quiet = { textContent: '' };
+    expect(clearable('', none, quiet)).toBe(false);
+    expect(clearable('SELECT 1', none, quiet)).toBe(true);
+    expect(clearable('', { childElementCount: 1 }, quiet)).toBe(true);
+    expect(clearable('', none, { textContent: GUARD })).toBe(true);
+  });
+
+  // A fake panel whose every write lands in one log, in the order it happens.
+  function fakePanel(status: string, inFlight = 0) {
+    const log: string[] = [];
+    const text = (name: string, start: string) => {
+      let value = start;
+      return {
+        get textContent() {
+          return value;
+        },
+        set textContent(next: string) {
+          value = next;
+          log.push(`${name}:${next}`);
+        },
+      };
+    };
+    const ui = {
+      root: {},
+      status: text('status', status),
+      error: text('error', 'no such column: x'),
+      results: { replaceChildren: (...nodes: unknown[]) => log.push(`replaceChildren:${nodes.length}`), removeAttribute: (name: string) => log.push(`removeAttribute:${name}`) },
+      inFlight,
+      suffix: '',
+      input: {
+        set value(next: string) {
+          log.push(`value:${next}`);
+        },
+        focus: (options?: FocusOptions) => log.push(`focus:${options?.preventScroll}`),
+      },
+      clear: {
+        set hidden(state: boolean) {
+          log.push(`hidden:${state}`);
+        },
+      },
+    };
+    return { ui: ui as unknown as Parameters<typeof clearConsole>[0], log };
+  }
+
+  it('empties the editor and what the last run showed, then focuses the editor, then hides', () => {
+    const { ui, log } = fakePanel('3 rows');
+    clearConsole(ui, true);
+    expect(log).toEqual(['value:', 'replaceChildren:0', 'removeAttribute:tabindex', 'error:', 'status:', 'focus:true', 'hidden:true']);
+  });
+
+  it('keeps the loading message while the database is still on its way', () => {
+    const { ui, log } = fakePanel('loading database, 106 KB');
+    clearConsole(ui, false);
+    expect(log).not.toContain('status:');
+    expect(ui.status.textContent).toBe('loading database, 106 KB');
+  });
+
+  it('leaves a panel alone while a query runs, so its result never lands in an emptied panel', () => {
+    const { ui, log } = fakePanel('3 rows', 1);
+    clearConsole(ui, true);
+    expect(log).toEqual([]);
+  });
+
+  it('clears only from its own button, before the branches that would run the query', () => {
+    expect(source.match(/clearConsole\(/g)).toHaveLength(2);
+    expect(source).toMatch(/if \(button\.hasAttribute\('data-console-clear'\)\) \{\s*if \(consoleUi\) clearConsole\(consoleUi\);\s*return;/);
+    const click = source.slice(source.indexOf('export function click('));
+    expect(click.indexOf("hasAttribute('data-console-clear')")).toBeLessThan(click.indexOf('if (askUi?.box.contains(button))'));
+    expect(click.indexOf("hasAttribute('data-console-clear')")).toBeLessThan(click.indexOf('else run();'));
+    // The example buttons still load their query and run it.
+    expect(click).toMatch(/if \(sql !== undefined\) query\(sql\);\s*else run\(\);/);
+    expect(source).toMatch(/function query\(sql: string\): void \{\s*if \(!consoleUi\) return;\s*consoleUi\.input\.value = sql;\s*syncClear\(consoleUi\);\s*run\(\);/);
+  });
+
+  it('decides whether Clear shows after every change to the editor, the results or the error line', () => {
+    expect(source.match(/syncClear\(/g)!.length).toBe(7);
+    expect(source).toContain('void execute(ui, sql).then(() => syncClear(ui));');
+    expect(source).toMatch(/export function typed\(\): void \{\s*if \(consoleUi\) syncClear\(consoleUi\);/);
+    expect(source).toMatch(/consoleUi\.input\.value = sql \?\? askUi\.sql\.textContent \?\? '';\s*syncClear\(consoleUi\);/);
+    expect(bootstrap).toContain("editor?.addEventListener('input', () => void ready().then((module) => module.typed()));");
+    expect(bootstrap).toMatch(/closest<HTMLElement>\('[^']*\[data-console-clear\][^']*'\)/);
+  });
+
+  it('sits hidden straight after Run as a text button, and hides while a query runs', () => {
+    // Named for what it clears, the shown word first, as the theme toggle names itself.
+    expect(markup).toMatch(
+      /<button type="button" class="console-run" data-console-run>Run<\/button>\s*<!--[\s\S]*?-->\s*<button type="button" class="console-clear" data-console-clear hidden><span class="visually-hidden">Clear query<\/span><span aria-hidden="true">Clear<\/span><\/button>/,
+    );
+    const rule = css.match(/\n\.console-clear \{([^}]*)\}/)![1]!;
+    for (const line of ['border: 0;', 'background: none;', 'text-decoration: underline;', 'min-width: var(--control);', 'min-height: var(--control);', 'margin-left: var(--space-4);']) {
+      expect(rule).toContain(line);
+    }
+    expect(css).toMatch(/\.console\[data-working\] > \.console-clear \{\s*visibility: hidden;\s*\}/);
   });
 });

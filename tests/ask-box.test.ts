@@ -300,8 +300,10 @@ describe("the question field's clear control", () => {
     expect(consoleSource).toMatch(/export function askEscape\(event: ClearKey\): void \{\s*if \(askUi && escapeClears\(event, askUi\.input\.value\)\) clearQuestion\(askUi\.input, askUi\.clear\);/);
     // The branch comes before the Ask box's own, which would take the control for a chip.
     expect(consoleSource.indexOf("hasAttribute('data-ask-clear')")).toBeLessThan(consoleSource.indexOf('if (askUi?.box.contains(button))'));
+    // The console's Clear empties the raw console's editor, never the question field.
     expect([...consoleSource.matchAll(/^.*\.value = .*$/gm)].map(([line]) => line.trim())).toEqual([
       'consoleUi.input.value = sql;',
+      "ui.input.value = '';",
       "field.value = '';",
       "consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';",
     ]);

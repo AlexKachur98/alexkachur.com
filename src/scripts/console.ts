@@ -466,6 +466,8 @@ interface Panel {
 
 interface ConsoleUi extends Panel {
   input: HTMLTextAreaElement;
+  // Shown while the editor, the results or the error line hold something.
+  clear: HTMLElement;
 }
 
 interface AskUi extends Panel {
@@ -624,14 +626,46 @@ async function execute(panel: Panel, sql: string): Promise<Result | undefined> {
 // Runs whatever the textarea holds. Blank input is ignored, like an empty line at a prompt.
 export function run(): void {
   if (!consoleUi) return;
-  const sql = consoleUi.input.value.trim();
-  if (sql !== '') void execute(consoleUi, sql);
+  const ui = consoleUi;
+  const sql = ui.input.value.trim();
+  if (sql !== '') void execute(ui, sql).then(() => syncClear(ui));
 }
 
 function query(sql: string): void {
   if (!consoleUi) return;
   consoleUi.input.value = sql;
+  syncClear(consoleUi);
   run();
+}
+
+// Whether the raw console has anything to clear: text in the editor, a result under it, or a
+// message on its error line.
+export function clearable(text: string, results: Pick<Element, 'childElementCount'>, error: Pick<Node, 'textContent'>): boolean {
+  return text !== '' || results.childElementCount > 0 || (error.textContent ?? '') !== '';
+}
+
+function syncClear(ui: ConsoleUi): void {
+  ui.clear.hidden = !clearable(ui.input.value, ui.results, ui.error);
+}
+
+// Empties the editor and what the last run showed: the table and its note, the error line and, once
+// the database has loaded, the row count; until then the status holds the loading message, which
+// stays. A query still running is left alone, so its result never lands in an emptied panel. Focus
+// goes to the editor before the button hides, so it is never left on a hidden control.
+export function clearConsole(ui: ConsoleUi, databaseLoaded = loaded): void {
+  if (ui.inFlight > 0) return;
+  ui.input.value = '';
+  ui.results.replaceChildren();
+  ui.results.removeAttribute('tabindex');
+  setError(ui, '');
+  if (databaseLoaded) setStatus(ui, '');
+  ui.input.focus({ preventScroll: true });
+  ui.clear.hidden = true;
+}
+
+// Typing in the editor, which the bootstrap forwards.
+export function typed(): void {
+  if (consoleUi) syncClear(consoleUi);
 }
 
 // Where the answer opens under the form (below 1200px, at every width on the 404 page, and in a
@@ -956,13 +990,15 @@ export function askEscape(event: ClearKey): void {
 function edit(sql: string | undefined): void {
   if (!askUi || !consoleUi) return;
   consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';
+  syncClear(consoleUi);
   consoleUi.root.scrollIntoView();
   consoleUi.input.focus({ preventScroll: true });
 }
 
-// The bootstrap owns every listener and forwards a click on an example, a chip, Run, Edit this
-// query, the question field's clear control or the send button here, whether it landed before
-// this module was loaded or after.
+// The bootstrap owns every listener and forwards a click on an example, a chip, Run, the console's
+// Clear, Edit this query, the question field's clear control or the send button here, whether it
+// landed before this module was loaded or after. Both clear controls are checked before the Ask
+// box's own branch and the final run, either of which would take them for something else.
 // Edit this query is checked before the chips: a click on the example's button can arrive after a
 // question has already taken the example off the page, and it still means edit, not run.
 export function click(button: HTMLElement): void {
@@ -977,6 +1013,10 @@ export function click(button: HTMLElement): void {
   }
   if (button.hasAttribute('data-ask-clear')) {
     if (askUi) clearQuestion(askUi.input, askUi.clear);
+    return;
+  }
+  if (button.hasAttribute('data-console-clear')) {
+    if (consoleUi) clearConsole(consoleUi);
     return;
   }
   if (askUi?.box.contains(button)) {
@@ -1013,8 +1053,10 @@ export function init(): void {
   });
   const consoleRoot = document.querySelector<HTMLElement>('[data-console]');
   if (consoleRoot) {
-    consoleUi = { ...panelOf(consoleRoot, 'console'), input: element(consoleRoot, '[data-console-input]') };
+    consoleUi = { ...panelOf(consoleRoot, 'console'), input: element(consoleRoot, '[data-console-input]'), clear: element(consoleRoot, '[data-console-clear]') };
     setStatus(consoleUi, loadingMessage());
+    // Text typed, or restored by the browser, before this module ran shows Clear too.
+    syncClear(consoleUi);
   }
   const askRoot = document.querySelector<HTMLElement>('[data-ask]');
   if (askRoot) {
@@ -1054,6 +1096,7 @@ export function init(): void {
       if (!consoleUi) return;
       setStatus(consoleUi, '');
       setError(consoleUi, failure(error));
+      syncClear(consoleUi);
     },
   );
 }
