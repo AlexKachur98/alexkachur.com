@@ -1,17 +1,24 @@
 ---
-// The architecture diagram: monochrome, with the request path of /api/ask marked in
-// yellow. The labels are the words of the description a reader who cannot see the drawing
-// gets. The drawing keeps its natural width so the text stays on the type scale; below 768px a
-// stacked drawing of the same boxes and words takes its place, 272px wide, so it fits a 320px
-// screen whole. Each drawing has its own markers: Chrome draws no arrowhead from a marker inside
-// a hidden drawing. The figure is the page's own, not part of the text the sections table holds.
+// The architecture diagram: monochrome, with the request path of /api/ask marked in --mark,
+// yellow in the dark theme and ink in the light one, where yellow would not show. The labels are
+// the words of the description a reader who cannot see the drawing gets; the name is the page's
+// section title, or the sentence a home page row gives it. The drawing keeps its natural width so
+// the text stays on the type scale; below 768px a stacked drawing of the same boxes and words
+// takes its place, 272px wide, so it fits a 320px screen whole. Each drawing has its own markers:
+// Chrome draws no arrowhead from a marker inside a hidden drawing. The figure is the page's own,
+// not part of the text the sections table holds.
+interface Props {
+  title?: string;
+}
+
+const { title = 'Architecture' } = Astro.props;
 const description =
   "At build time, the site's Markdown and YAML become a SQLite database and JSON endpoints. Your browser loads the database with sql.js when you need it. Your question goes to /api/ask, which sends it with the schema to a language model, checks the SQL that comes back by preparing it against the real database, and returns the SQL to your browser to run. The model never runs a query and never sees the results.";
 ---
 
 <figure class="diagram-figure" data-page-only>
   <svg class="diagram diagram-wide" width="456" height="324" viewBox="0 0 456 324" role="img" aria-labelledby="architecture-title" aria-describedby="architecture-desc">
-    <title id="architecture-title">Architecture</title>
+    <title id="architecture-title">{title}</title>
     <desc id="architecture-desc">{description}</desc>
     <defs>
       <marker id="arch-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
@@ -63,7 +70,7 @@ const description =
     <text class="note center" x="228" y="313">and never sees the results.</text>
   </svg>
   <svg class="diagram diagram-phone" width="272" height="418" viewBox="0 0 272 418" role="img" aria-labelledby="architecture-title-phone" aria-describedby="architecture-desc-phone">
-    <title id="architecture-title-phone">Architecture</title>
+    <title id="architecture-title-phone">{title}</title>
     <desc id="architecture-desc-phone">{description}</desc>
     <defs>
       <marker id="arch-arrow-phone" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
@@ -154,9 +161,10 @@ const description =
     fill: var(--ink);
   }
 
-  /* The one highlight on this page: the request path of /api/ask, a 2px accent rule. */
+  /* The one highlight in the drawing: the request path of /api/ask, a 2px rule in --mark with a
+     larger arrowhead, so the path reads by weight as well as by colour. */
   .ask-path line {
-    stroke: var(--accent);
+    stroke: var(--mark);
     stroke-width: 2;
     marker-end: url("#arch-arrow-ask");
   }
@@ -166,7 +174,7 @@ const description =
   }
 
   .head-ask {
-    fill: var(--accent);
+    fill: var(--mark);
   }
 
   .label,

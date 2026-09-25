@@ -441,6 +441,14 @@ describe('build-db', () => {
     ]);
     expect(query("SELECT COUNT(*) AS n FROM sections WHERE page = '/work/this-site'")).toEqual([{ n: 0 }]);
     expect(ddl()).toContain('page TEXT NOT NULL, --');
+    // The two rows whose pages show no interface show a drawing; the client rows show a screenshot.
+    expect(query('SELECT slug, row_image, row_image_alt IS NOT NULL AS described FROM projects ORDER BY id')).toEqual([
+      { slug: 'splitroof-ai-assistant', row_image: 'splitroof-flow', described: 1 },
+      { slug: 'think-smarter-review-funnel', row_image: 'screenshot', described: 0 },
+      { slug: 'uraz-hoops', row_image: 'screenshot', described: 0 },
+      { slug: 'this-site', row_image: 'architecture', described: 1 },
+    ]);
+    expect(ddl()).toContain("row_image TEXT NOT NULL CHECK (row_image IN ('screenshot', 'architecture', 'splitroof-flow'))");
     const withText = { ...files, 'projects/this-site.md': `${files['projects/this-site.md']}\n## The problem\n\nText.\n` };
     return expect(renderMarkdown(withText).then((again) => parseContent(withText, undefined, again))).rejects.toThrow(
       /projects\/this-site.md: its page is \/how-this-site-works, so the text in the file has no page/,

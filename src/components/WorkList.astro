@@ -1,27 +1,32 @@
 ---
 import { getCollection } from 'astro:content';
+import ArchitectureDiagram from './ArchitectureDiagram.astro';
 import Figure from './Figure.astro';
 import Section from './Section.astro';
-import numbers from '../generated/numbers.json';
-import { fillPlaceholders } from '../lib/numbers.ts';
+import SplitRoofFlow from './SplitRoofFlow.astro';
 import { projectPage } from '../lib/rows.ts';
 
-// Rows separated by rules, never cards, every one laid out alike: the screenshot takes four of
-// the twelve columns from 768px and six from 1200px, where it fills the column, so screenshots
-// cropped to one ratio share one size. The sizes list follows the grid: fluid between 768px and
-// 1080px and again between 1200px and the 1240px container, fixed at each container width, and
-// held on a phone by the width attribute. The largest candidate is double the widest column, or
-// the whole source where that is narrower. From 1200px the first row's screenshot starts a little
-// over 1000px down the page, so its top shows in the first screen on taller windows such as
-// 1920x1080, the most common desktop size, and it is below the first screen on shorter ones such
-// as 1440x900. It alone loads eagerly, since on tall windows, such as 2560x1440 or a tablet held
-// upright, it is the largest thing in the first screen; it gets no raised fetch priority, because
-// on most windows a line of the hero's text is the largest thing there. A screenshot is a second
-// way into the case study for a pointer; hovering it or the title marks both, so the two read as
-// one link.
+// Rows separated by rules, never cards, every one laid out alike: the image takes four of the
+// twelve columns from 768px and six from 1200px. A row shows its first screenshot, which fills
+// the column from 1200px, so screenshots cropped to one ratio share one size; the sizes list
+// follows the grid: fluid between 768px and 1080px and again between 1200px and the 1240px
+// container, fixed at each container width, and held on a phone by the width attribute. The
+// largest candidate is double the widest column, or the whole source where that is narrower.
+// A row whose page shows no interface, or whose page is the write-up of the site, shows the
+// drawing that page explains instead, named by the sentence its file gives it: the drawing keeps
+// its natural width (the phone one below 768px, the wide one from 1200px) so its labels stay on
+// the type scale, and between 768px and 1199px, where the column is too narrow for either, the
+// row shows its text alone. No thumbnail carries a caption: the title and the card sentence are
+// the row's words, and the case study shows the captions. The first screenshot loads eagerly,
+// since on tall windows it is the largest thing in the first screen, with no raised fetch
+// priority, because on most windows a line of the hero's text is; every other image waits until
+// it is near the viewport. A thumbnail is a second way into the page for a pointer; hovering it or
+// the title marks both, so the two read as one link.
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
 const technologies = await getCollection('technologies');
 const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
+const diagrams = { architecture: ArchitectureDiagram, 'splitroof-flow': SplitRoofFlow } as const;
+const firstShot = projects.findIndex((project) => !project.data.row_image && project.data.screenshots.length > 0);
 
 const rowWidths = [312, 660, 984, 1320];
 const rowSizes =
@@ -32,8 +37,9 @@ const rowSizes =
   <ol class="work" role="list">
     {
       projects.map((project, index) => {
-        const { name, card, role, year_start, screenshots } = project.data;
-        const shot = screenshots[0];
+        const { name, card, role, year_start, screenshots, row_image } = project.data;
+        const shot = row_image ? undefined : screenshots[0];
+        const Diagram = row_image ? diagrams[row_image.diagram] : undefined;
         const page = projectPage(project.id, project.data.page);
         return (
           <li class="work-row grid">
@@ -53,16 +59,15 @@ const rowSizes =
             </div>
             {shot && (
               <div class="work-shot">
-                <Figure
-                  src={shot.src}
-                  alt={shot.alt}
-                  caption={shot.caption === undefined ? undefined : fillPlaceholders(shot.caption, numbers, `projects/${project.id}.md`)}
-                  width={312}
-                  widths={rowWidths}
-                  sizes={rowSizes}
-                  eager={index === 0}
-                  href={page}
-                />
+                <Figure src={shot.src} alt={shot.alt} width={312} widths={rowWidths} sizes={rowSizes} eager={index === firstShot} href={page} />
+              </div>
+            )}
+            {Diagram && row_image && (
+              <div class="work-shot work-diagram">
+                <div class="linked">
+                  <Diagram title={row_image.alt} />
+                  <a href={page} tabindex="-1" aria-hidden="true" />
+                </div>
               </div>
             )}
           </li>
@@ -115,13 +120,33 @@ const rowSizes =
     transition: border-color var(--duration) var(--ease);
   }
 
+  /* A drawing gets the frame and the overlay link a screenshot has; the component's figure keeps
+     no margin of its own inside the row. */
+  .work-diagram .linked {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid var(--rule);
+    transition: border-color var(--duration) var(--ease);
+  }
+
+  .work-diagram .linked a {
+    position: absolute;
+    inset: 0;
+  }
+
+  .work-diagram :global(figure) {
+    margin: 0;
+  }
+
   @media (hover: hover) {
     .work-row:has(h3 a:hover, .work-shot :global(a):hover) h3 a {
       text-decoration-thickness: 2px;
       text-decoration-color: var(--mark);
     }
 
-    .work-row:has(h3 a:hover, .work-shot :global(a):hover) .work-shot :global(img) {
+    .work-row:has(h3 a:hover, .work-shot :global(a):hover) .work-shot :global(img),
+    .work-row:has(h3 a:hover, .work-shot :global(a):hover) .work-diagram .linked {
       border-color: var(--mark);
     }
   }
@@ -147,6 +172,11 @@ const rowSizes =
     .work-shot {
       grid-column: 9 / 13;
     }
+
+    /* Four columns are too narrow for either drawing at its natural width. */
+    .work-diagram {
+      display: none;
+    }
   }
 
   /* The img comes from Figure, so only :global reaches it; its width attribute would otherwise
@@ -160,12 +190,20 @@ const rowSizes =
       grid-column: 7 / 13;
     }
 
+    .work-diagram {
+      display: block;
+    }
+
     .work-shot :global(.linked) {
       width: auto;
     }
 
     .work-shot :global(img) {
       width: 100%;
+    }
+
+    .work-diagram .linked {
+      width: fit-content;
     }
   }
 </style>

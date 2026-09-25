@@ -607,6 +607,45 @@ describe(`built output in ${root}`, () => {
     expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
   });
 
+  // A home page row shows its first screenshot, or the drawing its file names, each under the
+  // same overlay link, with no caption; the drawing is named by the row's sentence and only the
+  // first screenshot loads eagerly.
+  it('shows on each Selected work row its screenshot or its drawing, uncaptioned, under one link', async () => {
+    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
+    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+    const projects = (db.exec('SELECT p.page, p.row_image, p.row_image_alt, (SELECT alt FROM project_images i WHERE i.project_id = p.id AND i.position = 1) AS shot FROM projects p ORDER BY p.id')[0]!.values as (string | null)[][]).map(([page, image, alt, shot]) => ({ page: page!, image: image!, alt, shot }));
+    db.close();
+    const home = pages.find(({ url }) => url === '/')!.html;
+    const rows = [...home.matchAll(/<li class="work-row[^"]*"[^>]*>([\s\S]*?)<\/li>\s*(?=<li class="work-row|<\/ol>)/g)].map(([, row]) => row!);
+    expect(rows).toHaveLength(projects.length);
+    let eager = 0;
+    let drawn = 0;
+    for (const [index, row] of rows.entries()) {
+      const project = projects[index]!;
+      expect(row, project.page).not.toMatch(/<figcaption/);
+      const links = [...row.matchAll(/<a\b([^>]*)>/g)].map(([, attributes]) => attributes!);
+      expect(links.filter((attributes) => attributes.includes(`href="${project.page}"`)), project.page).toHaveLength(2);
+      expect(links.some((attributes) => /tabindex="-1"/.test(attributes) && /aria-hidden="true"/.test(attributes)), project.page).toBe(true);
+      if (project.image === 'screenshot') {
+        const img = row.match(/<img\b[^>]*>/)?.[0] ?? '';
+        expect(decode(img.match(/\salt="([^"]*)"/)?.[1] ?? ''), project.page).toBe(project.shot);
+        expect(row, project.page).not.toMatch(/<svg/);
+        if (/loading="eager"/.test(img)) eager++;
+      } else {
+        drawn++;
+        expect(row, project.page).not.toMatch(/<img/);
+        const titles = [...row.matchAll(/<title[^>]*>([\s\S]*?)<\/title>/g)].map(([, title]) => decode(title!));
+        expect(titles.length, project.page).toBeGreaterThan(0);
+        for (const title of titles) expect(title, project.page).toBe(project.alt);
+        expect(row.match(/<svg\b[^>]*\srole="img"/g)?.length, project.page).toBe(titles.length);
+        expect(row.match(/<desc\b/g)?.length, project.page).toBe(titles.length);
+      }
+    }
+    expect(eager).toBe(1);
+    expect(drawn).toBe(2);
+  });
+
   // Each case study's screenshots carry the alt text and caption of its project_images rows,
   // numbers filled in, so a visitor's query and the page cannot disagree.
   it('captions every case-study screenshot as its project_images row does', async () => {

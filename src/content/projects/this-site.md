@@ -21,5 +21,10 @@ highlights:
   - "Capped AI spending with a monthly limit, an answer cache and a rate limiter; CI replays a {eval_questions}-question evaluation on every push."
   - "Public JSON API with an OpenAPI {openapi_version} document."
 technologies: [astro, typescript, css, sql, sql-js, sqlite, vercel, anthropic-api, upstash-redis, vitest]
+# The row links to the write-up and the hero above it already shows the product, so the row shows
+# the architecture drawing that page explains.
+row_image:
+  diagram: architecture
+  alt: "How this site works: content compiled into a database at build time, a question turned into SQL by a model and checked against that database, and the SQL run in your browser."
 screenshots: []
 ---

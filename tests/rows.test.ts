@@ -64,6 +64,13 @@ describe('rows', () => {
       ['c', '/how-this-site-works'],
     ]);
     expect(Object.keys(rows[0]!).slice(0, 3)).toEqual(['id', 'slug', 'page']);
+    expect(rows.map((row) => [row.row_image, row.row_image_alt])).toEqual([
+      ['screenshot', null],
+      ['screenshot', null],
+    ]);
+    const drawn = project('d', 4, []);
+    drawn.data.row_image = { diagram: 'architecture', alt: 'A drawing.' };
+    expect(projectRows([drawn]).map((row) => [row.row_image, row.row_image_alt])).toEqual([['architecture', 'A drawing.']]);
     expect(hasCaseStudy('a')).toBe(true);
     expect(hasCaseStudy('c', '/how-this-site-works')).toBe(false);
     expect(projectPage('c', '/how-this-site-works')).toBe('/how-this-site-works');

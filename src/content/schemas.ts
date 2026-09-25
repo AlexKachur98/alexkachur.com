@@ -48,6 +48,10 @@ export const skillAreas = [
   'Platforms and services',
 ] as const;
 
+// The drawings a home page row can show in place of a screenshot: the site's architecture and the
+// SplitRoof flow, each a component of its own.
+export const diagrams = ['architecture', 'splitroof-flow'] as const;
+
 export const factRow = z.object({
   key: z.string().describe('Fact name, for example location or available_from'),
   value: z.string().describe('The fact as text'),
@@ -78,6 +82,10 @@ export const projectRow = z.object({
     .string()
     .nullable()
     .describe('Resume bullets for the project, one per line, NULL for client work; numbers in them are filled in at build time from their sources'),
+  row_image: z
+    .enum(['screenshot', ...diagrams])
+    .describe("What the project's row on the home page shows: screenshot for its first screenshot, or the name of the drawing shown instead"),
+  row_image_alt: z.string().nullable().describe('What the drawing shows, NULL when the row shows a screenshot'),
 });
 
 export const technologyRow = z.object({
@@ -280,10 +288,16 @@ export const screenshot = z.strictObject({
   caption: z.string().optional().describe('Caption under the screenshot'),
 });
 
+export const rowImage = z.strictObject({
+  diagram: z.enum(diagrams).describe('The drawing the home page row shows in place of a screenshot'),
+  alt: z.string().describe('What the drawing shows, in a sentence'),
+});
+
 export const projectContent = z.strictObject({
-  ...projectRow.omit({ id: true, slug: true, page: true, featured: true, team: true, highlights: true }).shape,
+  ...projectRow.omit({ id: true, slug: true, page: true, featured: true, team: true, highlights: true, row_image: true, row_image_alt: true }).shape,
   order: z.number().int().positive().describe('Site order; also drives projects.id'),
   page: z.string().optional().describe('The page that covers the project when it has no case study of its own under /work/'),
+  row_image: rowImage.optional().describe('A drawing for the home page row, when the project has no interface to show there'),
   team: z.string().optional().describe(projectRow.shape.team.description ?? ''),
   highlights: z.array(z.string().min(1)).min(1).optional().describe('The resume bullets, word for word, with each number written as {key}'),
   technologies: z.array(z.string()).describe('Ids from technologies.yaml used on this project'),

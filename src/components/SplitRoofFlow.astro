@@ -6,14 +6,20 @@
 // the text stays on the type scale; below 768px a stacked drawing of the same boxes and words
 // takes its place, 272px wide, so it fits a 320px screen whole. Each drawing has its own
 // marker: Chrome draws no arrowhead from a marker inside a hidden drawing. The figure is the
-// page's own, not part of the text the sections table holds.
+// page's own, not part of the text the sections table holds. The name is the drawing's own, or
+// the sentence a home page row gives it.
+interface Props {
+  title?: string;
+}
+
+const { title = 'How the assistant answers' } = Astro.props;
 const description =
   "A question like 'who owes what this month?' goes to the model, Claude Haiku 4.5, which can only call three typed tool functions. The functions read the household's real data and return exact figures, and the model turns them into a sentence. There is no write path, so the worst a bad answer can do is word something badly.";
 ---
 
 <figure class="flow-figure" data-page-only>
   <svg class="flow flow-wide" width="456" height="290" viewBox="0 0 456 290" role="img" aria-labelledby="splitroof-flow-title" aria-describedby="splitroof-flow-desc">
-    <title id="splitroof-flow-title">How the assistant answers</title>
+    <title id="splitroof-flow-title">{title}</title>
     <desc id="splitroof-flow-desc">{description}</desc>
     <defs>
       <marker id="splitroof-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
@@ -55,7 +61,7 @@ const description =
     <text class="label center" x="84" y="232">a sentence</text>
   </svg>
   <svg class="flow flow-phone" width="272" height="440" viewBox="0 0 272 440" role="img" aria-labelledby="splitroof-flow-title-phone" aria-describedby="splitroof-flow-desc-phone">
-    <title id="splitroof-flow-title-phone">How the assistant answers</title>
+    <title id="splitroof-flow-title-phone">{title}</title>
     <desc id="splitroof-flow-desc-phone">{description}</desc>
     <defs>
       <marker id="splitroof-arrow-phone" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">

@@ -20,6 +20,10 @@ highlights:
   - 'Own the assistant for a shared-household expense app: a read-only agent that answers "who owes what this month" from the household''s own data through three typed tools (getBalance, getCategorySpend, getBudgetStatus). The model never does the arithmetic itself.'
   - "Built the spike first: three tool functions with {splitroof_tool_tests} passing Jest tests before wiring in the model, then {splitroof_model_tests} tests against the live model. Also maintain the project documentation and keep the team on schedule."
 technologies: [react, node-js, express, firebase, anthropic-api, jest]
+# The project has no interface to show yet, so its row on the home page shows the flow drawing.
+row_image:
+  diagram: splitroof-flow
+  alt: "How the SplitRoof assistant answers: a question goes to Claude Haiku 4.5, which can only call three read-only tools on the household's data and then words the answer."
 screenshots:
   - src: ../../assets/work/splitroof-ai-assistant/splitroof-1.png
     alt: A terminal in VS Code after npm test in splitroof-assistant-spike, with tools.test.js and assistant.test.js passing, 17 tests in total
