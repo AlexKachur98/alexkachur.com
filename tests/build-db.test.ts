@@ -405,8 +405,6 @@ describe('build-db', () => {
       ),
       home_cls: '0',
       works_cls: '0',
-      think_smarter_html_kb: String(Math.round(measurements.html_bytes.think_smarter / 1000)),
-      uraz_html_kb: String(Math.round(measurements.html_bytes.uraz / 1000)),
     });
     expect(() => siteNumbers([], CACHE_MINIMUM_TOKENS)).toThrow(/cache floor/);
     // The measurements record is checked as it is read: a score outside 0 to 100 or a bad date stops the build.

@@ -7,14 +7,7 @@
     "pages": {
       "home": { "url": "https://alexkachur.com/", "performance": 100, "accessibility": 100, "best_practices": 100, "seo": 100, "cls": 0 },
       "works": { "url": "https://alexkachur.com/how-this-site-works", "performance": 100, "accessibility": 100, "best_practices": 100, "seo": 100, "cls": 0 },
-      "case_study": { "url": "https://alexkachur.com/work/uraz-hoops", "performance": 100, "accessibility": 100, "best_practices": 100, "seo": 100, "cls": 0 },
-      "uraz": { "url": "https://urazhoops.com/", "performance": 71, "accessibility": 93, "best_practices": 100, "seo": 100, "cls": 0.0004 },
-      "think_smarter": { "url": "https://think-smarter-review.pages.dev/", "performance": 100, "accessibility": 98, "best_practices": 100, "seo": 58, "cls": 0.0001 }
+      "case_study": { "url": "https://alexkachur.com/work/uraz-hoops", "performance": 100, "accessibility": 100, "best_practices": 100, "seo": 100, "cls": 0 }
     }
-  },
-  "html_bytes": {
-    "date": "2026-09-25",
-    "think_smarter": 41915,
-    "uraz": 30713
   }
 }
