@@ -136,7 +136,7 @@ describe('the send token', () => {
     expect(withToken({ status: 429, body: { error: 'rate_limited' } }, { question: QUESTION }, config, NOW).body).not.toHaveProperty('token');
     expect(withToken(answer, { question: QUESTION }, { ...config, limitSecret: undefined }, NOW).body).not.toHaveProperty('token');
     // A question the send endpoint would always refuse is never offered for sending.
-    for (const question of [['What', String.fromCharCode(27), 'x?'].join(''), ['Who is ', String.fromCharCode(0x202e), 'xela?'].join('')]) {
+    for (const question of ['What\u001bx?', 'Who is \u202Exela?']) {
       expect(withToken(answer, { question }, config, NOW).body, JSON.stringify(question)).not.toHaveProperty('token');
     }
   });
@@ -209,8 +209,8 @@ describe('POST /api/questions', () => {
 
   it('refuses a question that is too short, too long, or holds control or direction characters', async () => {
     const store = fakeStore();
-    const control = ['What', String.fromCharCode(27), '[2J is this?'].join('');
-    const bidi = ['Who is ', String.fromCharCode(0x202e), 'xela?'].join('');
+    const control = 'What\u001b[2J is this?';
+    const bidi = 'Who is \u202Exela?';
     for (const question of ['hi', 'x'.repeat(201), control, bidi]) {
       expect(await send(store, { question, token: token(question) }), JSON.stringify(question)).toMatchObject({
         status: 400,

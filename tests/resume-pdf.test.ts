@@ -14,7 +14,7 @@ const pdf = await getDocumentProxy(new Uint8Array(readFileSync('public/Alex-Kach
 const extracted = (await extractText(pdf, { mergePages: true })).text;
 // Bullets and the middle dot gone (with the private-use bullet a Symbol-font list gives), forms
 // folded, whitespace collapsed.
-const marks = new RegExp(`[${[0x2022, 0xb7, 0xf0b7, 0xfffd].map((code) => String.fromCharCode(code)).join('')}]`, 'g');
+const marks = /[\u2022\u00B7\uF0B7\uFFFD]/g;
 const text = extracted.replace(marks, ' ').normalize('NFKC').replace(/\s+/g, ' ').trim();
 // Phrase checks ignore case and punctuation, keeping + and % for counts like 50+ and 15%.
 const loose = (phrase: string) => phrase.normalize('NFKC').toLowerCase().replace(/[^a-z0-9+%]+/g, ' ').trim();

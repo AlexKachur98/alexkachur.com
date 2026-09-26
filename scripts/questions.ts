@@ -57,8 +57,7 @@ export async function listQuestions(redis: QuestionsRedis): Promise<Listed[]> {
 // A visitor typed these, so anything that could drive the terminal (control characters, direction
 // overrides and the like) is printed as a code point instead of being sent to it.
 export function printable(text: string): string {
-  const backslash = String.fromCharCode(92);
-  return text.replace(/\p{C}/gu, (char) => `${backslash}u{${char.codePointAt(0)!.toString(16)}}`);
+  return text.replace(/\p{C}/gu, (char) => `\\u{${char.codePointAt(0)!.toString(16)}}`);
 }
 
 export function format(listed: Listed[]): string {

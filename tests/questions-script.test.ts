@@ -51,12 +51,8 @@ describe('npm run questions', () => {
   });
 
   it('prints control and direction characters as code points, never raw', () => {
-    const escape = String.fromCharCode(27);
-    const shown = printable(`Who${escape}[2J is ${String.fromCharCode(0x202e)}xela?`);
-    expect(shown).not.toContain(escape);
-    expect(shown).not.toContain(String.fromCharCode(0x202e));
-    expect(shown).toContain('u{1b}');
-    expect(shown).toContain('u{202e}');
+    const shown = printable('Who\u001b[2J is \u202Exela?');
+    expect(shown).toBe('Who\\u{1b}[2J is \\u{202e}xela?');
   });
 
   it('with --delete-all deletes exactly the questions it listed and keeps a later one', async () => {
