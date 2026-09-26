@@ -34,7 +34,11 @@ import schema from '../generated/schema.json';
 </div>
 
 <style>
+  /* With larger text a long name could set the section's width; the panel may shrink below it, and
+     the name breaks instead. */
   .schema {
+    min-width: 0;
+    overflow-wrap: anywhere;
     border: 1px solid var(--rule);
     background: var(--surface);
     font-family: var(--font-mono);
@@ -59,7 +63,7 @@ import schema from '../generated/schema.json';
 
   dl {
     display: grid;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: auto 1fr;
     gap: var(--space-1) var(--space-3);
     margin: 0;
   }
