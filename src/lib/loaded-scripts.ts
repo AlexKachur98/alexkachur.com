@@ -12,7 +12,7 @@ export interface LoadedScript {
   job: string;
 }
 
-export const INSIGHTS = { name: '/_vercel/insights/script.js', bytes: 2019, measured: '2026-09-25' } as const;
+export const INSIGHTS = { name: '/_vercel/insights/script.js', bytes: 2014, measured: '2026-09-25' } as const;
 
 // The bootstrap's budget, gzipped; the build test fails once the bootstrap reaches it, and the
 // page names it.
