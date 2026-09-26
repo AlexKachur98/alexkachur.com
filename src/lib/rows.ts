@@ -150,11 +150,17 @@ export function projectTechnologyRows(
       }
       ids.add(technologyId);
     }
-    for (const technologyId of [...ids].sort((a, b) => a - b)) {
+    // In the order the file lists them, which the rows keep as their rowid.
+    for (const technologyId of ids) {
       rows.push({ project_id: project.id, technology_id: technologyId });
     }
   }
   return rows;
+}
+
+// A project's technology names in the order its file lists them.
+export function stackQuery(projectId: number): string {
+  return `SELECT t.name FROM project_technologies pt JOIN technologies t ON t.id = pt.technology_id WHERE pt.project_id = ${projectId} ORDER BY pt.rowid`;
 }
 
 export function courseRows(entries: Entry<CourseContent>[]): CourseRow[] {

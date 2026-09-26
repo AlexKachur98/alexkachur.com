@@ -10,6 +10,7 @@ import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
 import { keptFor, TTL } from '../../lib/ask/storage.ts';
 import { select } from '../../lib/query.ts';
+import { stackQuery } from '../../lib/rows.ts';
 import { ASK_DESCRIPTION, openApiDocument, PROJECT_DESCRIPTION, RATE_LIMITS_SENTENCE, RESUME_DESCRIPTION, SCHEMA_DESCRIPTION, STATS_DESCRIPTION } from '../../lib/openapi.ts';
 import buildInfo from '../../generated/build-info.json';
 import recorded from '../../data/api-samples.json';
@@ -47,9 +48,7 @@ async function tableRows(table: TableName) {
   return rows.map((row) => Object.fromEntries(columns.map((name, index) => [name, row[index]])));
 }
 const first = (await tableRows('projects'))[0]!;
-const stack = await select(
-  `SELECT t.name FROM project_technologies pt JOIN technologies t ON t.id = pt.technology_id WHERE pt.project_id = ${Number(first.id)} ORDER BY t.id`,
-);
+const stack = await select(stackQuery(Number(first.id)));
 const single = { ...first, technologies: stack.rows.map(([name]) => name) };
 const resume = resumeJson(resumeData(queryOf(await openDatabase())), Astro.site!.origin);
 

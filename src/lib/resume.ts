@@ -2,6 +2,7 @@
 // database, so they can only say what its tables say. build-db passes the database it has just
 // written; the endpoint passes the one the site reads.
 import { skillAreas } from '../content/schemas.ts';
+import { stackQuery } from './rows.ts';
 
 export type Value = string | number | null;
 export type Query = (sql: string) => Record<string, Value>[];
@@ -71,9 +72,7 @@ export function resumeData(query: Query): ResumeData {
     start: Number(row.year_start),
     url: row.live_url === null ? (row.repo_url === null ? null : text(row.repo_url)) : text(row.live_url),
     highlights: text(row.highlights).split('\n'),
-    stack: query(
-      `SELECT t.name FROM project_technologies pt JOIN technologies t ON t.id = pt.technology_id WHERE pt.project_id = ${Number(row.id)} ORDER BY lower(t.name), t.name`,
-    ).map((link) => text(link.name)),
+    stack: query(stackQuery(Number(row.id))).map((link) => text(link.name)),
   }));
   // Each area's core skills first, then the rest, each by name; the areas in the order Alex listed them.
   const byArea = grouped(query('SELECT skill_area, name FROM technologies ORDER BY core DESC, lower(name), name'), 'skill_area', 'name');

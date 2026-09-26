@@ -2,13 +2,13 @@ import type { APIRoute } from 'astro';
 import buildInfo from '../generated/build-info.json';
 import { siteFacts } from '../lib/facts.ts';
 import { select } from '../lib/query.ts';
+import { stackQuery } from '../lib/rows.ts';
 
 export const GET: APIRoute = async ({ site }) => {
   const facts = await siteFacts();
-  // The stack is this site's own project's technologies, as a visitor's query would list them.
-  const stack = await select(
-    "SELECT t.name FROM projects p JOIN project_technologies pt ON pt.project_id = p.id JOIN technologies t ON t.id = pt.technology_id WHERE p.slug = 'this-site' ORDER BY lower(t.name), t.name",
-  );
+  // The stack is this site's own project's technologies.
+  const [[id]] = (await select("SELECT id FROM projects WHERE slug = 'this-site'")).rows;
+  const stack = await select(stackQuery(Number(id)));
   const text = `/* TEAM */
 Developer: ${facts.name}
 Location: ${facts.location}

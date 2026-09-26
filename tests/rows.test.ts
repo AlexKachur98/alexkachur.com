@@ -103,14 +103,14 @@ describe('rows', () => {
     );
   });
 
-  it('links projects to technologies by id, once each, accepting Astro reference objects', () => {
+  it('links projects to technologies by id, once each, in the order the file lists them, accepting Astro reference objects', () => {
     const projects = [
       project('a', 1, ['sql-js', 'react', 'react']),
       project('b', 2, [{ id: 'react' }, 'react']),
     ];
     expect(projectTechnologyRows(projects, technologies)).toEqual([
-      { project_id: 1, technology_id: 2 },
       { project_id: 1, technology_id: 3 },
+      { project_id: 1, technology_id: 2 },
       { project_id: 2, technology_id: 2 },
     ]);
   });
