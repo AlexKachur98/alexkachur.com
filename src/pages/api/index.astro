@@ -87,11 +87,13 @@ const samples: Record<string, { curl: string; response: string; description?: st
 const docs = endpoints.map((endpoint) => {
   const sample = samples[endpoint.path];
   if (!sample) throw new Error(`${endpoint.path} has no example on this page`);
+  const description = sample.description ?? (endpoint.rows ? tables[endpoint.rows].description : undefined);
+  if (!description) throw new Error(`${endpoint.path} has no description on this page`);
   const shown = shapesShown[endpoint.path];
   return {
     ...endpoint,
-    description: endpoint.rows ? tables[endpoint.rows].description : undefined,
     ...sample,
+    description,
     fields: shown ? fieldsOf(`#/components/schemas/${shown}`) : undefined,
     statuses: shown ? statusesOf(endpoint.path) : undefined,
   };
@@ -128,13 +130,7 @@ for (const path of Object.keys(samples)) {
           <h2 aria-label={`${endpoint.method} ${endpoint.path}`}>
             {endpoint.method} <BreakablePath path={endpoint.path} />
           </h2>
-          {endpoint.description ? (
-            <p>{endpoint.description}</p>
-          ) : (
-            <Fragment>
-              <!-- TODO: write one sentence describing this endpoint. -->
-            </Fragment>
-          )}
+          <p>{endpoint.description}</p>
           <pre><code>{endpoint.curl}</code></pre>
           {endpoint.note && <p class="recorded">{endpoint.note}</p>}
           {endpoint.fields && endpoint.statuses && (

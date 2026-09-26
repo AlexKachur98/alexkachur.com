@@ -53,7 +53,7 @@ const rowSizes =
               </p>
               <ul class="tags" role="list">
                 {project.data.technologies.map((ref) => (
-                  <li>{names.get(ref.id) ?? ref.id}</li>
+                  <li>{names.get(ref.id)!}</li>
                 ))}
               </ul>
             </div>

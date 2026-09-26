@@ -32,7 +32,7 @@ export async function getStaticPaths() {
       project,
       prev: projects[index - 1],
       next: projects[index + 1],
-      stack: project.data.technologies.map((ref) => names.get(ref.id) ?? ref.id),
+      stack: project.data.technologies.map((ref) => names.get(ref.id)!),
     } satisfies Props,
   }));
 }
