@@ -1,17 +1,7 @@
 import { defineCollection, reference } from 'astro:content';
 import { file, glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import {
-  courseContent,
-  factContent,
-  pageContent,
-  petContent,
-  photo,
-  projectContent,
-  screenshot,
-  technologyContent,
-  timelineContent,
-} from './content/schemas.ts';
+import { pageContent, photo, projectContent, screenshot, technologyContent } from './content/schemas.ts';
 
 const projects = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/projects' }),
@@ -29,26 +19,6 @@ const technologies = defineCollection({
   schema: technologyContent,
 });
 
-const courses = defineCollection({
-  loader: file('src/content/courses.yaml'),
-  schema: courseContent,
-});
-
-const timeline = defineCollection({
-  loader: file('src/content/timeline.yaml'),
-  schema: timelineContent,
-});
-
-const pets = defineCollection({
-  loader: file('src/content/pets.yaml'),
-  schema: petContent,
-});
-
-const facts = defineCollection({
-  loader: file('src/content/facts.yaml'),
-  schema: factContent,
-});
-
 const pages = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/pages' }),
   schema: ({ image }) =>
@@ -60,4 +30,4 @@ const pages = defineCollection({
     }),
 });
 
-export const collections = { projects, technologies, courses, timeline, pets, facts, pages };
+export const collections = { projects, technologies, pages };
