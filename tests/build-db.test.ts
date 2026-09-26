@@ -104,7 +104,7 @@ describe('build-db', () => {
     expect(text.match(/CREATE TABLE/g)).toHaveLength(14);
   });
 
-  it('writes a schema.json whose hash is stable and covers the DDL, the table list, the facts and the section pages and headings', () => {
+  it('writes a schema.json with a stable hash over everything the model is shown', () => {
     const schema = schemaJson(content);
     const again = schemaJson(parse(readContentFiles('src/content')));
     expect(again).toEqual(schema);
@@ -447,7 +447,7 @@ describe('build-db', () => {
     expect(() => siteNumbers([], { ...recorded, promptTokens: CACHE_MINIMUM_TOKENS })).toThrow(/cache floor/);
   });
 
-  it('reads the Lighthouse record, and stops the build on a score outside 0 to 100 or a date not YYYY-MM-DD', () => {
+  it('reads the Lighthouse record and rejects a score outside 0 to 100 or a bad date', () => {
     const recorded = recordedEval();
     const measured = recordedMeasurements();
     expect(measured.lighthouse.pages.home.url).toBe('https://alexkachur.com/');
@@ -476,7 +476,7 @@ describe('build-db', () => {
     }
   });
 
-  it('fails hard on a highlight number it cannot fill, a typed number, or a case study that stops giving one count', async () => {
+  it('fails hard on a number it cannot fill, a typed one, or highlights where none belong', async () => {
     const withEdit = (from: string, to: string) => tableRows(parse(edited('projects/this-site.md', from, to)));
     expect(() => withEdit('{eval_questions}-question', '{questions}-question')).toThrow(/\{questions\} is not a number the build knows/);
     expect(() => withEdit('{eval_questions}-question', '42-question')).toThrow(/a number is typed/);
@@ -556,7 +556,7 @@ describe('build-db', () => {
     expect(query("SELECT body FROM sections WHERE page = '/#now'")[0]!.body).toContain(`from ${month}.`);
   });
 
-  it('fails hard on a page file that is missing, has no frontmatter, names a missing photo or was not rendered', () => {
+  it('fails hard on a page file that is missing, malformed or not rendered', () => {
     const { 'pages/now.md': _now, ...missing } = files;
     expect(() => parse(missing)).toThrow(/pages\/now.md is missing/);
     expect(() => parse({ ...files, 'pages/about.md': 'No frontmatter.\n' })).toThrow(/pages\/about.md: no frontmatter/);
@@ -609,7 +609,7 @@ describe('build-db', () => {
       expect(new Date(info.builtAt).toISOString()).toBe(info.builtAt);
     });
 
-    it('runs as node scripts/build-db.ts, under type stripping, and recreates every output with the same bytes', () => {
+    it("runs under node's type stripping and recreates every output byte for byte", () => {
       for (const dir of ['public/data', 'public/vendor', 'src/generated']) rmSync(at(dir), { recursive: true, force: true });
       execFileSync(process.execPath, [resolve('scripts/build-db.ts')], { cwd: root, stdio: 'pipe' });
       expect(readFileSync(at('public/data/portfolio.sqlite')).equals(Buffer.from(bytes))).toBe(true);

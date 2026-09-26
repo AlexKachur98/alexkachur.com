@@ -193,7 +193,7 @@ describe(`built output in ${root}`, () => {
   // Every same-site link lands somewhere: a file in the build (the path, path/index.html or
   // path.html), an on-demand endpoint, or a redirect the Vercel config carries; and a link to a
   // spot on a page names an id that page has, since a missing id opens the page at its top.
-  it('points every same-site link at a page, a file, an endpoint or a redirect, and every fragment at an id', () => {
+  it('points every same-site link somewhere real, and every fragment at an id', () => {
     const ids = new Map(pages.map(({ url, html }) => [url, new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(([, id]) => id))]));
     const onDemand = new Set(['/api/ask', '/api/questions', '/api/stats']);
     const { routes } = JSON.parse(readFileSync('.vercel/output/config.json', 'utf8')) as { routes: { src: string; status?: number; headers?: Record<string, string> }[] };
@@ -769,7 +769,7 @@ describe(`built output in ${root}`, () => {
     expect(lines[3]).toContain(INSIGHTS.measured);
   });
 
-  it('lists on /uses every row of the uses table in order, under its section, with the day it was last updated', () => {
+  it('lists every uses row on /uses in order, by section, with the day it was updated', () => {
     const rows = db.exec('SELECT section, item, details FROM uses ORDER BY position')[0]!.values as string[][];
     const expected = rows.map(([section, item, details]) => [section, details!.startsWith(item!) ? details : `${item}: ${details}`]);
     const uses = pages.find((page) => page.url === '/uses')!.html;
@@ -796,7 +796,7 @@ describe(`built output in ${root}`, () => {
     expect(readFileSync(join(root, 'resume.txt'), 'utf8')).not.toMatch(placeholder);
   });
 
-  it('serves every table but project_technologies at /api/{table}.json, row for row as the database holds it', () => {
+  it('serves every table but project_technologies at /api/{table}.json, row for row', () => {
     const names = (db.exec("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")[0]!.values as string[][]).map(([name]) => name!);
     const served = readdirSync(join(root, 'api')).filter((name) => name.endsWith('.json') && !['schema.json', 'openapi.json', 'resume.json'].includes(name));
     expect(served.sort()).toEqual(names.filter((name) => name !== 'project_technologies').map((name) => `${name}.json`).sort());

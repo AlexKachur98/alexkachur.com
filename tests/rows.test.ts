@@ -103,7 +103,7 @@ describe('rows', () => {
     );
   });
 
-  it('links projects to technologies by id, once each, in the order the file lists them, accepting Astro reference objects', () => {
+  it('links projects to technologies once each, in file order, from ids or references', () => {
     const projects = [
       project('a', 1, ['sql-js', 'react', 'react']),
       project('b', 2, [{ id: 'react' }, 'react']),

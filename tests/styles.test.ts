@@ -122,7 +122,7 @@ describe('the Ask and console panels', () => {
     expect(input).toContain('padding-right: calc(var(--control) + var(--space-1));');
   });
 
-  it("draws the console's Clear and the fallback examples as text buttons, and hides Clear while a query runs", () => {
+  it("draws Clear and the fallback examples as text buttons, hiding Clear during a query", () => {
     const button = consoleCss.match(/\n\.text-button \{([^}]*)\}/)![1]!;
     for (const line of ['border: 0;', 'background: none;', 'text-decoration: underline;', 'min-height: var(--control);']) expect(button).toContain(line);
     const rule = consoleCss.match(/\n\.console-clear \{([^}]*)\}/)![1]!;

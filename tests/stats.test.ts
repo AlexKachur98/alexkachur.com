@@ -116,7 +116,7 @@ describe('counter keys', () => {
     expect(monthOf(Date.UTC(2026, 9, 1, 0, 0, 0))).toBe('2026-10');
   });
 
-  it('are the ones the ask handler increments', () => {
+  it('are keyed by the environment and the month', () => {
     expect(counterKeys('test', '2026-09')).toEqual({ asked: 'ask:test:asked:2026-09', model: 'ask:test:model:2026-09' });
   });
 });

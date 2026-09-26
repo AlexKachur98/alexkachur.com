@@ -213,7 +213,7 @@ describe('executor', () => {
     expect(workers).toHaveLength(1);
   });
 
-  it('on timeout terminates the worker, reports the stop, reopens from the kept buffer and runs the next query there', async () => {
+  it('restarts the worker from the kept buffer after a timeout', async () => {
     const { workers, buffer, executor, loads } = harness();
     const runaway = executor.run('WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n) SELECT COUNT(*) FROM n');
     await flush();
@@ -481,7 +481,7 @@ describe('Ask SQL rendering', () => {
 });
 
 describe('results box', () => {
-  it('shows the scroll words while a capped box holds more than it shows, either way, wherever it is scrolled to', () => {
+  it('shows the scroll words only while a capped box holds more than it shows', () => {
     const cue = { hidden: true };
     const fits = { scrollWidth: 414, clientWidth: 414 };
     markOverflow({ scrollHeight: 804, clientHeight: 400, ...fits }, cue, true);
@@ -566,7 +566,7 @@ describe('bringing the answer into sight', () => {
 });
 
 describe("the console's Clear", () => {
-  it('has something to clear only with text in the editor, a result under it or a message on the error line', () => {
+  it('has something to clear only with text, a result or an error line', () => {
     const none = { childElementCount: 0 };
     const quiet = { textContent: '' };
     expect(clearable('', none, quiet)).toBe(false);
