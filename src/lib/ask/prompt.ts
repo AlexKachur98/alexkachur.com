@@ -71,28 +71,32 @@ export function correctionTurn(error: string): string {
   return `SQLite rejected that statement: ${error}. Return a corrected query that follows the rules, or an empty sql with a one-sentence explanation if the question cannot be answered.`;
 }
 
+// The parts of the schema the prompt shows. The cache key carries their hash beside
+// PROMPT_VERSION, so they can change without a new version.
+type ShownSchema = Pick<typeof schema, 'ddl' | 'facts' | 'sectionPages' | 'sectionHeadings'>;
+
 // The DDL cannot show which rows the key-value table holds, so each key is listed with what it means.
-export function factList(): string {
-  return ['The facts table has one row per key:', ...schema.facts.map((fact) => `- ${fact.key}: ${fact.description}`)].join('\n');
+export function factList(facts: ShownSchema['facts']): string {
+  return ['The facts table has one row per key:', ...facts.map((fact) => `- ${fact.key}: ${fact.description}`)].join('\n');
 }
 
 // The same for the sections table: a question about part of a page needs the page and the heading
 // as stored, and a case study's page is not its project's slug alone.
-export function sectionPageList(): string {
-  return ["The sections table's pages:", ...schema.sectionPages.map((page) => `- ${page}`)].join('\n');
+export function sectionPageList(pages: string[]): string {
+  return ["The sections table's pages:", ...pages.map((page) => `- ${page}`)].join('\n');
 }
 
-export function sectionHeadingList(): string {
-  return ["The sections table's headings, in page order:", ...schema.sectionHeadings.map((heading) => `- ${heading}`)].join('\n');
+export function sectionHeadingList(headings: string[]): string {
+  return ["The sections table's headings, in page order:", ...headings.map((heading) => `- ${heading}`)].join('\n');
 }
 
-export function systemPrompt(): string {
+export function systemPrompt({ ddl, facts, sectionPages, sectionHeadings }: ShownSchema = schema): string {
   const shown = workedExamples
     .map((entry) => `${questionTurn(entry.question)}\n${JSON.stringify({ sql: entry.sql, explanation: entry.explanation })}`)
     .join('\n\n');
   return [
     "You turn a visitor's question about Alex Kachur into one query over the SQLite database behind alexkachur.com, which holds everything the site says about him. Answer with JSON matching the given schema: \"sql\" and \"explanation\".",
-    `Schema:\n\n${schema.ddl.trim()}\n\n${factList()}\n\n${sectionPageList()}\n\n${sectionHeadingList()}`,
+    `Schema:\n\n${ddl.trim()}\n\n${factList(facts)}\n\n${sectionPageList(sectionPages)}\n\n${sectionHeadingList(sectionHeadings)}`,
     [
       'Rules:',
       '1. sql is one SELECT or WITH statement in the SQLite dialect: no comments, no semicolon, no second statement.',

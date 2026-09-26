@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import schema from '../src/generated/schema.json';
 import { openDatabase } from '../src/lib/ask/db.ts';
@@ -124,9 +125,14 @@ describe('systemPrompt', () => {
 });
 
 describe('cache key parts', () => {
-  it('has a positive integer prompt version', () => {
-    expect(Number.isInteger(PROMPT_VERSION)).toBe(true);
-    expect(PROMPT_VERSION).toBeGreaterThan(0);
+  // The cache key carries PROMPT_VERSION beside the schema's hash, so the version has to move with
+  // every other word the model is sent. Those words are hashed here around a stand-in schema; when
+  // the hash moves, bump PROMPT_VERSION and record both again.
+  it('has a new prompt version for any change to what the model is sent besides the schema', () => {
+    const standIn = { ddl: 'CREATE TABLE t (x TEXT);', facts: [{ key: 'k', description: 'd' }], sectionPages: ['/p'], sectionHeadings: ['H'] };
+    const sent = [systemPrompt(standIn), correctionTurn('the error'), JSON.stringify(outputFormat())].join('\n');
+    const hash = createHash('sha256').update(sent).digest('hex').slice(0, 16);
+    expect({ PROMPT_VERSION, hash }).toEqual({ PROMPT_VERSION: 9, hash: '2c7ea3ced05bc8d7' });
   });
 
   it('takes the first eight hex characters of the schema hash', () => {
