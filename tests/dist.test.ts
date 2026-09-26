@@ -15,10 +15,9 @@ import { walk } from './helpers.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
-// first (pretest), so the tree is the current one. The static tree is dist/ until an on-demand
-// endpoint exists and dist/client from then on.
-const root = ['dist/client', 'dist'].find((dir) => existsSync(join(dir, 'index.html')));
-if (!root) throw new Error('no build output: run npm run build first');
+// first (pretest), so the tree is the current one.
+const root = 'dist/client';
+if (!existsSync(join(root, 'index.html'))) throw new Error('no build output: run npm run build first');
 
 // The built database, opened once: every test only reads it.
 const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');

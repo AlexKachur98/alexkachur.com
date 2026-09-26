@@ -565,10 +565,10 @@ export function schemaJson(content: Content) {
       })),
     };
   });
-  // The ask cache key carries the first 8 characters of this hash, so it covers exactly what
-  // the model is shown: the DDL, the table list, the keys the facts table holds with what each
-  // means, and the pages and headings the sections table holds, which the prompt lists because
-  // the DDL cannot show them.
+  // The ask cache key carries the first 8 characters of this hash, so a cached answer never
+  // outlives the schema it was written for: the DDL and the table list, the keys the facts table
+  // holds with what each means, and the pages and headings the sections table holds, which the
+  // prompt lists because the DDL cannot show them. The prompt's own text has PROMPT_VERSION.
   const facts = factRows(content.facts).map(({ key, description }) => ({ key, description }));
   const factKeys = facts.map((fact) => fact.key);
   const sections = rawSections(content);

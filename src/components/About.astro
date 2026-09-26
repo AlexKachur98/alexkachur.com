@@ -12,7 +12,7 @@ const photo = page.data.images?.[0];
     <div class="about-text">
       <Fragment set:html={page.rendered?.html ?? ''} />
     </div>
-    <!-- TODO: add photo.jpg, daylight and a plain background. The photo slot stays out of the layout until the file exists. -->
+    <!-- TODO: add my photo (photo.jpg, daylight, plain background). -->
     {
       photo && (
         <div class="about-photo">

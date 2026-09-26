@@ -1,6 +1,5 @@
-// Turns validated content entries into the rows of the database's tables. Used by
-// scripts/build-db.ts to write the database and by the /api/*.json endpoints, so both see the same
-// ids and order.
+// Turns validated content entries into the rows of the database's tables, for scripts/build-db.ts.
+// The pages take a project's URL and the query for its stack from here too.
 import type { z } from 'astro/zod';
 import type {
   CourseContent,

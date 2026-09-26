@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Build-time only. Everything under /data/ is cached immutable under a fixed file name, so every
-// link to a file there carries the first 8 hex characters of the file's SHA-256: a changed file
-// gets a new URL and an unchanged one keeps its cached copy. The path starts at the project root,
-// where build-db writes, because the adapter prerenders from its output folder and a URL
-// relative to this module would point elsewhere.
+// Build-time only. A /data/ URL with a v parameter is cached as immutable, so every link here
+// carries the first 8 hex characters of the file's SHA-256: a changed file gets a new URL and an
+// unchanged one keeps its cached copy. The path starts at the project root, where build-db
+// writes, because the adapter prerenders from its output folder and a URL relative to this module
+// would point elsewhere.
 export interface DataFile {
   url: string;
   bytes: number;

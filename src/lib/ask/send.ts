@@ -1,7 +1,8 @@
 // Sending a question to Alex, only when the visitor clicks to: the token /api/ask adds to an
 // answer, and POST /api/questions, which stores the question and the day for 90 days. The token
 // proves the question was asked here in the last ten minutes, so nothing that was never asked can
-// be stored. Nothing here stores or logs the visitor's address or any hash of it.
+// be stored. Nothing here logs the visitor's address, and it reaches the store only as limitKey's
+// keyed hash.
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 import type { AskConfig } from './config.ts';
 import { limitKey, questionKey, sentDayKey } from './keys.ts';

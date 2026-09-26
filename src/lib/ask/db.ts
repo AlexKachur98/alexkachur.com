@@ -1,5 +1,6 @@
 // One read-only database per process, opened from the generated modules so the function reads
-// nothing from disk: public/ is not in the bundle and Vercel's tracer skips .wasm files.
+// nothing from disk: public/ is not in the bundle, and Vercel's file tracer cannot follow the
+// .wasm path sql.js builds at run time.
 import initSqlJs from 'sql.js';
 import type { Database } from 'sql.js';
 import { portfolioDbBase64 } from '../../generated/portfolio-db.ts';

@@ -6,7 +6,7 @@ import type { Database } from 'sql.js';
 import { errorMessage } from '../error-message.ts';
 
 // Whole words that never belong in a read-only query. REPLACE is not listed because it is also
-// SQLite's string function; the worker's query_only pragma stops a REPLACE INTO at step time.
+// SQLite's string function; replaceInto below catches the statement.
 const BANNED_WORDS = [
   'ATTACH',
   'DETACH',

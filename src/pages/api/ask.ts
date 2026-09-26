@@ -39,6 +39,5 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     signal: AbortSignal.timeout(DEADLINE_MS),
     log: logFailure,
   });
-  // Every answer carries a token that lets the visitor send the question to Alex for ten minutes.
   return respond(withToken(answered, body, config, Date.now()));
 };

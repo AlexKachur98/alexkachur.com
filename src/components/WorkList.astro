@@ -13,10 +13,10 @@ import { projectPage } from '../lib/rows.ts';
 // container, fixed at each container width, and held on a phone by the width attribute. The
 // largest candidate is double the widest column, or the whole source where that is narrower.
 // A row whose page shows no interface, or whose page is the write-up of the site, shows the
-// drawing that page explains instead, named by the sentence its file gives it: the drawing keeps
-// its natural width (the phone one below 768px, the wide one from 1200px) so its labels stay on
-// the type scale, and between 768px and 1199px, where the column is too narrow for either, the
-// row shows its text alone. No thumbnail carries a caption: the title and the card sentence are
+// drawing that page explains instead, named by the sentence its file gives it: the drawing fills
+// the column as a screenshot does (the phone one below 768px, the wide one from 1200px), and
+// between 768px and 1199px, where the column is too narrow for either, the row shows its text
+// alone. No thumbnail carries a caption: the title and the card sentence are
 // the row's words, and the case study shows the captions. The first screenshot loads eagerly,
 // since on tall windows it is the largest thing in the first screen, with no raised fetch
 // priority, because on most windows a line of the hero's text is; every other image waits until
