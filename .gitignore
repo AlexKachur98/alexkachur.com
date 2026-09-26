@@ -8,19 +8,7 @@ public/favicon.ico
 public/resume.txt
 src/generated/
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# local working files, never published
-CLAUDE.md
-.claude/
-SPEC.md
-DESIGN.md
-copy-drafts.md
-portfolio-materials/
-.impeccable/
-*.local.json
 .env
 .env.*
 !.env.example
