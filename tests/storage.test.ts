@@ -143,7 +143,7 @@ describe('the storage table', () => {
 
   it('builds exactly these rows, in this order, into the database', async () => {
     const built = new (await loadSqlJs()).Database(buildDatabase(await loadSqlJs(), dumpSql(tableRows(await loadContent()))));
-    const result = built.exec('SELECT item, kept_for, purpose FROM storage')[0]!;
+    const result = built.exec('SELECT item, kept_for, purpose FROM storage ORDER BY rowid')[0]!;
     built.close();
     expect(result.values.map(([item, kept_for, purpose]) => ({ item, kept_for, purpose }))).toEqual(storageRows());
   });

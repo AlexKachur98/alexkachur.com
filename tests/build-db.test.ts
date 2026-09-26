@@ -26,8 +26,7 @@ import type { ContentFiles } from '../scripts/build-db.ts';
 import { chips, examples } from '../src/data/examples.ts';
 import measurements from '../src/data/measurements.json';
 import { tables } from '../src/content/schemas.ts';
-import { DEFAULT_CAP, MODEL } from '../src/lib/ask/config.ts';
-import { CACHE_MINIMUM_TOKENS, PRICE, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
+import { CACHE_MINIMUM_TOKENS, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
 import { keptFor, RATE_LIMIT, STATS_CACHE, TTL } from '../src/lib/ask/storage.ts';
 import { fillPlaceholders } from '../src/lib/numbers.ts';
 import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
@@ -115,10 +114,10 @@ describe('build-db', () => {
         JSON.stringify({ ddl: schema.ddl, tables: schema.tables, factKeys: schema.factKeys, facts: schema.facts, sectionPages: schema.sectionPages, sectionHeadings: schema.sectionHeadings }),
       ),
     );
-    // Every page the sections table holds, once each, in the table's own order, which is sorted.
-    expect(schema.sectionPages).toEqual([...new Set(query('SELECT page FROM sections').map((row) => row.page))]);
-    // Every heading the sections table holds, once each, in the order the rows first give them.
-    expect(schema.sectionHeadings).toEqual([...new Set(query('SELECT heading FROM sections').map((row) => row.heading))]);
+    // Every page the sections table holds, once each, sorted.
+    expect(schema.sectionPages).toEqual([...new Set(query('SELECT page FROM sections ORDER BY page').map((row) => row.page))]);
+    // Every heading the sections table holds, once each, in the order the rows were written.
+    expect(schema.sectionHeadings).toEqual([...new Set(query('SELECT heading FROM sections ORDER BY rowid').map((row) => row.heading))]);
     expect(schema.sectionHeadings).toContain('What went wrong or what I would change');
     expect(schema.factKeys).toEqual([
       'available_from',
@@ -396,22 +395,19 @@ describe('build-db', () => {
     expect(recordedEval()).toEqual({ promptTokens: Math.max(...inputs), model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) });
   });
 
+  // The arithmetic runs on a made-up recording, so the sums are checked against figures worked out
+  // by hand: 2,000 calls a month, 3,000 tokens in and 512 out, at $1 and $5 per million.
   it('fills each number the text may name from the thing it counts', () => {
-    const recorded = recordedEval();
-    const { promptTokens } = recorded;
-    expect(promptTokens).toBeLessThan(CACHE_MINIMUM_TOKENS);
-    const inputCost = Math.round(((DEFAULT_CAP * promptTokens * PRICE.input) / 1e6) * 100) / 100;
-    const outputCost = Math.round(((DEFAULT_CAP * MODEL.maxTokens * PRICE.output) / 1e6) * 100) / 100;
-    const cost = inputCost + outputCost;
+    const recorded = { promptTokens: 3000, model: 'claude-haiku-4-5', promptVersion: 9, outputMin: 20, outputMax: 180 };
     expect(siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], recorded)).toEqual({
-      month_input_tokens: (DEFAULT_CAP * promptTokens).toLocaleString('en-US'),
-      month_input_cost: `$${inputCost.toFixed(2)}`,
-      month_output_tokens: (DEFAULT_CAP * MODEL.maxTokens).toLocaleString('en-US'),
-      month_output_cost: `$${outputCost.toFixed(2)}`,
-      fixture_model: recorded.model,
-      fixture_prompt_version: String(recorded.promptVersion),
-      output_tokens_min: String(recorded.outputMin),
-      output_tokens_max: String(recorded.outputMax),
+      month_input_tokens: '6,000,000',
+      month_input_cost: '$6.00',
+      month_output_tokens: '1,024,000',
+      month_output_cost: '$5.12',
+      fixture_model: 'claude-haiku-4-5',
+      fixture_prompt_version: '9',
+      output_tokens_min: '20',
+      output_tokens_max: '180',
       eval_questions: String(questions.length),
       openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
       splitroof_tool_tests: '12',
@@ -426,12 +422,12 @@ describe('build-db', () => {
       sent_question_kept: keptFor(TTL.sentQuestion),
       stats_cache_seconds: String(STATS_CACHE.freshSeconds),
       stats_stale_seconds: String(STATS_CACHE.staleSeconds),
-      prompt_tokens: promptTokens.toLocaleString('en-US'),
-      max_output_tokens: String(MODEL.maxTokens),
-      price_input: `$${PRICE.input}`,
-      price_output: `$${PRICE.output}`,
+      prompt_tokens: '3,000',
+      max_output_tokens: '512',
+      price_input: '$1',
+      price_output: '$5',
       price_checked: PRICE_CHECKED,
-      cap_month_cost: `$${cost.toFixed(2)}`,
+      cap_month_cost: '$11.12',
       cache_minimum_tokens: '4,096',
       lighthouse_date: measurements.lighthouse.date,
       lighthouse_tool: measurements.lighthouse.tool,
@@ -446,6 +442,8 @@ describe('build-db', () => {
       home_cls: '0',
       works_cls: '0',
     });
+    // The page says the real prompt is under the cache floor; one at the floor stops the build.
+    expect(recordedEval().promptTokens).toBeLessThan(CACHE_MINIMUM_TOKENS);
     expect(() => siteNumbers([], { ...recorded, promptTokens: CACHE_MINIMUM_TOKENS })).toThrow(/cache floor/);
   });
 

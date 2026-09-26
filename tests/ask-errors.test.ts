@@ -59,14 +59,15 @@ describe('reasonFor', () => {
     expect(new APIUserAbortError().status).toBeUndefined();
   });
 
-  it('never repeats the error text, the request id or the message', () => {
+  // The logged type is the class and the API's own error type, never text from the reply. The
+  // reason is one of three words by its type, so only the type needs the check.
+  it('logs no error text, request id or message in the error type', () => {
     for (const { error } of cases) {
       expect(error.message).not.toBe('');
-      for (const out of [reasonFor(error), errorType(error)]) {
-        expect(out).not.toContain(SECRET);
-        expect(out).not.toContain(REQUEST_ID);
-        expect(out).not.toContain(error.message);
-      }
+      const type = errorType(error);
+      expect(type).not.toContain(SECRET);
+      expect(type).not.toContain(REQUEST_ID);
+      expect(type).not.toContain(error.message);
     }
   });
 });

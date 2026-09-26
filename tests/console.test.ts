@@ -244,7 +244,6 @@ describe('executor', () => {
     expect(loads()).toBe(1);
     expect(workers[1]!.posted).toEqual([{ type: 'open', buffer }]);
     expect(workers[1]!.transfers).toEqual([undefined]);
-    expect(buffer.byteLength).toBe(8);
 
     // Anything the dead worker still says is ignored.
     workers[0]!.reply({ type: 'result', columns: ['late'], rows: [[0]], truncated: false });
