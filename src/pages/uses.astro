@@ -1,7 +1,7 @@
 ---
-import { getEntry } from 'astro:content';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
+import { pageEntry } from '../lib/page-entry.ts';
 import { select } from '../lib/query.ts';
 import { usesQuery } from '../lib/uses-query.ts';
 
@@ -11,8 +11,7 @@ import { usesQuery } from '../lib/uses-query.ts';
 // A row whose details already begin with the item reads as the details alone, the item still
 // bold. The query itself sits under the date with a link to the same rows as JSON, both marked
 // data-nosnippet as interface text.
-const page = await getEntry('pages', 'uses');
-if (!page?.data.title) throw new Error('src/content/pages/uses.md is missing, or has no title');
+const page = await pageEntry('uses');
 const lead = page.rendered?.html ?? '';
 const { rows } = await select(usesQuery);
 const sections = new Map<string, { item: string; rest: string }[]>();

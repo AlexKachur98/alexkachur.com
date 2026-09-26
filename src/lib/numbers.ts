@@ -3,6 +3,11 @@
 // the sentence stays the same. The keys and where each value comes from live in scripts/build-db.ts.
 const numberWords = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
+// A whole number with a comma between each group of three digits, as the pages print numbers.
+export function group(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 // Every {key} replaced by its value; an unknown key or a leftover brace fails the build.
 export function fillPlaceholders(text: string, values: Readonly<Record<string, string>>, where: string): string {
   const filled = text.replace(/\{([a-z_]+)\}/g, (whole, key: string) => {

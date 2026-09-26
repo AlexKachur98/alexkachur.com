@@ -2,13 +2,13 @@
 // A browser draws an SVG favicon as an image, which cannot load web fonts, and the SVG renderer
 // used here (librsvg inside sharp) cannot load them either, so every letter is shaped with
 // HarfBuzz, the shaping engine Chrome and Firefox use, and written out as path data.
-import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import * as hb from 'harfbuzzjs';
 import sharp from 'sharp';
 import initSqlJs from 'sql.js';
+import { isMain } from './is-main.ts';
 import { unpackWoff } from './woff.ts';
 
 const require = createRequire(import.meta.url);
@@ -250,7 +250,4 @@ async function main(): Promise<void> {
   writeFileSync(join(root, 'public', 'favicon.ico'), ico(frames));
 }
 
-// Node resolves the entry module through its real path, so a symlinked checkout must compare the same way.
-if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  await main();
-}
+if (isMain(import.meta.url)) await main();

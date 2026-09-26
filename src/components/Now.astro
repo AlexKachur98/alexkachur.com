@@ -1,9 +1,8 @@
 ---
-import { getEntry } from 'astro:content';
+import { pageEntry } from '../lib/page-entry.ts';
 import Section from './Section.astro';
 
-const page = await getEntry('pages', 'now');
-if (!page?.data.title) throw new Error('src/content/pages/now.md is missing, or has no title');
+const page = await pageEntry('now');
 ---
 
 <Section id="now" title={page.data.title}>

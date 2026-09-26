@@ -63,6 +63,11 @@ function isEntry(value: unknown): value is CacheEntry {
   return typeof entry.sql === 'string' && typeof entry.explanation === 'string';
 }
 
+// A counter as Redis returns it: a number, its text, or null for a key never incremented.
+function counterValue(value: number | string | null): number {
+  return typeof value === 'number' ? value : Number(value) || 0;
+}
+
 // The client comes from the caller, so a test can hand in a fake and see every key written.
 export function redisStore(env: string, redis: Redis): Store {
   // With the sliding window each key expires two windows and a second after it is first set, and
@@ -115,13 +120,9 @@ export function redisStore(env: string, redis: Redis): Store {
     counts: (keys) =>
       guard(async () => {
         const values = await redis.mget<(number | string | null)[]>(...keys);
-        return values.map((value) => (typeof value === 'number' ? value : Number(value) || 0));
+        return values.map(counterValue);
       }),
-    peek: (key) =>
-      guard(async () => {
-        const value = await redis.get<number | string | null>(key);
-        return typeof value === 'number' ? value : Number(value) || 0;
-      }),
+    peek: (key) => guard(async () => counterValue(await redis.get<number | string | null>(key))),
     save: (key, entry, expiresAt) => guard(async () => (await redis.set(key, entry, { nx: true, exat: expiresAt })) === 'OK'),
   };
 }

@@ -4,10 +4,9 @@
 // The second prints the same list, then deletes exactly the keys it printed, so a question sent
 // after the list was read is kept for the next review. No endpoint ever returns these questions.
 // Runs under Node's type stripping, like build-db.ts.
-import { realpathSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import { Redis } from '@upstash/redis';
 import { readConfig } from '../src/lib/ask/config.ts';
+import { isMain } from './is-main.ts';
 
 // The part of the Redis client this script uses, so a test can hand in a fake.
 export interface QuestionsRedis {
@@ -89,7 +88,7 @@ export async function main(argv: string[], env: NodeJS.ProcessEnv, redis?: Quest
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+if (isMain(import.meta.url)) {
   const { code, out } = await main(process.argv.slice(2), process.env);
   console.log(out);
   process.exitCode = code;

@@ -5,6 +5,7 @@
 // to /api/ask and runs the SQL it gets back through the same path.
 import { photoAlt } from '../generated/schema.json';
 import { FUNCTION_SECONDS } from '../lib/ask/config.ts';
+import { errorMessage } from '../lib/error-message.ts';
 import { ROWS } from '../lib/result-rows.ts';
 
 export type Cell = string | number | null | Uint8Array;
@@ -79,6 +80,11 @@ export function countWord(n: number): string {
 const WORKER_URL = '/console-worker.js';
 const ASK_URL = '/api/ask';
 const SEND_URL = '/api/questions';
+// The function is stopped at its time limit, so an answer still missing five seconds later is not
+// coming; giving up frees the box, chips included, and shows the examples.
+const ASK_TIMEOUT_MS = (FUNCTION_SECONDS + 5) * 1000;
+// A send that hangs gives up rather than holding its button for the rest of the visit.
+const SEND_TIMEOUT_MS = 15_000;
 
 // The prefix check. It only produces the friendly message; read-only itself is the
 // engine's PRAGMA in the worker.
@@ -86,16 +92,12 @@ export function guard(sql: string): string | null {
   return /^\s*(?:select|with|explain)\b/i.test(sql) ? null : GUARD_MESSAGE;
 }
 
-function message(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 // A failed open (the fetch, the worker script, the wasm, bytes that are not a database) keeps
 // its cause for the console but is told apart from a failed query, which shows what SQLite said.
 class LoadError extends Error {}
 
 export function failure(error: unknown): string {
-  return error instanceof LoadError ? LOAD_MESSAGE : message(error);
+  return error instanceof LoadError ? LOAD_MESSAGE : errorMessage(error);
 }
 
 interface Pending {
@@ -193,7 +195,7 @@ export function createExecutor({ spawn, load }: ExecutorOptions): Executor {
         // Bytes the worker refused are not kept for a retry.
         if (posted) buffer = undefined;
         kill(session);
-        throw new LoadError(message(error), { cause: error });
+        throw new LoadError(errorMessage(error), { cause: error });
       }
     })();
   }
@@ -848,14 +850,13 @@ async function show(ui: AskUi, state: AskState, question: string): Promise<void>
   }
 }
 
-async function postSend(body: { question: string; token: string }): Promise<Reply | null> {
+async function postJson(url: string, body: unknown, timeoutMs: number): Promise<Reply | null> {
   try {
-    // A send that hangs gives up rather than holding its button for the rest of the visit.
-    const response = await fetch(SEND_URL, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     return { status: response.status, body: await response.json().catch(() => undefined) };
   } catch {
@@ -863,7 +864,7 @@ async function postSend(body: { question: string; token: string }): Promise<Repl
   }
 }
 
-const sender = createSender(postSend);
+const sender = createSender((body) => postJson(SEND_URL, body, SEND_TIMEOUT_MS));
 
 // The send button's click, the one way a question is sent. On success the thanks takes the
 // button's place and the focus; a refusal hides the button and hands focus back to the input.
@@ -882,22 +883,6 @@ async function sendAsked(): Promise<void> {
   if (outcome === 'refused') {
     ui.sendBlock.hidden = true;
     ui.input.focus({ preventScroll: true });
-  }
-}
-
-async function post(question: string): Promise<Reply | null> {
-  try {
-    // The function is stopped at its time limit, so an answer still missing five seconds later is
-    // not coming; giving up frees the box, chips included, and shows the examples.
-    const response = await fetch(ASK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
-      signal: AbortSignal.timeout((FUNCTION_SECONDS + 5) * 1000),
-    });
-    return { status: response.status, body: await response.json().catch(() => undefined) };
-  } catch {
-    return null;
   }
 }
 
@@ -931,7 +916,7 @@ export function ask(): void {
     // A load that failed earlier is retried alongside the request; the run reports it if it
     // fails again, and nothing is reported when there is no SQL to run.
     executor?.ready().catch(() => undefined);
-    await show(ui, askState(await post(question), consoleUi !== undefined, ui.fallback.querySelectorAll('li').length), question);
+    await show(ui, askState(await postJson(ASK_URL, { question }, ASK_TIMEOUT_MS), consoleUi !== undefined, ui.fallback.querySelectorAll('li').length), question);
   });
 }
 

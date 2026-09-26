@@ -4,10 +4,10 @@
 // log an unknown reference, so this script parses the YAML itself and fails hard on both.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import initSqlJs from 'sql.js';
 import type { SqlJsStatic } from 'sql.js';
 import { parse as parseYaml } from 'yaml';
@@ -59,12 +59,14 @@ import { DEFAULT_CAP, MODEL } from '../src/lib/ask/config.ts';
 import { CACHE_MINIMUM_TOKENS, PRICE, PRICE_CHECKED } from '../src/lib/ask/pricing.ts';
 import { QUESTION_LENGTH } from '../src/lib/ask/question.ts';
 import { keptFor, RATE_LIMIT, STATS_CACHE, storageRows, TTL } from '../src/lib/ask/storage.ts';
+import { errorMessage } from '../src/lib/error-message.ts';
 import { renderBody } from '../src/lib/markdown.ts';
-import { countIn, fillNumbers, fillPlaceholders } from '../src/lib/numbers.ts';
+import { countIn, fillNumbers, fillPlaceholders, group } from '../src/lib/numbers.ts';
 import { OPENAPI_VERSION } from '../src/lib/openapi-version.ts';
 import { queryOf, resumeData, resumeText } from '../src/lib/resume.ts';
 import { siteOrigin } from '../src/lib/site.ts';
 import { questions } from './eval/questions.ts';
+import { isMain } from './is-main.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -109,10 +111,6 @@ export const pageFiles: Readonly<Record<string, string>> = {
   'pages/how-this-site-works.md': '/how-this-site-works',
 };
 
-function message(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function readText(path: string): string {
   if (!existsSync(path)) throw new Error(`${path} is missing`);
   return readFileSync(path, 'utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
@@ -143,7 +141,7 @@ function parseYamlText(name: string, text: string): unknown {
   try {
     return parseYaml(text);
   } catch (error) {
-    throw new Error(`${name}: ${message(error)}`);
+    throw new Error(`${name}: ${errorMessage(error)}`);
   }
 }
 
@@ -261,8 +259,6 @@ export async function loadContent(paths: ContentPaths = { contentDir: 'src/conte
 }
 
 export type Row = Record<string, string | number | null>;
-
-const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 // What the eval recorded: the largest first call (the whole request as the model counts it,
 // system prompt, question and the shape of the answer), the model and prompt version it ran on,
@@ -661,7 +657,4 @@ export async function main(root = process.cwd()): Promise<void> {
   }
 }
 
-// Node resolves the entry module through its real path, so a symlinked checkout must compare the same way.
-if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  await main();
-}
+if (isMain(import.meta.url)) await main();

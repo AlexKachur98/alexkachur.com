@@ -6,9 +6,8 @@
 // the API and writes that file; --live calls the API and only reports. A fixture is tied to the
 // model id, the prompt version and the schema hash the prompt embeds, so it must be recorded
 // again when any of them changes. Runs under Node's type stripping, like build-db.ts.
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import Anthropic from '@anthropic-ai/sdk';
 import type { Database } from 'sql.js';
@@ -19,12 +18,14 @@ import type { ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
 import { PRICE } from '../src/lib/ask/pricing.ts';
 import { PROMPT_VERSION, schemaHash8 } from '../src/lib/ask/prompt.ts';
 import { skippedStore } from '../src/lib/ask/redis.ts';
+import { errorMessage } from '../src/lib/error-message.ts';
 import type { EndpointResult } from '../src/lib/ask/result.ts';
 import { rowsOf } from '../src/lib/query.ts';
 import type { Rows } from '../src/lib/query.ts';
 import { ROWS } from '../src/lib/result-rows.ts';
 import { questions } from './eval/questions.ts';
 import type { EvalQuestion } from './eval/questions.ts';
+import { isMain } from './is-main.ts';
 
 interface RecordedReply {
   parsed_output: { sql: string; explanation: string } | null;
@@ -136,7 +137,7 @@ export function checkProblem(entry: EvalQuestion, result: EndpointResult, db: Da
   try {
     found = rowsOf(db, sql, ROW_LIMIT);
   } catch (error) {
-    return `query failed: ${error instanceof Error ? error.message : String(error)}`;
+    return `query failed: ${errorMessage(error)}`;
   }
   const naming = columnProblem(sql, found.columns, found.rows);
   if (naming) return naming;
@@ -262,8 +263,4 @@ async function main(): Promise<number> {
   return 0;
 }
 
-// Node resolves the entry module through its real path, so a symlinked checkout compares the same
-// way; imported by the tests, the file only defines the checks.
-if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  process.exitCode = await main();
-}
+if (isMain(import.meta.url)) process.exitCode = await main();

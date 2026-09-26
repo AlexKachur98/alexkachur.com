@@ -1,7 +1,6 @@
 ---
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getEntry } from 'astro:content';
 import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 import Section from '../components/Section.astro';
 import Base from '../layouts/Base.astro';
@@ -9,7 +8,8 @@ import buildInfo from '../generated/build-info.json';
 import numbers from '../generated/numbers.json';
 import { dataFile } from '../lib/data-file.ts';
 import { BOOTSTRAP_BUDGET_BYTES, INSIGHTS, loadedScripts } from '../lib/loaded-scripts.ts';
-import { fillPlaceholders } from '../lib/numbers.ts';
+import { fillPlaceholders, group } from '../lib/numbers.ts';
+import { pageEntry } from '../lib/page-entry.ts';
 import { siteRepo } from '../lib/query.ts';
 import { splitSections } from '../lib/sections.ts';
 
@@ -21,8 +21,7 @@ import { splitSections } from '../lib/sections.ts';
 // go stale when the variable changes), the cost arithmetic, and the sizes of the scripts every
 // page loads before interaction, measured from the client build. The build script's name links
 // to its source at the commit the site was built from, so the link cannot rot.
-const page = await getEntry('pages', 'how-this-site-works');
-if (!page?.data.title) throw new Error('src/content/pages/how-this-site-works.md is missing, or has no title');
+const page = await pageEntry('how-this-site-works');
 const where = 'pages/how-this-site-works.md';
 const [lead, ...sections] = splitSections(page.rendered?.html ?? '', { lead: page.data.title }).map((section) => ({
   ...section,
@@ -31,7 +30,6 @@ const [lead, ...sections] = splitSections(page.rendered?.html ?? '', { lead: pag
 if (!lead || lead.id !== '') throw new Error(`${where}: the text before the first heading is the lead, and it is missing`);
 const dump = dataFile('portfolio.sql');
 const scripts = loadedScripts();
-const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 const repo = await siteRepo();
 const commit = /^[0-9a-f]{7,40}$/.test(buildInfo.commit) ? buildInfo.commit : 'main';

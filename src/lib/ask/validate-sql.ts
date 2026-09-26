@@ -3,6 +3,7 @@
 // unknown columns, and compiles only the first statement. The statement is never stepped here,
 // because sql.js cannot interrupt a running query.
 import type { Database } from 'sql.js';
+import { errorMessage } from '../error-message.ts';
 
 // Whole words that never belong in a read-only query. REPLACE is not listed because it is also
 // SQLite's string function; the worker's query_only pragma stops a REPLACE INTO at step time.
@@ -100,7 +101,7 @@ export function validateSql(input: string, db: Database): Validation {
   try {
     db.prepare(checked.sql).free();
   } catch (error) {
-    return { ok: false, stage: 'engine', message: error instanceof Error ? error.message : String(error) };
+    return { ok: false, stage: 'engine', message: errorMessage(error) };
   }
   return checked;
 }

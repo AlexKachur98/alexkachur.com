@@ -236,10 +236,9 @@ describe('sending a question to Alex', () => {
     expect(source.match(/sendAsked\(\)/g)).toHaveLength(2);
     expect(source).toMatch(/if \(button\.hasAttribute\('data-ask-send'\)\) \{\s*void sendAsked\(\);/);
     expect(source.match(/\/api\/questions/g)).toHaveLength(1);
-    // The one URL constant, used by one fetch, inside the one function the sender is built with.
+    // The one URL constant, used once: in the post the sender is built with.
     expect(source.match(/\bSEND_URL\b/g)).toHaveLength(2);
-    expect(source.match(/\bpostSend\b/g)).toHaveLength(2);
-    expect(source.match(/createSender\(postSend\)/g)).toHaveLength(1);
+    expect(source.match(/createSender\(\(body\) => postJson\(SEND_URL, body, SEND_TIMEOUT_MS\)\)/g)).toHaveLength(1);
   });
 });
 

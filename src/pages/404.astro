@@ -1,12 +1,11 @@
 ---
-import { getEntry } from 'astro:content';
 import AskBox from '../components/AskBox.astro';
 import Figure from '../components/Figure.astro';
 import Base from '../layouts/Base.astro';
+import { pageEntry } from '../lib/page-entry.ts';
 import { blockText } from '../lib/page-text.ts';
 
-const page = await getEntry('pages', '404');
-if (!page?.data.title) throw new Error('src/content/pages/404.md is missing, or has no title');
+const page = await pageEntry('404');
 const lead = page.rendered?.html ?? '';
 const photo = page.data.images?.[0];
 ---
