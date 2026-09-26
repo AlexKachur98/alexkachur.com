@@ -1,6 +1,5 @@
-// The length a question may have after trimming, shared by the handler, the sender, the OpenAPI
-// document, the Ask box and the build's numbers, and the reading of one from a request body. No
-// imports, so scripts/build-db.ts can read it without the SDK.
+// The length a question may have after trimming, and reading one from a request body. No imports,
+// so scripts/build-db.ts can load it without the SDK.
 export const QUESTION_LENGTH = { min: 3, max: 200 } as const;
 
 export function readQuestion(body: unknown): string | null {

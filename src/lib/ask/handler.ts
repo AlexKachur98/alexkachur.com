@@ -1,7 +1,5 @@
-// An ask from body to response, as a function over injected pieces (model, store, database,
-// clock, deadline) so every branch can be tested with fakes. Order: input, kill switch, rate
-// limit, cache, cap, model, validation. Nothing here logs or returns the question text or the
-// visitor's address, and the address reaches the store only as limitKey's keyed hash.
+// POST /api/ask, from request body to result. Nothing here logs or returns the question or the
+// visitor's address; the address reaches the store only as limitKey's keyed hash.
 import { AnthropicError, APIError } from '@anthropic-ai/sdk';
 import type { ParsedMessage } from '@anthropic-ai/sdk/lib/parser';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
@@ -19,9 +17,9 @@ import type { EndpointResult, LogEntry } from './result.ts';
 import { TTL } from './storage.ts';
 import { explanationProblem, validateSql } from './validate-sql.ts';
 
-// The whole handler must answer inside the function's time limit; the deadline leaves room to respond.
+// Short of the function's time limit, to leave room to respond.
 export const DEADLINE_MS = FUNCTION_SECONDS * 1000 - 3_000;
-// A corrective retry is a second attempt with its own timeout, so it only starts with this much left.
+// A corrective retry only starts with a full model timeout left.
 const RETRY_NEEDS_MS = MODEL.timeoutMs + 1_000;
 
 export type AskRequest = ReturnType<typeof requestParams>;
@@ -56,7 +54,7 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
   const { config, store, model, db, signal } = deps;
   if (config.cap === 0) return done(503, { reason: 'budget' }, 'cap');
   if (!store) return done(503, { reason: 'config' }, 'redis');
-  // Without the secret there is no key that keeps the address out of the store, so the endpoint closes.
+  // Without the secret the address could not be kept out of the store.
   if (!config.limitSecret) return done(503, { reason: 'config' }, 'limit_secret');
 
   try {

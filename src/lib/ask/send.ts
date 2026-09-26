@@ -1,8 +1,7 @@
-// Sending a question to Alex, only when the visitor clicks to: the token /api/ask adds to an
-// answer, and POST /api/questions, which stores the question and the day for 90 days. The token
-// proves the question was asked here in the last ten minutes, so nothing that was never asked can
-// be stored. Nothing here logs the visitor's address, and it reaches the store only as limitKey's
-// keyed hash.
+// The token /api/ask adds to an answer, and POST /api/questions, which stores a question the
+// visitor chose to send with the day it was sent. The token proves the question was asked here in
+// the last ten minutes, so nothing that was never asked can be stored. Nothing here logs the
+// visitor's address, and it reaches the store only as limitKey's keyed hash.
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 import type { AskConfig } from './config.ts';
 import { limitKey, questionKey, sentDayKey } from './keys.ts';
@@ -13,11 +12,10 @@ import { failed, finisher, rateLimited } from './result.ts';
 import type { EndpointResult, LogEntry } from './result.ts';
 import { DAY, keptFor, TTL } from './storage.ts';
 
-// How long after an answer its question can be sent, and how far ahead of this server's clock a
-// token's time may be: tokens are minted and checked on different instances of the same host.
+// skewSeconds allows for a token minted on another instance whose clock runs ahead of this one.
 export const SEND = { windowSeconds: 600, skewSeconds: 60, dailyCap: 50 } as const;
 
-// What POST /api/questions does, for the /api page and the OpenAPI document alike.
+// What POST /api/questions does, as /api and the OpenAPI document describe it.
 export const SEND_DESCRIPTION = `Sends Alex a question the site could not answer, only when the visitor chooses to send it, using the token /api/ask returned with it. It is kept for ${keptFor(TTL.sentQuestion)}, and no endpoint ever returns it.`;
 
 const TOKEN = /^(\d{1,12})\.([A-Za-z0-9_-]{43})$/;
@@ -25,9 +23,8 @@ const TOKEN = /^(\d{1,12})\.([A-Za-z0-9_-]{43})$/;
 // could disguise a stored question when it is printed.
 const UNPRINTABLE = /[\p{Cc}\p{Bidi_Control}]/u;
 
-// A key for tokens alone, derived from the rate limit's secret so no new secret is needed and that
-// secret is never used as it is. The environment is part of it, so a token minted on a preview
-// deployment is refused by production.
+// Derived from the rate limit's secret, so tokens need no secret of their own and never use that
+// one directly. The environment is mixed in, so production refuses a token minted on a preview.
 export function tokenKey(secret: string, env: string): Buffer {
   return Buffer.from(hkdfSync('sha256', secret, '', `alexkachur.com send-question token v1 ${env}`, 32));
 }
@@ -100,18 +97,15 @@ export async function handleSend(body: unknown, ip: string, deps: SendDeps): Pro
     const allowance = await store.allow(limitKey(config.limitSecret, ip));
     if (!allowance.allowed) return rateLimited(done, allowance.resetAt, now());
     // One clock reading for the day's count, the stored date and the expiry, so a send that
-    // crosses midnight cannot land in two days.
+    // crosses midnight cannot land in two days. A full day opens again at the next UTC midnight.
     const day = dayOf(started);
     const dayKey = sentDayKey(config.env, day.date);
-    // A full day opens again at the next UTC midnight.
     if ((await store.peek(dayKey)) >= SEND.dailyCap) return { ...done(429, { error: 'daily_cap' }, 'daily_cap'), headers: retryAfter((day.start + DAY) * 1000, started) };
-    // Keyed by the question, so the same question sent again is stored once and its expiry kept.
-    const written = await store.save(questionKey(config.env, question), { question, date: day.date }, day.start + TTL.sentQuestion);
     // Counted only when stored, so replaying one token cannot use up the day. Sends of different
-    // questions at the same moment can each pass the check above, so the count can end a few over
-    // the cap; each of those needed a question of its own asked first.
+    // questions at the same moment can each pass the check above and end a few over the cap.
+    const written = await store.save(questionKey(config.env, question), { question, date: day.date }, day.start + TTL.sentQuestion);
     if (written) await store.count(dayKey, TTL.sentDay);
-    // The same answer whether or not someone sent the question before, so this reveals nothing.
+    // The same reply whether or not the question was sent before, so it reveals nothing.
     return done(200, { sent: true });
   } catch (error) {
     return failed(done, error);

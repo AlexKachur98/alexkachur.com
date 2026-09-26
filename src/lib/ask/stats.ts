@@ -1,5 +1,4 @@
-// GET /api/stats as a function over injected pieces (store, clock, build values) so every branch
-// can be tested with fakes. One MGET reads both counters; nothing here increments anything.
+// GET /api/stats. It only reads the counters; /api/ask increments them.
 import type { AskConfig } from './config.ts';
 import { counterKeys, monthOf } from './keys.ts';
 import { StoreError } from './redis.ts';
@@ -29,8 +28,6 @@ export interface StatsDeps {
   now?: () => number;
 }
 
-// The CDN keeps a good answer for a minute and may serve it for five more while it refreshes, so
-// the footer is usually about a minute behind and at most about six. A failure is never kept.
 export const STATS_CACHE_CONTROL = `public, s-maxage=${STATS_CACHE.freshSeconds}, stale-while-revalidate=${STATS_CACHE.staleSeconds}`;
 
 // Any origin may read the counters. A failure keeps the no-store every response starts with.

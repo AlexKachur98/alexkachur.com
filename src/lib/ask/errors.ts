@@ -1,6 +1,5 @@
-// Turns an API failure into the reason the visitor gets. Most specific first: a wrong key, a
-// forbidden or retired model is config; the two spend-limit shapes are budget; anything
-// transient, including a timeout or the handler's own deadline, is upstream.
+// The reason the visitor is given for an API failure: config for a wrong key or a forbidden or
+// retired model, budget for a spend limit, upstream for anything transient, the deadline included.
 import { APIError } from '@anthropic-ai/sdk';
 
 export type Reason = 'config' | 'budget' | 'upstream';

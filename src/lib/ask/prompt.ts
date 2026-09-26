@@ -1,6 +1,3 @@
-// The prompt sent for every ask: the schema, the fact keys, the rules, the worked examples and the
-// delimiter convention for the question. Bump PROMPT_VERSION whenever this text, the examples or
-// the validator change, so answers cached under the old rules are not served again.
 import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
@@ -9,9 +6,11 @@ import { examples } from '../../data/examples.ts';
 import { ROWS } from '../result-rows.ts';
 import { EXPLANATION_ASKED } from './validate-sql.ts';
 
+// Bump whenever this text, the examples or the validator change, so answers cached under the old
+// rules are not served again.
 export const PROMPT_VERSION = 9;
 
-// The first 8 hex characters of the schema hash, part of every cache key.
+// Part of every cache key, beside PROMPT_VERSION.
 export const schemaHash8 = schema.hash.slice(0, 8);
 
 export const askOutput = z.object({ sql: z.string(), explanation: z.string() });
@@ -32,10 +31,9 @@ export interface WorkedExample {
 }
 
 export const workedExamples: readonly WorkedExample[] = [
-  // A broad question gets one row per group and a pointer to the details, and a question naming a
-  // group gets its rows, here nine, so the model sees that eight is no limit on a named group.
-  // These two come first: placed last, where the prompt ends, they drew an unrelated question
-  // (Alex's long-term goal) toward a one-line fact in live runs.
+  // A broad question gets one row per group, and a question naming a group gets all its rows
+  // (nine here, so eight is no limit). These two come first: placed last, they pulled an unrelated
+  // question toward a one-line fact in live runs.
   {
     question: 'What does Alex like outside of work?',
     sql: 'SELECT area, COUNT(*) AS interests FROM interests GROUP BY area ORDER BY MIN(id)',

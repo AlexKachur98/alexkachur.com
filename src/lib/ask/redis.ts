@@ -1,6 +1,5 @@
-// The Redis side of an ask: the sliding-window rate limit, the answer cache, the counters and the
-// questions visitors chose to send, behind one small interface so the handlers can be tested
-// with a fake.
+// Redis behind one small interface: the rate limit, the answer cache, the counters and the
+// questions visitors send.
 import { Ratelimit } from '@upstash/ratelimit';
 import type { Redis } from '@upstash/redis';
 import { limitPrefix } from './keys.ts';
@@ -11,21 +10,17 @@ export interface CacheEntry {
   explanation: string;
 }
 
-// A question a visitor chose to send: its text and the day, nothing else.
 export interface SentQuestion {
   question: string;
   date: string;
 }
 
-// Whether a key is inside its window and, when it is not, the moment the window lets it through
-// again, so the refusal can say how long to wait.
 interface Allowance {
   allowed: boolean;
   // Epoch milliseconds; only meaningful when allowed is false.
   resetAt: number;
 }
 
-// The header a 429 carries: whole seconds until the moment given, never less than one.
 export function retryAfter(resetAtMs: number, nowMs: number): Record<string, string> {
   return { 'Retry-After': String(Math.max(1, Math.ceil((resetAtMs - nowMs) / 1000))) };
 }
@@ -35,17 +30,13 @@ export interface Store {
   allow(key: string): Promise<Allowance>;
   read(key: string): Promise<CacheEntry | null>;
   write(key: string, entry: CacheEntry, ttlSeconds: number): Promise<void>;
-  // INCR; the key's lifetime is set with its first count and never pushed back, so a counter
-  // expires on its own.
+  // The lifetime is set by the first count and never extended, so a counter expires on its own.
   count(key: string, ttlSeconds: number): Promise<number>;
-  // DECR, to take back a count that was refused.
   release(key: string): Promise<void>;
-  // MGET of counters, one number per key; a key never incremented reads as 0.
+  // A key never counted reads as 0.
   counts(keys: string[]): Promise<number[]>;
-  // A counter's value without changing it; a key never incremented reads as 0.
   peek(key: string): Promise<number>;
-  // SET NX with an absolute expiry in epoch seconds: true when it wrote, false when the key was
-  // already there, whose expiry then stays as it was.
+  // Writes only a new key, expiring at expiresAt in epoch seconds; false when the key was there.
   save(key: string, entry: SentQuestion, expiresAt: number): Promise<boolean>;
 }
 
@@ -68,14 +59,10 @@ function counterValue(value: number | string | null): number {
   return typeof value === 'number' ? value : Number(value) || 0;
 }
 
-// The client comes from the caller, so a test can hand in a fake and see every key written.
 export function redisStore(env: string, redis: Redis): Store {
-  // With the sliding window each key expires two windows and a second after it is first set, and
-  // with no in-memory cache the limiter keeps no key in the function's memory between requests.
-  // Analytics stay off because they would store per-address identifiers. The storage table's
-  // row for the rate limit takes its lifetime from the same window, and its "scrambled form of
-  // your address" rests on the cache being off and on the handler's limitKey. With no timeout, a
-  // slow Redis is waited for; the default lets the request through after 5 s.
+  // No in-memory cache and no analytics, so nothing derived from an address is kept beyond the
+  // key the storage table on /api describes. A timeout of 0 waits for a slow Redis; the default
+  // lets the request through after 5 s.
   const limiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, `${RATE_LIMIT.windowSeconds} s`),

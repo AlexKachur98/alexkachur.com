@@ -1,6 +1,5 @@
-// What the three on-demand endpoints share: the result a handler returns, the one line a failed
-// request logs, and the JSON response a result becomes. None of it sees the question or the
-// visitor's address.
+// What the three endpoints share: the result a handler returns, its log line and its response.
+// None of it sees the question or the visitor's address.
 import { errorType } from './errors.ts';
 import { retryAfter, StoreError } from './redis.ts';
 
@@ -38,7 +37,6 @@ export function failed(done: Done, error: unknown): EndpointResult {
   return done(500, { error: 'internal' }, errorType(error));
 }
 
-// Only failures are logged, one line each.
 export function logFailure(entry: LogEntry): void {
   if (entry.status < 400) return;
   console.warn(JSON.stringify(entry));

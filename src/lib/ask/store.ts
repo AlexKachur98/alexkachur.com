@@ -1,7 +1,6 @@
-// One Store for the on-demand endpoints, built on the first request and kept while the Redis
-// pair is unchanged, so a missing variable answers 503 instead of failing the module load.
-// Without the pair, development skips Redis (nothing limited, cached or counted) and says so
-// once per process; production gets null, which each endpoint answers as a configuration failure.
+// One Store per process, built on the first request, so a missing variable gives a 503 instead of
+// a failed module load. Without Redis, development skips it and warns once; production gets null,
+// which each endpoint answers as a configuration failure.
 import { Redis } from '@upstash/redis';
 import type { AskConfig } from './config.ts';
 import { redisStore, skippedStore } from './redis.ts';
@@ -20,7 +19,7 @@ export function storeFor(config: AskConfig, dev: boolean): Store | null {
     store = skippedStore();
     if (!warned) {
       warned = true;
-      console.warn('ask: no Redis variables in .env, so the rate limit, the monthly cap, the cache and the counters are skipped, and questions cannot be sent');
+      console.warn('ask: no Redis variables in .env; nothing is limited, capped, cached or counted, and questions cannot be sent');
     }
   }
   cached = { key, store };

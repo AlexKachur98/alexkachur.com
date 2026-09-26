@@ -1,9 +1,7 @@
-// Everything /api/ask reads from the environment, read per request through a getter so nothing
-// is inlined at build time and a missing variable reaches the config branch instead of throwing
-// at module load.
+// What the endpoints read from the environment, read per request through a getter, so nothing is
+// inlined at build time and a missing variable gives the config branch instead of an error at
+// module load.
 
-// The model id, its output budget and the time one call may take live together so a swap touches
-// one place.
 export const MODEL = { id: 'claude-haiku-4-5', maxTokens: 512, timeoutMs: 15_000 } as const;
 
 // The on-demand function's time limit on Vercel, set in astro.config.mjs.
@@ -19,7 +17,7 @@ export interface AskConfig {
   maxTokens: number;
   cap: number;
   apiKey: string | undefined;
-  // The secret that keys the rate limiter's hash of each address; without it /api/ask answers 503 config.
+  // Keys the hash of each address; without it /api/ask and /api/questions answer 503 config.
   limitSecret: string | undefined;
   redis: { url: string; token: string } | null;
 }

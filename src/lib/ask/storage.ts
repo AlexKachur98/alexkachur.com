@@ -1,7 +1,6 @@
-// Everything the site stores, in one place: the lifetimes the code uses and the rows of the
-// storage table, built from those same numbers, so the table on /api and the answer to "What does
-// this site store about me?" cannot disagree with the code. No imports, so scripts/build-db.ts can
-// load it without the SDK. tests/storage.test.ts fails if the code stores anything not listed here.
+// Everything the site stores: the lifetimes the code uses, and the storage table on /api built
+// from the same numbers. tests/storage.test.ts fails if the code stores anything not listed here.
+// No imports, so scripts/build-db.ts can load it without the SDK.
 
 export const DAY = 86_400;
 
