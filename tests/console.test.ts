@@ -97,7 +97,7 @@ describe('photo_url cell rule', () => {
   });
 
   it('falls back to the file name when the map has no entry', () => {
-    expect(renderCell('photo_url', '/images/pets/tigger.webp', {})).toEqual({
+    expect(renderCell('photo_url', '/images/pets/tigger.webp')).toEqual({
       kind: 'image',
       src: '/images/pets/tigger.webp',
       alt: 'tigger',

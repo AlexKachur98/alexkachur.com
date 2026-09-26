@@ -19,7 +19,8 @@ export const INSIGHTS = { name: '/_vercel/insights/script.js', bytes: 2019, meas
 // page names it.
 export const BOOTSTRAP_BUDGET_BYTES = 2048;
 
-export function loadedScripts(root = process.cwd()): LoadedScript[] | null {
+export function loadedScripts(): LoadedScript[] | null {
+  const root = process.cwd();
   const assets = join(root, 'dist', 'client', '_astro');
   if (!existsSync(assets)) return null;
   const files = readdirSync(assets).filter((name) => name.endsWith('.js'));

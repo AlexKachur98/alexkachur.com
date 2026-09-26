@@ -10,7 +10,7 @@ import { BOOTSTRAP_BUDGET_BYTES, INSIGHTS } from '../src/lib/loaded-scripts.ts';
 import { RATE_LIMITS_SENTENCE } from '../src/lib/openapi.ts';
 import { blockText, inlineText } from '../src/lib/page-text.ts';
 import { usesQuery } from '../src/lib/uses-query.ts';
-import { pageFiles, recordedPromptTokens, siteNumbers } from '../scripts/build-db.ts';
+import { pageFiles, recordedEval, siteNumbers } from '../scripts/build-db.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
@@ -819,7 +819,7 @@ describe(`built output in ${root}`, () => {
     const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
     const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
     const sections = (db.exec('SELECT page, body FROM sections')[0]!.values as string[][]).map(([page, body]) => ({ page: page!, body: body! }));
-    const placeholder = new RegExp(`\\{(?:${Object.keys(siteNumbers(sections, recordedPromptTokens())).join('|')})\\}`);
+    const placeholder = new RegExp(`\\{(?:${Object.keys(siteNumbers(sections, recordedEval())).join('|')})\\}`);
     for (const path of files.filter((file) => !vendored(file))) expect(readFileSync(path, 'utf8'), path).not.toMatch(placeholder);
     expect(readFileSync(join(root, 'resume.txt'), 'utf8')).not.toMatch(placeholder);
   });

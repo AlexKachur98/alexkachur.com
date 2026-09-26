@@ -52,7 +52,7 @@ type Kind = 'sql' | 'refusal' | 'error';
 const ROW_LIMIT = 51;
 
 const mode = process.argv.includes('--record') ? 'record' : process.argv.includes('--live') ? 'live' : 'replay';
-const fixturePath = resolve(process.env.EVAL_FIXTURE ?? 'scripts/eval/fixtures.json');
+const fixturePath = resolve('scripts/eval/fixtures.json');
 
 function complain(message: string): 1 {
   console.error(`eval: ${message}`);

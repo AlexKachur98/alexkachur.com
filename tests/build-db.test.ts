@@ -17,7 +17,6 @@ import {
   readContentFiles,
   recordedEval,
   recordedMeasurements,
-  recordedPromptTokens,
   renderMarkdown,
   schemaJson,
   siteNumbers,
@@ -373,7 +372,7 @@ describe('build-db', () => {
       [...content.projects].sort((a, b) => a.data.order - b.data.order).map(({ id, data }) => ({ slug: id, card: data.card, team: data.team ?? null })),
     );
     // A caption's numbers are filled in from their sources, as a highlight's are.
-    const numbers = siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], recordedPromptTokens());
+    const numbers = siteNumbers(query('SELECT page, body FROM sections') as { page: string; body: string }[], recordedEval());
     expect(query('SELECT project_id, position, alt, caption FROM project_images')).toEqual(
       [...content.projects]
         .sort((a, b) => a.data.order - b.data.order)
@@ -392,7 +391,7 @@ describe('build-db', () => {
 
   it('fills each number in a highlight, a caption or a page from the thing it counts, and leaves no placeholder in any cell', () => {
     const recorded = recordedEval();
-    const promptTokens = recordedPromptTokens();
+    const { promptTokens } = recorded;
     const fixture = JSON.parse(readFileSync('scripts/eval/fixtures.json', 'utf8')) as { model: string; promptVersion: number; questions: { replies: { usage: { input_tokens: number; output_tokens: number } }[] }[] };
     const outputs = fixture.questions.map((entry) => entry.replies[0]!.usage.output_tokens);
     expect(promptTokens).toBe(Math.max(...fixture.questions.map((entry) => entry.replies[0]!.usage.input_tokens)));
@@ -444,7 +443,7 @@ describe('build-db', () => {
       home_cls: '0',
       works_cls: '0',
     });
-    expect(() => siteNumbers([], CACHE_MINIMUM_TOKENS)).toThrow(/cache floor/);
+    expect(() => siteNumbers([], { ...recorded, promptTokens: CACHE_MINIMUM_TOKENS })).toThrow(/cache floor/);
     // The measurements record is checked as it is read: a score outside 0 to 100 or a bad date stops the build.
     const measured = recordedMeasurements();
     expect(measured.lighthouse.pages.home.url).toBe('https://alexkachur.com/');

@@ -278,21 +278,17 @@ export interface RecordedEval {
 
 export const fixturePath = fileURLToPath(new URL('./eval/fixtures.json', import.meta.url));
 
-export function recordedEval(path = fixturePath): RecordedEval {
-  const fixture = JSON.parse(readFileSync(path, 'utf8')) as {
+export function recordedEval(): RecordedEval {
+  const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
     model: string;
     promptVersion: number;
     questions: { replies: { usage: { input_tokens: number; output_tokens: number } }[] }[];
   };
   const first = fixture.questions.map((entry) => entry.replies[0]?.usage);
-  if (first.length === 0 || first.some((usage) => !usage || usage.input_tokens <= 0)) throw new Error(`${path}: a question has no recorded first call`);
+  if (first.length === 0 || first.some((usage) => !usage || usage.input_tokens <= 0)) throw new Error(`${fixturePath}: a question has no recorded first call`);
   const inputs = first.map((usage) => usage!.input_tokens);
   const outputs = first.map((usage) => usage!.output_tokens);
   return { promptTokens: Math.max(...inputs), model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) };
-}
-
-export function recordedPromptTokens(path = fixturePath): number {
-  return recordedEval(path).promptTokens;
 }
 
 export const measurementsPath = fileURLToPath(new URL('../src/data/measurements.json', import.meta.url));
@@ -330,8 +326,7 @@ export function recordedMeasurements(path = measurementsPath): Measurements {
 // sit beside the screenshot that shows them), the table count, the limits and lifetimes the code
 // stores with, what a model call costs from the recorded eval and the published prices, and the
 // Lighthouse scores from the measurements record.
-export function siteNumbers(sections: readonly { page: string; body: string }[], eval_: RecordedEval | number, measured: Measurements = recordedMeasurements()): Record<string, string> {
-  const recorded = typeof eval_ === 'number' ? { promptTokens: eval_, model: MODEL.id, promptVersion: 0, outputMin: 0, outputMax: 0 } : eval_;
+export function siteNumbers(sections: readonly { page: string; body: string }[], recorded: RecordedEval, measured: Measurements = recordedMeasurements()): Record<string, string> {
   const { promptTokens } = recorded;
   const splitroof = sections.filter((section) => section.page === '/work/splitroof-ai-assistant').map((section) => section.body).join('\n');
   const where = 'projects/splitroof-ai-assistant.md';
@@ -405,13 +400,13 @@ function rawSections(content: Content): SectionRow[] {
   ]);
 }
 
-export function siteNumbersFor(content: Content, recorded = recordedEval()): Record<string, string> {
-  return siteNumbers(rawSections(content), recorded);
+export function siteNumbersFor(content: Content): Record<string, string> {
+  return siteNumbers(rawSections(content), recordedEval());
 }
 
-export function tableRows(content: Content, recorded: RecordedEval | number = recordedEval()): Record<TableName, Row[]> {
+export function tableRows(content: Content): Record<TableName, Row[]> {
   const raw = rawSections(content);
-  const numbers = siteNumbers(raw, recorded);
+  const numbers = siteNumbers(raw, recordedEval());
   const sections = raw.map((row) => ({ ...row, body: fillPlaceholders(row.body, numbers, `${row.page} ${row.heading}`) }));
   return {
     facts: factRows(content.facts),

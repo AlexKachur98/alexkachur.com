@@ -35,7 +35,6 @@ export interface Executor {
 export interface ExecutorOptions {
   spawn: () => WorkerLike;
   load: () => Promise<ArrayBuffer>;
-  timeout?: number;
 }
 
 export const ROWS = 50;
@@ -112,7 +111,7 @@ interface Session {
 
 // One worker at a time. The database buffer is fetched once and kept, so a worker killed by the
 // timer is replaced from memory; queries run one after another, each waiting for the open.
-export function createExecutor({ spawn, load, timeout = TIMEOUT_MS }: ExecutorOptions): Executor {
+export function createExecutor({ spawn, load }: ExecutorOptions): Executor {
   let buffer: ArrayBuffer | undefined;
   let opening: Promise<Session> | undefined;
   let queue: Promise<unknown> = Promise.resolve();
@@ -151,7 +150,7 @@ export function createExecutor({ spawn, load, timeout = TIMEOUT_MS }: ExecutorOp
       attempt.catch(() => {
         if (opening === attempt) opening = undefined;
       });
-    }, timeout);
+    }, TIMEOUT_MS);
   }
 
   function start(): Promise<Session> {
@@ -249,10 +248,10 @@ const alts: Record<string, string> = photoAlt;
 const WEB_ADDRESS = /^https?:\/\/\S+$/;
 const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function renderCell(column: string, value: Cell, alt: Record<string, string> = alts): Rendered {
+export function renderCell(column: string, value: Cell): Rendered {
   if (column === 'photo_url' && typeof value === 'string' && value.startsWith('/images/')) {
     const file = value.slice(value.lastIndexOf('/') + 1);
-    return { kind: 'image', src: value, alt: alt[value] ?? file.replace(/\.[^.]+$/, '') };
+    return { kind: 'image', src: value, alt: alts[value] ?? file.replace(/\.[^.]+$/, '') };
   }
   if (typeof value === 'string') {
     const text = value.trim();
