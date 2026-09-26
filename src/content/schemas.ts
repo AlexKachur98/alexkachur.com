@@ -146,15 +146,15 @@ export const courseRow = z.object({
   topics: z.string().nullable().describe('Topics covered, NULL until filled in'),
 });
 
+// YYYY-MM, or YYYY when only the year is known.
+const yearMonth = z.string().regex(/^\d{4}(-(0[1-9]|1[0-2]))?$/);
+
 export const timelineRow = z.object({
   id: z.number().int().describe('Position in date order, 1 first'),
-  date: z.string().describe('YYYY-MM, or YYYY when the month is not known'),
+  date: yearMonth.describe('YYYY-MM, or YYYY when the month is not known'),
   kind: z.enum(timelineKinds).describe('work, education, project or life'),
   event: z.string().describe('What happened'),
 });
-
-// YYYY-MM, or YYYY when the resume gives only the year.
-const yearMonth = z.string().regex(/^\d{4}(-(0[1-9]|1[0-2]))?$/);
 
 export const experienceRow = z.object({
   id: z.number().int().describe('Position in start-date order, 1 first'),

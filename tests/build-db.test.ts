@@ -212,7 +212,7 @@ describe('build-db', () => {
     for (const row of rows) expect(String(row.highlights).split('\n'), String(row.title)).toEqual(bullets[String(row.title)]);
   });
 
-  it('fails hard on an experience date that is not YYYY-MM or YYYY', () => {
+  it('fails hard on an experience or timeline date that is not YYYY-MM or YYYY', () => {
     expect(() => parse(edited('experience.yaml', 'start: "2019-08"', 'start: "Aug 2019"'))).toThrow(
       /experience.yaml row manager: start: Invalid string/,
     );
@@ -222,6 +222,7 @@ describe('build-db', () => {
     expect(() => parse(edited('experience.yaml', 'start: "2019-08"', 'start: 2019'))).toThrow(
       /experience.yaml row manager: start: Invalid input: expected string/,
     );
+    expect(() => parse(edited('timeline.yaml', 'date: "2026-09"', 'date: "Sept 2026"'))).toThrow(/timeline.yaml row 2026-09-splitroof: date: Invalid string/);
   });
 
   it('marks exactly the six core skills, each used by a project, and gives every technology a skill area', () => {
