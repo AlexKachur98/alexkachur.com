@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it } from 'vitest';
-import { buildDatabase, dumpSql, loadContent, loadSqlJs } from '../scripts/build-db.ts';
+import { buildDatabase, dumpSql, loadContent, loadSqlJs, tableRows } from '../scripts/build-db.ts';
 import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
@@ -150,7 +150,7 @@ describe('the storage table', () => {
   });
 
   it('builds exactly these rows, in this order, into the database', async () => {
-    const built = new (await loadSqlJs()).Database(buildDatabase(await loadSqlJs(), dumpSql(await loadContent())));
+    const built = new (await loadSqlJs()).Database(buildDatabase(await loadSqlJs(), dumpSql(tableRows(await loadContent()))));
     const result = built.exec('SELECT item, kept_for, purpose FROM storage')[0]!;
     built.close();
     expect(result.values.map(([item, kept_for, purpose]) => ({ item, kept_for, purpose }))).toEqual(storageRows());

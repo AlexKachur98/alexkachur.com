@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildDatabase, dumpSql, loadContent, loadSqlJs } from '../scripts/build-db.ts';
+import { buildDatabase, dumpSql, loadContent, loadSqlJs, tableRows } from '../scripts/build-db.ts';
 
 // public/console-worker.js is a classic worker script: it runs here as a function with the
 // three globals it uses handed in, over the same database the build writes.
@@ -15,7 +15,7 @@ const version = (
 ).version;
 const source = readFileSync('public/console-worker.js', 'utf8');
 const SQL = await loadSqlJs();
-const bytes = buildDatabase(SQL, dumpSql(await loadContent()));
+const bytes = buildDatabase(SQL, dumpSql(tableRows(await loadContent())));
 
 interface Reply {
   type: string;

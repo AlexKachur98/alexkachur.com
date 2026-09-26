@@ -404,10 +404,8 @@ function siteNumbersFor(content: Content): Record<string, string> {
   return siteNumbers(rawSections(content), recordedEval());
 }
 
-export function tableRows(content: Content): Record<TableName, Row[]> {
-  const raw = rawSections(content);
-  const numbers = siteNumbers(raw, recordedEval());
-  const sections = raw.map((row) => ({ ...row, body: fillPlaceholders(row.body, numbers, `${row.page} ${row.heading}`) }));
+export function tableRows(content: Content, numbers = siteNumbersFor(content)): Record<TableName, Row[]> {
+  const sections = rawSections(content).map((row) => ({ ...row, body: fillPlaceholders(row.body, numbers, `${row.page} ${row.heading}`) }));
   return {
     facts: factRows(content.facts),
     projects: projectRows(content.projects).map((row) => ({
@@ -514,8 +512,7 @@ export function ddl(): string {
     .join('\n\n');
 }
 
-export function dumpSql(content: Content): string {
-  const rows = tableRows(content);
+export function dumpSql(rows: Record<TableName, Row[]>): string {
   const inserts = (Object.keys(tables) as TableName[]).flatMap((table) =>
     rows[table].map((row) => {
       const keys = Object.keys(row);
@@ -578,7 +575,7 @@ export function schemaJson(content: Content) {
   // the DDL cannot show them.
   const facts = factRows(content.facts).map(({ key, description }) => ({ key, description }));
   const factKeys = facts.map((fact) => fact.key);
-  const sections = tableRows(content).sections;
+  const sections = rawSections(content);
   const sectionPages = [...new Set(sections.map((section) => section.page))].sort();
   const sectionHeadings = [...new Set(sections.map((section) => section.heading))];
   const hash = sha256(JSON.stringify({ ddl: ddlText, tables: tableList, factKeys, facts, sectionPages, sectionHeadings }));
@@ -627,7 +624,9 @@ export async function main(root = process.cwd()): Promise<void> {
   copyFileSync(wasmPath(), join(vendorTarget, 'sql-wasm.wasm'));
 
   const content = await loadContent({ contentDir: join(root, 'src', 'content'), publicDir: join(root, 'public') });
-  const sql = dumpSql(content);
+  const numbers = siteNumbersFor(content);
+  const rows = tableRows(content, numbers);
+  const sql = dumpSql(rows);
   const SQL = await loadSqlJs();
   const bytes = buildDatabase(SQL, sql);
 
@@ -653,7 +652,7 @@ export async function main(root = process.cwd()): Promise<void> {
     base64Module('sqlWasmBase64', readFileSync(wasmPath()), `sql-wasm.wasm from sql.js ${sqlJsVersion}.`),
   );
   writeFileSync(join(generated, 'schema.json'), `${JSON.stringify(schemaJson(content), null, 2)}\n`);
-  writeFileSync(join(generated, 'numbers.json'), `${JSON.stringify(siteNumbersFor(content), null, 2)}\n`);
+  writeFileSync(join(generated, 'numbers.json'), `${JSON.stringify(numbers, null, 2)}\n`);
   writeFileSync(join(generated, 'build-info.json'), `${JSON.stringify(buildInfo(), null, 2)}\n`);
 
   // The server-side validator trusts the module, so prove it decodes to the file just written.

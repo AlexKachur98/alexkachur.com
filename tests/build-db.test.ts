@@ -39,7 +39,7 @@ const files = readContentFiles('src/content');
 const rendered = await renderMarkdown(files);
 const parse = (edited: ContentFiles) => parseContent(edited, undefined, rendered);
 const content = parse(files);
-const sql = dumpSql(content);
+const sql = dumpSql(tableRows(content));
 const SQL = await loadSqlJs();
 const bytes = buildDatabase(SQL, sql);
 
@@ -68,7 +68,7 @@ function sha256(text: string): string {
 
 describe('build-db', () => {
   it('builds byte-identical databases from the same content', () => {
-    const again = buildDatabase(SQL, dumpSql(parse(readContentFiles('src/content'))));
+    const again = buildDatabase(SQL, dumpSql(tableRows(parse(readContentFiles('src/content')))));
     expect(Buffer.from(again).equals(Buffer.from(bytes))).toBe(true);
   });
 
