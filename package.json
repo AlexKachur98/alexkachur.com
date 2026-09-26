@@ -15,6 +15,7 @@
     "check": "node scripts/build-db.ts && astro check",
     "pretest": "npm run build",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "eval": "node scripts/eval.ts",
     "eval:record": "node --env-file-if-exists=.env scripts/eval.ts --record",
     "eval:live": "node --env-file-if-exists=.env scripts/eval.ts --live",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@jsonresume/schema": "~1.3.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.13.5",
     "@types/sql.js": "^1.4.11",
     "ajv": "^8.20.0",

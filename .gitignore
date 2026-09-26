@@ -8,6 +8,8 @@ public/favicon.ico
 public/resume.txt
 src/generated/
 npm-debug.log*
+test-results/
+playwright-report/
 
 .env
 .env.*

@@ -20,3 +20,5 @@ jobs:
       # npm test builds the site first (pretest), and the eval reads that build.
       - run: npm test
       - run: npm run eval
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
