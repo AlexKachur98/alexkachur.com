@@ -1,7 +1,7 @@
 // The one deferred module every page loads before interaction, kept under 2 KB
 // gzipped. It holds the theme toggle, ready(), the memoised import of the console chunk, and
 // the footer stats fetch.
-import { modelName, readoutText } from './readouts.ts';
+import { showStats, whenIdle } from './readouts.ts';
 import { nextTheme, type Theme } from './theme.ts';
 
 const root = document.documentElement;
@@ -93,30 +93,17 @@ for (const panel of document.querySelectorAll('[data-console], [data-examples], 
   });
 }
 
-// The live values from /api/stats: the footer's two readouts, appended to the baked line, and
-// on the page that has it the model sentence, hidden until its name arrives. Fetched once the
-// page is idle (after 200 ms where requestIdleCallback does not exist, as in Safari). A failed
-// fetch or an unexpected body leaves the page as built.
-const readouts = document.querySelector('[data-readouts]');
+// The live values from /api/stats, fetched once the page is idle. A failed fetch or an unexpected
+// body leaves the page as built.
 const modelLine = document.querySelector<HTMLElement>('[data-model-line]');
-const modelSlot = modelLine?.querySelector('[data-model]');
-if (readouts || modelLine) {
-  const load = (): void => {
+const slots = { readouts: document.querySelector('[data-readouts]'), modelLine, modelSlot: modelLine?.querySelector('[data-model]') ?? null };
+if (slots.readouts || slots.modelLine) {
+  whenIdle(() => {
     fetch('/api/stats')
       .then((response) => (response.ok ? response.json() : null))
-      .then((body: unknown) => {
-        const text = readoutText(body);
-        if (readouts && text) readouts.append(` · ${text}`);
-        const model = modelName(body);
-        if (modelLine && modelSlot && model) {
-          modelSlot.textContent = model;
-          modelLine.hidden = false;
-        }
-      })
+      .then((body: unknown) => showStats(body, slots))
       .catch(() => {
         // Offline or blocked: the baked text stands on its own.
       });
-  };
-  if ('requestIdleCallback' in window) requestIdleCallback(load);
-  else setTimeout(load, 200);
+  });
 }

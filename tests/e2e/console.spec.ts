@@ -25,6 +25,14 @@ test('says No rows with the rest of the sentence under the results, and drops it
   await page.locator('[data-console-run]').click();
   await expect(page.locator('[data-console-status]')).toContainText('1 row');
   await expect(note).toHaveCount(0);
+  // A run that fails takes it away too.
+  await input.fill('SELECT name FROM pets WHERE 0');
+  await page.locator('[data-console-run]').click();
+  await expect(note).toHaveCount(1);
+  await input.fill('SELECT nope FROM pets');
+  await page.locator('[data-console-run]').click();
+  await expect(page.locator('[data-console-error]')).toContainText('no such column: nope');
+  await expect(note).toHaveCount(0);
 });
 
 test("shows SQLite's error for a query it rejects, and the guard's sentence for a write", async ({ page }) => {
@@ -53,10 +61,11 @@ test('offers Clear only when there is something to clear, and clears it back to 
   await expect(clear).toBeHidden();
 });
 
-test('loads an example into the editor and runs it', async ({ page }) => {
+test('loads an example into the editor and runs it, with Clear ready', async ({ page }) => {
   const example = page.locator('[data-examples] [data-sql]').first();
   const sql = await example.getAttribute('data-sql');
   await example.click();
   await expect(page.locator('[data-console-input]')).toHaveValue(sql!);
   await expect(page.locator('[data-console-results] tbody tr').first()).toBeVisible();
+  await expect(page.locator('[data-console-clear]')).toBeVisible();
 });

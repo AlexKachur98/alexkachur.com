@@ -736,13 +736,13 @@ function distance(element: HTMLElement): number {
 // A control in the form reached by keyboard keeps its place on screen. A text box matches
 // :focus-visible however it was focused, so it holds the page only where the main pointer is a
 // mouse or trackpad; on a phone the page moves past it to show the answer.
+export function holdsPage(form: Pick<Element, 'contains'>, focused: Element, finePointer: boolean): boolean {
+  return form.contains(focused) && focused.matches(':focus-visible') && (focused.tagName === 'BUTTON' || finePointer);
+}
+
 function bring(ui: AskUi, element: HTMLElement): void {
   const focused = document.activeElement;
-  const kept =
-    focused instanceof HTMLElement &&
-    ui.form.contains(focused) &&
-    focused.matches(':focus-visible') &&
-    (focused instanceof HTMLButtonElement || matchMedia('(pointer: fine)').matches);
+  const kept = focused instanceof HTMLElement && holdsPage(ui.form, focused, matchMedia('(pointer: fine)').matches);
   window.scrollBy(0, scrollToShow(place(element), sight(element), kept ? place(focused).top : undefined));
 }
 

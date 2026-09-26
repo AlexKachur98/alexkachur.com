@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { examples } from '../src/data/examples.ts';
 import { askState, clearQuestion, countWord, createExecutor, createSender, escapeClears, failure, sendMessage, showClear } from '../src/scripts/console.ts';
@@ -228,25 +227,9 @@ describe('sending a question to Alex', () => {
     expect(askState(reply(200, { sql: 'SELECT 1', explanation: 'One.', cached: false, token: 't' }), true, 8)).toMatchObject({ kind: 'answer', token: 't' });
     expect(askState(reply(200, { sql: 'SELECT 1', explanation: 'One.', cached: false }), true, 8)).not.toHaveProperty('token');
   });
-
-  // The page's only way to call send: the send button's branch of the click handler.
-  it('calls send only from the send button', () => {
-    const source = readFileSync('src/scripts/console.ts', 'utf8');
-    expect(source.match(/sender\.send\(\)/g)).toHaveLength(1);
-    expect(source.match(/sendAsked\(\)/g)).toHaveLength(2);
-    expect(source).toMatch(/if \(button\.hasAttribute\('data-ask-send'\)\) \{\s*void sendAsked\(\);/);
-    expect(source.match(/\/api\/questions/g)).toHaveLength(1);
-    // The one URL constant, used once: in the post the sender is built with.
-    expect(source.match(/\bSEND_URL\b/g)).toHaveLength(2);
-    expect(source.match(/createSender\(\(body\) => postJson\(SEND_URL, body, SEND_TIMEOUT_MS\)\)/g)).toHaveLength(1);
-  });
 });
 
 describe("the question field's clear control", () => {
-  const consoleSource = readFileSync('src/scripts/console.ts', 'utf8');
-  const bootstrap = readFileSync('src/scripts/bootstrap.ts', 'utf8');
-  const component = readFileSync('src/components/AskBox.astro', 'utf8');
-
   it('shows only while the field holds text', () => {
     const control = { hidden: false };
     showClear({ value: '' }, control);
@@ -257,7 +240,7 @@ describe("the question field's clear control", () => {
     expect(control.hidden).toBe(false);
   });
 
-  it('empties the field, keeps focus in it, then hides, and touches nothing else', () => {
+  it('empties the field, keeps focus in it, then hides', () => {
     const log: string[] = [];
     const field = {
       get value() {
@@ -280,9 +263,6 @@ describe("the question field's clear control", () => {
     };
     clearQuestion(field, control);
     expect(log).toEqual(['value:', 'focus:true', 'hidden:true']);
-    // The answer stays: clearing is handed the field and the control and nothing of the panel.
-    const body = consoleSource.slice(consoleSource.indexOf('export function clearQuestion('), consoleSource.indexOf('// Escape clears only'));
-    expect(body).not.toMatch(/askUi|results|explanation|replaceChildren|textContent/);
   });
 
   it('clears on Escape only with text in the field, never during composition, and on no other key', () => {
@@ -292,48 +272,5 @@ describe("the question field's clear control", () => {
     expect(escapeClears({ ...escape, isComposing: true }, 'x')).toBe(false);
     expect(escapeClears({ ...escape, keyCode: 229 }, 'x')).toBe(false);
     for (const key of ['Enter', 'Backspace', 'Delete', 'x', 'Tab']) expect(escapeClears({ key, isComposing: false, keyCode: 0 }, 'x'), key).toBe(false);
-  });
-
-  it('clears only from its own button or Escape, and nothing else writes the question field', () => {
-    expect(consoleSource.match(/clearQuestion\(/g)).toHaveLength(3);
-    expect(consoleSource).toMatch(/if \(button\.hasAttribute\('data-ask-clear'\)\) \{\s*if \(askUi\) clearQuestion\(askUi\.input, askUi\.clear\);\s*return;/);
-    expect(consoleSource).toMatch(/export function askEscape\(event: ClearKey\): void \{\s*if \(askUi && escapeClears\(event, askUi\.input\.value\)\) clearQuestion\(askUi\.input, askUi\.clear\);/);
-    // The branch comes before the Ask box's own, which would take the control for a chip.
-    expect(consoleSource.indexOf("hasAttribute('data-ask-clear')")).toBeLessThan(consoleSource.indexOf('if (askUi?.box.contains(button))'));
-    // The console's Clear empties the raw console's editor, never the question field.
-    expect([...consoleSource.matchAll(/^.*\.value = .*$/gm)].map(([line]) => line.trim())).toEqual([
-      'consoleUi.input.value = sql;',
-      "ui.input.value = '';",
-      "field.value = '';",
-      "consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';",
-    ]);
-  });
-
-  it('is wired by the bootstrap, which only forwards, and the chunk attaches no listener', () => {
-    expect(bootstrap).toContain("askInput?.addEventListener('input', () => void ready().then((module) => module.askTyped()));");
-    expect(bootstrap).toContain("if ((event as KeyboardEvent).key === 'Escape') void ready().then((module) => module.askEscape(event as KeyboardEvent));");
-    expect(bootstrap).toContain("document.querySelector('[data-ask-clear]')?.addEventListener('mousedown', (event) => event.preventDefault());");
-    expect(bootstrap).toMatch(/closest<HTMLElement>\('[^']*\[data-ask-clear\][^']*'\)/);
-    const block = bootstrap.slice(bootstrap.indexOf("// The question field's clear control"), bootstrap.indexOf('for (const panel of'));
-    expect(block).not.toMatch(/data-ask-results|replaceChildren|textContent|\.value/);
-    expect(consoleSource).not.toMatch(/addEventListener/);
-  });
-
-  it('gives the control a 44 by 44 px target standing 2px proud of the 40px field', () => {
-    const tokens = readFileSync('src/styles/tokens.css', 'utf8');
-    const px = (name: string) => Number(tokens.match(new RegExp(`${name}: (\\d+)px;`))![1]);
-    const rule = component.match(/\n {2}\.ask-clear \{([^}]*)\}/)![1]!;
-    expect(rule).toContain('width: calc(var(--control) + var(--space-1));');
-    expect(rule).toContain('height: calc(var(--control) + var(--space-1));');
-    expect(rule).toContain('top: calc(var(--space-1) / -2);');
-    expect(rule).toContain('right: 0;');
-    expect(rule).toContain('border: 0;');
-    expect(rule).toContain('background: none;');
-    expect(px('--control') + px('--space-1')).toBe(44);
-    expect(-px('--space-1') / 2).toBe(-2);
-    expect(px('--control')).toBe(40);
-    const input = component.match(/\n {2}\.ask-field \.input \{([^}]*)\}/)![1]!;
-    expect(input).toContain('display: block;');
-    expect(input).toContain('padding-right: calc(var(--control) + var(--space-1));');
   });
 });

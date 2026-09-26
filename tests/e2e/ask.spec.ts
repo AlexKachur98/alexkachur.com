@@ -25,6 +25,39 @@ test('answers a chip from the built database without a request to the model', as
   expect(asked).toEqual([]);
 });
 
+// Beside the form, the answer the page opens with gives way to the first question, and the pane
+// keeps the example's height so nothing below it moves.
+test('takes the example answer away as the first chip runs, keeping its height', async ({ page }) => {
+  const example = page.locator('[data-ask-example]');
+  const height = await example.evaluate((element) => element.getBoundingClientRect().height);
+  await page.locator('[data-ask] .chip').first().click();
+  await expect(example).toHaveCount(0);
+  const held = await page.locator('[data-ask-panel]').evaluate((element) => element.style.getPropertyValue('--example-height'));
+  expect(Math.abs(parseFloat(held) - height)).toBeLessThan(2);
+});
+
+// Beside the form, with a mouse and a tall enough window, a long answer scrolls inside its box:
+// each answer starts at its first row, and the box says it scrolls only while it does.
+test('starts each answer at its first row, and says so while the box scrolls', async ({ page }) => {
+  const rows = (n: number) => `WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < ${n}) SELECT x FROM c`;
+  let next = rows(40);
+  await page.route('**/api/ask', async (route) => json(200, { sql: next, explanation: 'Some rows.', cached: false })(route));
+  const results = page.locator('[data-ask-results]');
+  const cue = page.locator('[data-ask-scroll-cue]');
+  await ask(page, 'Forty rows, please');
+  await expect(results.locator('tbody tr')).toHaveCount(40);
+  await expect(cue).toBeVisible();
+  await results.evaluate((element) => element.scrollTo(0, 300));
+  await ask(page, 'Forty more rows, please');
+  await expect(page.locator('[data-ask-question]')).toHaveText('Forty more rows, please');
+  await expect(results.locator('tbody tr')).toHaveCount(40);
+  expect(await results.evaluate((element) => element.scrollTop)).toBe(0);
+  next = rows(1);
+  await ask(page, 'Just one row');
+  await expect(results.locator('tbody tr')).toHaveCount(1);
+  await expect(cue).toBeHidden();
+});
+
 test("shows the storage chip's line to the full details under its answer", async ({ page }) => {
   await page.locator('[data-ask] .chip[data-more]').click();
   await expect(page.locator('[data-ask-results] tbody tr').first()).toBeVisible();
@@ -47,12 +80,15 @@ test('clears the question field on Escape and with its control, keeping focus in
   await expect(input).toBeFocused();
 });
 
-test('runs the SQL /api/ask returns and shows the sentence with it', async ({ page }) => {
+test('runs the SQL /api/ask returns, shows the sentence with it, and edits it in the console', async ({ page }) => {
   await page.route('**/api/ask', json(200, { sql: 'SELECT 1 AS n', explanation: 'One row with the number one.', cached: false }));
   await ask(page, 'Give me one row');
   await expect(page.locator('[data-ask-explanation]')).toHaveText('One row with the number one.');
   await expect(page.locator('[data-ask-sql]')).toHaveText('SELECT 1 AS n');
   await expect(page.locator('[data-ask-results] tbody tr')).toHaveCount(1);
+  await page.locator('[data-ask-panel] > [data-ask-edit]').click();
+  await expect(page.locator('[data-console-input]')).toHaveValue('SELECT 1 AS n');
+  await expect(page.locator('[data-console-clear]')).toBeVisible();
 });
 
 test('offers to send a question the site could not answer, posts it with its token, and says thanks', async ({ page }) => {
@@ -64,6 +100,8 @@ test('offers to send a question the site could not answer, posts it with its tok
   });
   await ask(page, 'What salary does Alex want?');
   await expect(page.locator('[data-ask-explanation]')).toHaveText('The database holds no salary data.');
+  // Nothing is sent until the button is clicked.
+  expect(sent).toEqual([]);
   await page.locator('[data-ask-send]').click();
   await expect(page.locator('[data-ask-sent]')).toBeVisible();
   await expect(page.locator('[data-ask-sent]')).toBeFocused();

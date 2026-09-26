@@ -21,3 +21,28 @@ export function modelName(body: unknown): string | null {
   const { model } = body as Partial<Stats>;
   return typeof model === 'string' && model !== '' ? model : null;
 }
+
+// Where the live values go: the footer's readouts, appended to the baked line, and on the page
+// that has it the model sentence, hidden until its name arrives.
+export interface StatsSlots {
+  readouts: Pick<Element, 'append'> | null;
+  modelLine: Pick<HTMLElement, 'hidden'> | null;
+  modelSlot: Pick<Element, 'textContent'> | null;
+}
+
+export function showStats(body: unknown, { readouts, modelLine, modelSlot }: StatsSlots): void {
+  const text = readoutText(body);
+  if (readouts && text) readouts.append(` · ${text}`);
+  const model = modelName(body);
+  if (modelLine && modelSlot && model) {
+    modelSlot.textContent = model;
+    modelLine.hidden = false;
+  }
+}
+
+// Runs a task once the page is idle, or after 200 ms where requestIdleCallback does not exist, as
+// in Safari.
+export function whenIdle(task: () => void): void {
+  if ('requestIdleCallback' in globalThis) requestIdleCallback(task);
+  else setTimeout(task, 200);
+}

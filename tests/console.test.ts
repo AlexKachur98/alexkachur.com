@@ -1,10 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { clearable, clearConsole, createExecutor, guard, markOverflow, onScreen, renderCell, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { clearable, clearConsole, createExecutor, guard, holdsPage, markOverflow, onScreen, renderCell, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
 import { ROWS } from '../src/lib/result-rows.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
+
+// The chunk's source, for the few checks below that no behaviour test can make.
+const source = readFileSync('src/scripts/console.ts', 'utf8');
 
 // The strings written out here rather than imported, so a typo in the module cannot pass by
 // comparing the module to itself.
@@ -49,25 +52,6 @@ describe('truncation', () => {
 });
 
 describe('status line', () => {
-  const source = readFileSync('src/scripts/console.ts', 'utf8');
-
-  it('says "No rows" and writes the rest of the empty-result sentence under the results', () => {
-    expect(source).toContain("const EMPTY_NOTE = 'The query ran; the data just does not have that.';");
-    expect(source).toContain('note.textContent = EMPTY_NOTE;');
-    expect(source).toContain('panel.results.replaceChildren(table, note);');
-  });
-
-  it('takes the rest of the sentence away when a run starts and when a run fails', () => {
-    const run = source.slice(source.indexOf('async function execute('), source.indexOf('export function run()'));
-    const start = run.indexOf('dropNote(panel);');
-    expect(start).toBeGreaterThan(-1);
-    expect(start).toBeLessThan(run.indexOf('const problem = guard(sql);'));
-    const failed = run.slice(run.indexOf('} catch (error) {'));
-    const again = failed.indexOf('dropNote(panel);');
-    expect(again).toBeGreaterThan(-1);
-    expect(again).toBeLessThan(failed.indexOf('setError(panel, failure(error));'));
-  });
-
   it('adds the cached label only when asked for the status a run ends on', () => {
     const status = { textContent: '' };
     const panel = { status, suffix: 'cached' } as unknown as Parameters<typeof setStatus>[0];
@@ -485,56 +469,18 @@ describe('SQL keyword tokens', () => {
 });
 
 describe('Ask SQL rendering', () => {
-  const source = readFileSync('src/scripts/console.ts', 'utf8');
-
-  it('builds the SQL an answer shows from nodes, never from an HTML string', () => {
-    expect(source).toContain('ui.sql.replaceChildren(...sqlNodes(sql));');
-    expect(source).toContain('document.createTextNode(text)');
+  // The SQL and the explanation come from the model, so nothing here ever turns a string into markup.
+  it('never builds markup from a string', () => {
     expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML/);
   });
 
-  it("records the example's height, then takes it out of the panel, as the first question or chip begins", () => {
-    const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer('));
-    expect(begin).toMatch(/^function begin\(ui: AskUi, question: string\): void \{\n  if \(ui\.example\) \{\n/);
-    // The height is read while the example is still there to measure.
-    const held = begin.indexOf("ui.root.style.setProperty('--example-height', ");
-    expect(held).toBeGreaterThan(0);
-    expect(held).toBeLessThan(begin.indexOf('ui.example.remove();'));
-    expect(source).toContain("example: askRoot.querySelector<HTMLElement>('[data-ask-example]'),");
-  });
-
-  // The hold is only for the pane beside the form: under the form the example never shows, and
-  // an answer there grows from nothing.
-  it("holds the pane at the example's height only beside the form", () => {
-    const style = readFileSync('src/components/AskBox.astro', 'utf8');
-    const wide = style.indexOf('@media (min-width: 1200px)');
-    expect(wide).toBeGreaterThan(0);
-    expect(style.slice(wide)).toMatch(/\.ask-split \.ask-panel \{[^}]*min-height: var\(--example-height, auto\);/);
-    expect(style.slice(0, wide)).not.toContain('--example-height');
-  });
-
-  it("still hands Edit this query the plain SQL, the example's from its own button", () => {
-    expect(source).toContain("consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';");
-    // Edit is decided before the box check, so the example's button still edits once a question
-    // has taken the example off the page.
-    const click = source.slice(source.indexOf('export function click('), source.indexOf('function panelOf('));
-    expect(click.indexOf("if (button.hasAttribute('data-ask-edit')) {")).toBeGreaterThan(0);
-    expect(click.indexOf("if (button.hasAttribute('data-ask-edit')) {")).toBeLessThan(click.indexOf('if (askUi?.box.contains(button)) {'));
-    expect(click).toContain('    edit(sql);\n    return;');
-    expect(source).toContain("askRoot.querySelector<HTMLElement>('[data-ask-panel] > [data-ask-edit]')");
+  // The bootstrap owns every listener, so an interaction before the chunk loads is never lost.
+  it('leaves every listener to the bootstrap', () => {
+    expect(source).not.toMatch(/addEventListener/);
   });
 });
 
 describe('results box', () => {
-  const source = readFileSync('src/scripts/console.ts', 'utf8');
-
-  it('starts each table at its first row and column, in either panel', () => {
-    const paint = source.slice(source.indexOf('function paint('), source.indexOf('function dropNote('));
-    const reset = paint.indexOf('panel.results.scrollTo(0, 0);');
-    expect(reset).toBeGreaterThan(paint.indexOf('panel.results.replaceChildren(table);'));
-    expect(reset).toBeLessThan(paint.indexOf('panel.results.tabIndex = 0;'));
-  });
-
   it('shows the scroll words while a capped box holds more than it shows, either way, wherever it is scrolled to', () => {
     const cue = { hidden: true };
     const fits = { scrollWidth: 414, clientWidth: 414 };
@@ -553,39 +499,9 @@ describe('results box', () => {
     markOverflow({ scrollHeight: 93, clientHeight: 93, scrollWidth: 489, clientWidth: 311 }, cue, false);
     expect(cue.hidden).toBe(true);
   });
-
-  it('hides the scroll words as a question begins and checks them after each answer and resize', () => {
-    const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer('));
-    expect(begin).toContain('ui.scrollCue.hidden = true;');
-    const answer = source.slice(source.indexOf('async function answer('), source.indexOf('// A capped results box'));
-    expect(answer.indexOf('markOverflow(ui.results, ui.scrollCue, capped(ui.results));')).toBeGreaterThan(answer.indexOf('await execute(ui, sql);'));
-    expect(source.slice(source.indexOf('export function init('))).toMatch(/new ResizeObserver\(\(\) => markOverflow\(ui\.results, ui\.scrollCue, capped\(ui\.results\)\)\)/);
-    // Scrolling never changes the words, so nothing listens for it.
-    expect(source).not.toMatch(/addEventListener\('scroll'/);
-  });
-
-  // The Ask results scroll inside a box only beside the form, on a mouse or trackpad and a window
-  // tall enough; the raw console and everything else keep growing.
-  it('caps the Ask results only in the wide, tall, fine-pointer layout', () => {
-    expect(readFileSync('src/styles/console.css', 'utf8')).not.toMatch(/max-height/);
-    const style = readFileSync('src/components/AskBox.astro', 'utf8');
-    const cap = style.indexOf('max-height: 25rem;');
-    expect(cap).toBeGreaterThan(0);
-    expect(style.lastIndexOf('max-height')).toBe(style.indexOf('max-height'));
-    let from = 0;
-    for (const rule of ['@media (min-width: 1200px)', '@supports (grid-template-columns: subgrid)', '@media (min-height: 42.5rem) and (hover: hover) and (pointer: fine)']) {
-      const at = style.lastIndexOf(rule, cap);
-      expect(at, rule).toBeGreaterThan(from);
-      from = at;
-    }
-    // Nested: both media rules, the supports rule and the results rule are all still open at the cap.
-    const inside = style.slice(style.lastIndexOf('@media (min-width: 1200px)', cap), cap);
-    expect(inside.split('{').length - inside.split('}').length).toBe(4);
-  });
 });
 
 describe('bringing the answer into sight', () => {
-  const source = readFileSync('src/scripts/console.ts', 'utf8');
   // The visible band on a 375x667 phone, less a 16px margin at each edge.
   const sight = { top: 16, bottom: 651 };
 
@@ -627,37 +543,29 @@ describe('bringing the answer into sight', () => {
     expect(scrollToShow({ top: -51, bottom: 10 }, sight, 300)).toBe(-67);
   });
 
-  it('never moves focus and jumps as the page does, starting as a question begins and settling as it ends', () => {
+  // Bringing the answer into sight scrolls the page only: it never takes focus, and it jumps as the
+  // page does rather than animate.
+  it('never moves focus and never animates the scroll', () => {
     const reveal = source.slice(source.indexOf('const REVEAL_DELAY'), source.indexOf('// Clears the Ask panel'));
+    expect(reveal.length).toBeGreaterThan(0);
     expect(reveal).not.toContain('.focus(');
     expect(reveal).not.toContain('behavior');
-    // The second move waits two frames, so the answer is laid out before the page scrolls to it.
-    expect(reveal).toMatch(/requestAnimationFrame\(\(\) =>\s+requestAnimationFrame\(/);
-    const begin = source.slice(source.indexOf('function begin('), source.indexOf('async function answer(')).trimEnd();
-    expect(begin.endsWith('  watch(ui);\n}')).toBe(true);
-    expect(begin.indexOf('watch(ui);')).toBeGreaterThan(begin.indexOf('setStatus(ui, WORKING_MESSAGE);'));
-    const occupy = source.slice(source.indexOf('async function occupy('), source.indexOf('export function ask()'));
-    expect(occupy.indexOf('settle(ui);')).toBeGreaterThan(occupy.indexOf('working(ui, -1);'));
-    expect(occupy.indexOf('settle(ui);')).toBeLessThan(occupy.indexOf('ui.busy = false;'));
-    expect(source).toContain("head: element(askRoot, '[data-ask-head]'),");
-    expect(readFileSync('src/components/AskBox.astro', 'utf8')).toMatch(/\.ask-panel,\s*\.ask-panel > \.console-head \{\s*scroll-margin: var\(--space-4\);/);
   });
 
-  // Only a control in the form shown as focused holds the page: a tap, or a click on a chip, leaves
-  // the page free to move.
+  // Only a control in the form shown as focused holds the page, and a text box only where the
+  // pointer is a mouse or trackpad: a tap, or a click on a chip, leaves the page free to move.
   it('holds the page only for a control in the form reached by keyboard', () => {
-    const bring = source.slice(source.indexOf('function bring('), source.indexOf('function watch('));
-    expect(bring).toContain('ui.form.contains(focused)');
-    expect(bring).toContain("focused.matches(':focus-visible')");
+    const form = { contains: (element: unknown) => (element as { inForm: boolean }).inForm };
+    const control = (tagName: string, visible: boolean, inForm = true) => ({ tagName, inForm, matches: (selector: string) => selector === ':focus-visible' && visible }) as unknown as Element;
+    expect(holdsPage(form, control('BUTTON', true), false)).toBe(true);
+    expect(holdsPage(form, control('INPUT', true), true)).toBe(true);
+    expect(holdsPage(form, control('INPUT', true), false)).toBe(false);
+    expect(holdsPage(form, control('BUTTON', false), true)).toBe(false);
+    expect(holdsPage(form, control('BUTTON', true, false), true)).toBe(false);
   });
 });
 
 describe("the console's Clear", () => {
-  const source = readFileSync('src/scripts/console.ts', 'utf8');
-  const bootstrap = readFileSync('src/scripts/bootstrap.ts', 'utf8');
-  const css = readFileSync('src/styles/console.css', 'utf8');
-  const markup = readFileSync('src/components/Console.astro', 'utf8');
-
   it('has something to clear only with text in the editor, a result under it or a message on the error line', () => {
     const none = { childElementCount: 0 };
     const quiet = { textContent: '' };
@@ -721,37 +629,5 @@ describe("the console's Clear", () => {
     const { ui, log } = fakePanel('3 rows', 1);
     clearConsole(ui, true);
     expect(log).toEqual([]);
-  });
-
-  it('clears only from its own button, before the branches that would run the query', () => {
-    expect(source.match(/clearConsole\(/g)).toHaveLength(2);
-    expect(source).toMatch(/if \(button\.hasAttribute\('data-console-clear'\)\) \{\s*if \(consoleUi\) clearConsole\(consoleUi\);\s*return;/);
-    const click = source.slice(source.indexOf('export function click('));
-    expect(click.indexOf("hasAttribute('data-console-clear')")).toBeLessThan(click.indexOf('if (askUi?.box.contains(button))'));
-    expect(click.indexOf("hasAttribute('data-console-clear')")).toBeLessThan(click.indexOf('else run();'));
-    // The example buttons still load their query and run it.
-    expect(click).toMatch(/if \(sql !== undefined\) query\(sql\);\s*else run\(\);/);
-    expect(source).toMatch(/function query\(sql: string\): void \{\s*if \(!consoleUi\) return;\s*consoleUi\.input\.value = sql;\s*syncClear\(consoleUi\);\s*run\(\);/);
-  });
-
-  it('decides whether Clear shows after every change to the editor, the results or the error line', () => {
-    expect(source.match(/syncClear\(/g)!.length).toBe(7);
-    expect(source).toContain('void execute(ui, sql).then(() => syncClear(ui));');
-    expect(source).toMatch(/export function typed\(\): void \{\s*if \(consoleUi\) syncClear\(consoleUi\);/);
-    expect(source).toMatch(/consoleUi\.input\.value = sql \?\? askUi\.sql\.textContent \?\? '';\s*syncClear\(consoleUi\);/);
-    expect(bootstrap).toContain("editor?.addEventListener('input', () => void ready().then((module) => module.typed()));");
-    expect(bootstrap).toMatch(/closest<HTMLElement>\('[^']*\[data-console-clear\][^']*'\)/);
-  });
-
-  it('sits hidden straight after Run as a text button, and hides while a query runs', () => {
-    // Named for what it clears, the shown word first, as the theme toggle names itself.
-    expect(markup).toMatch(
-      /<button type="button" class="console-run" data-console-run>Run<\/button>\s*<!--[\s\S]*?-->\s*<button type="button" class="console-clear text-button" data-console-clear hidden><span class="visually-hidden">Clear query<\/span><span aria-hidden="true">Clear<\/span><\/button>/,
-    );
-    const button = css.match(/\n\.text-button \{([^}]*)\}/)![1]!;
-    for (const line of ['border: 0;', 'background: none;', 'text-decoration: underline;', 'min-height: var(--control);']) expect(button).toContain(line);
-    const rule = css.match(/\n\.console-clear \{([^}]*)\}/)![1]!;
-    for (const line of ['min-width: var(--control);', 'margin-left: var(--space-4);']) expect(rule).toContain(line);
-    expect(css).toMatch(/\.console\[data-working\] > \.console-clear \{\s*visibility: hidden;\s*\}/);
   });
 });

@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
-import { modelName, readoutText } from '../src/scripts/readouts.ts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { modelName, readoutText, showStats, whenIdle } from '../src/scripts/readouts.ts';
+import type { StatsSlots } from '../src/scripts/readouts.ts';
 
 const body = (questionsThisMonth: unknown, modelCallsThisMonth: unknown, cap: unknown) => ({ questionsThisMonth, modelCallsThisMonth, cap });
 
@@ -53,24 +53,54 @@ describe('modelName', () => {
   });
 });
 
-describe('bootstrap wiring', () => {
-  const source = readFileSync('src/scripts/bootstrap.ts', 'utf8');
+describe('showStats', () => {
+  function slots() {
+    const appended: string[] = [];
+    const modelLine = { hidden: true as HTMLElement['hidden'] };
+    const modelSlot = { textContent: '' };
+    const slots: StatsSlots = { readouts: { append: (...nodes) => void appended.push(nodes.join('')) }, modelLine, modelSlot };
+    return { appended, modelLine, modelSlot, slots };
+  }
 
-  it('fetches /api/stats when idle, with the 200 ms fallback for browsers without requestIdleCallback', () => {
-    expect(source).toContain("fetch('/api/stats')");
-    expect(source).toContain("if ('requestIdleCallback' in window) requestIdleCallback(load);");
-    expect(source).toContain('else setTimeout(load, 200);');
+  it('appends the readouts after the built line, and names the model and shows its sentence', () => {
+    const page = slots();
+    showStats({ ...body(12, 500, 2000), model: 'claude-haiku-4-5' }, page.slots);
+    expect(page.appended).toEqual([' · 12 questions this month · AI budget 25% used']);
+    expect(page.modelSlot.textContent).toBe('claude-haiku-4-5');
+    expect(page.modelLine.hidden).toBe(false);
   });
 
-  it('appends the readouts after the baked line only for a good answer with a usable body', () => {
-    expect(source).toContain('response.ok ? response.json() : null');
-    expect(source).toContain('if (readouts && text) readouts.append(` · ${text}`);');
-    expect(source).not.toContain('readouts.textContent =');
+  it('leaves the page as built for a body without the promised values', () => {
+    for (const value of [null, {}, body('12', 500, 2000)]) {
+      const page = slots();
+      showStats(value, page.slots);
+      expect(page.appended, JSON.stringify(value)).toEqual([]);
+      expect(page.modelLine.hidden).toBe(true);
+    }
+  });
+});
+
+describe('whenIdle', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
-  it('shows the model sentence only once the name has been written into it', () => {
-    expect(source).toContain('if (modelLine && modelSlot && model) {');
-    expect(source).toContain('modelSlot.textContent = model;');
-    expect(source).toContain('modelLine.hidden = false;');
+  it('waits for the page to be idle where the browser can say so', () => {
+    const idle = vi.fn();
+    vi.stubGlobal('requestIdleCallback', idle);
+    const task = () => {};
+    whenIdle(task);
+    expect(idle).toHaveBeenCalledWith(task);
+  });
+
+  it('waits 200 ms where requestIdleCallback does not exist, as in Safari', () => {
+    vi.useFakeTimers();
+    const task = vi.fn();
+    whenIdle(task);
+    vi.advanceTimersByTime(199);
+    expect(task).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(task).toHaveBeenCalledOnce();
   });
 });
