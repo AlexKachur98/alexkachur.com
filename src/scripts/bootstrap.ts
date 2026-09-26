@@ -38,10 +38,17 @@ type ConsoleModule = typeof import('./console.ts');
 let loading: Promise<ConsoleModule> | undefined;
 
 function ready(): Promise<ConsoleModule> {
-  return (loading ??= import('./console.ts').then((module) => {
-    module.init();
-    return module;
-  }));
+  return (loading ??= import('./console.ts').then(
+    (module) => {
+      module.init();
+      return module;
+    },
+    (error: unknown) => {
+      // Kept only once it loads, so a later interaction can try the import again.
+      loading = undefined;
+      throw error;
+    },
+  ));
 }
 
 function preload(): void {
