@@ -40,7 +40,7 @@ One page with seven sections: About, Services, Training, Pricing, Reviews, FAQ a
 
 ## Decisions
 
-- **Plain HTML, CSS and JavaScript on Vercel**, in the owner's own account. The booking form posts to FormSubmit from the browser, so the site needs no server. <!-- TODO: say why I chose plain files over a framework for this site. TODO: confirm the owner's Vercel plan. Vercel's fair use guidelines, read 2026-09-25, say "Hobby teams are restricted to non-commercial personal use only. All commercial usage of the platform requires either a Pro or Enterprise plan." Once he is confirmed on Pro, say so here. -->
+- **Plain HTML, CSS and JavaScript on Vercel**, in the owner's own account. The booking form posts to FormSubmit from the browser, so the site needs no server. <!-- TODO: say why I chose plain files over a framework for this site. --><!-- TODO: confirm the owner is on Vercel Pro, since Hobby is for non-commercial use only, and say so here. -->
 - **Motion in plain CSS with a few lines of JavaScript**: sections fade in as they come into view and a strip of training types scrolls under the hero, so no animation library ships.
 - **A handoff document instead of a CMS.** The owner had a small number of things to change, and a document he can follow beats a system he has to learn.
 

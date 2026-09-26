@@ -1,6 +1,5 @@
-# Alex's hobbies and favourites, in his words, in the order he listed them; the integer id in the
-# database follows this order. A name can appear under two categories (Japan, Egypt), so ids that
-# would repeat carry their category.
+# Hobbies and favourites, in display order, which the integer id in the database follows. A name
+# can appear under two categories (Japan, Egypt), so ids that would repeat carry their category.
 - id: counter-strike
   category: video game
   name: Counter-Strike

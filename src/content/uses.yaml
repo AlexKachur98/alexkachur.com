@@ -1,5 +1,5 @@
-# What Alex uses, as /uses lists it; the position in the database follows this order. The page
-# shows each row as "item: details", or the details alone when they already begin with the item.
+# What /uses lists, in its order, which the position column keeps. The page shows each row as
+# "item: details", or the details alone when they already begin with the item.
 - id: main-pc
   section: Machines
   item: Main PC

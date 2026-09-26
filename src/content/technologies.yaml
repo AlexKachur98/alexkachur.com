@@ -1,6 +1,6 @@
-# Canonical, unversioned names. Projects reference the id. The integer id in the database
-# follows name order, so this list can stay grouped by skill area. core marks the skills Alex
-# considers core; the build fails if one of them has no project on this site.
+# Canonical, unversioned names. Projects reference the id. The integer id in the database follows
+# name order, so this list can stay grouped by skill area. The build fails if a core skill has no
+# project on this site.
 - id: typescript
   name: TypeScript
   category: language
