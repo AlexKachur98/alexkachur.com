@@ -13,7 +13,6 @@
     "build": "node scripts/build-db.ts && node scripts/build-images.ts && astro build",
     "preview": "astro preview",
     "check": "node scripts/build-db.ts && astro check",
-    "prepare": "node scripts/install-hooks.ts",
     "pretest": "npm run build",
     "test": "vitest run",
     "eval": "node scripts/eval.ts",
