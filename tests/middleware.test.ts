@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import middleware from '../middleware.ts';
 
 function visit(agent: string | null) {
-  const headers = agent === null ? undefined : { 'user-agent': agent };
-  return middleware(new Request('https://alexkachur.com/', { headers }));
+  return middleware(new Request('https://alexkachur.com/', agent === null ? {} : { headers: { 'user-agent': agent } }));
 }
 
 describe('the home page for a terminal', () => {

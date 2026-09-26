@@ -26,7 +26,7 @@ interface Props {
   // page's own title unless the page gives another.
   ogTitle?: string;
   // A page's own preview image; without one, the site's card.
-  ogImage?: { src: string; width: number; height: number; alt: string };
+  ogImage?: { src: string; width: number; height: number; alt: string } | undefined;
   noindex?: boolean;
   structuredData?: Record<string, unknown>;
 }

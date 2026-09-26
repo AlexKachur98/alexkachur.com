@@ -151,10 +151,10 @@ describe('POST /api/questions', () => {
     const store = fakeStore();
     const result = await send(store, { question: QUESTION, token: token() });
     expect(result).toMatchObject({ status: 200, body: { sent: true } });
-    const [[savedKey, saved]] = [...store.saved];
+    const [savedKey, saved] = [...store.saved][0]!;
     expect(savedKey).toMatch(/^ask:test:question:[0-9a-f]{64}$/);
-    expect(saved!.entry).toEqual({ question: QUESTION, date: '2026-09-24' });
-    expect(saved!.expiresAt).toBe(Date.UTC(2026, 8, 24) / 1000 + 90 * DAY);
+    expect(saved.entry).toEqual({ question: QUESTION, date: '2026-09-24' });
+    expect(saved.expiresAt).toBe(Date.UTC(2026, 8, 24) / 1000 + 90 * DAY);
     expect(store.counters.get(DAY_KEY)).toEqual({ value: 1, ttl: TTL.sentDay });
   });
 

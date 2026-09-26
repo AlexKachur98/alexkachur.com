@@ -283,7 +283,7 @@ describe('the rate limit', () => {
   // A plain hash of an IPv4 address can be reversed by trying every address; the key needs the secret.
   it('keys the limit by a keyed hash of the address, never the address', async () => {
     const { store } = await run(QUESTION, { model: fakeModel([GOOD]) });
-    const [[, key]] = store.calls.filter(([method]) => method === 'allow');
+    const [, key] = store.calls.find(([method]) => method === 'allow')!;
     expect(key).toBe(createHmac('sha256', LIMIT_SECRET).update(IP).digest('hex'));
     expect(limitKey('another-secret', IP)).not.toBe(key);
     expect(limitKey(LIMIT_SECRET, '203.0.113.8')).not.toBe(key);

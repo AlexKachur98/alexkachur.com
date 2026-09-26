@@ -169,7 +169,7 @@ describe('the rate limit in Redis', () => {
     expect(scripts).toHaveLength(1);
     expect(scripts[0]).toMatch(/local window\s*=\s*ARGV\[3\]/);
     expect(scripts[0]).toMatch(/redis\.call\("PEXPIRE", currentKey, window \* 2 \+ 1000\)/);
-    const [[, args]] = limiterCalls(commands);
-    expect(Number(args![2]) * 2 + 1000).toBe(121_000);
+    const [, args] = limiterCalls(commands)[0]!;
+    expect(Number(args[2]) * 2 + 1000).toBe(121_000);
   });
 });

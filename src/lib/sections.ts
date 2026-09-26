@@ -15,7 +15,7 @@ const heading = /<h2(?:\s[^>]*?)?\sid="([^"]*)"[^>]*>([\s\S]*?)<\/h2>/g;
 
 // A page whose text is one section with no heading of its own (About, Now, the 404 lead) passes
 // that section's title as lead; anywhere else, text before the first h2 is an error.
-export function splitSections(html: string, options: { lead?: string } = {}): Section[] {
+export function splitSections(html: string, options: { lead?: string | undefined } = {}): Section[] {
   const matches = [...html.matchAll(heading)];
   const first = matches[0];
   const lead = html.slice(0, first?.index ?? html.length).trim();

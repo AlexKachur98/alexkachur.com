@@ -46,7 +46,7 @@ export interface ResumeData {
   interests: { category: string; names: string[] }[];
 }
 
-const text = (value: Value): string => String(value ?? '');
+const text = (value: Value | undefined): string => String(value ?? '');
 
 function grouped<T extends Record<string, Value>>(rows: T[], key: keyof T, value: keyof T): { key: string; values: string[] }[] {
   const groups = new Map<string, string[]>();

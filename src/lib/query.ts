@@ -33,13 +33,13 @@ export async function select(sql: string, limit?: number): Promise<Rows> {
 // the order they were written.
 export async function tableObjects(table: TableName): Promise<Record<string, Cell>[]> {
   const { columns, rows } = await select(`SELECT * FROM ${table} ORDER BY rowid`);
-  return rows.map((row) => Object.fromEntries(columns.map((name, index) => [name, row[index]])));
+  return rows.map((row) => Object.fromEntries(columns.map((name, index) => [name, row[index] ?? null])));
 }
 
 // A projects row with the names of its technologies, as /api/projects/{slug}.json serves it.
 export async function projectDetail(project: Record<string, Cell>): Promise<Record<string, Cell | Cell[]>> {
   const stack = await select(stackQuery(Number(project.id)));
-  return { ...project, technologies: stack.rows.map(([name]) => name) };
+  return { ...project, technologies: stack.rows.flat() };
 }
 
 // The resume in the JSON Resume format, as /api/resume.json serves it.

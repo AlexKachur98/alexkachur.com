@@ -7,8 +7,9 @@ import { stackQuery } from '../lib/rows.ts';
 export const GET: APIRoute = async ({ site }) => {
   const facts = await siteFacts();
   // The stack is this site's own project's technologies.
-  const [[id]] = (await select("SELECT id FROM projects WHERE slug = 'this-site'")).rows;
-  const stack = await select(stackQuery(Number(id)));
+  const id = (await select("SELECT id FROM projects WHERE slug = 'this-site'")).rows[0]?.[0];
+  if (typeof id !== 'number') throw new Error('the this-site project is missing');
+  const stack = await select(stackQuery(id));
   const text = `/* TEAM */
 Developer: ${facts.name}
 Location: ${facts.location}
