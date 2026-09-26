@@ -30,13 +30,13 @@ The brokerage was using a generic review funnel from their marketing platform. I
 
 ## What I built
 
-One HTML file with no build step, so it can be hosted anywhere and changed by anyone who can edit text. The landing step is a star selector. Four and five stars go to the Google review link. One to three stars open a private feedback form that emails the owner through Web3Forms. Below that, a wall of curated reviews shown with initials only. There is a hidden owner admin panel at a hash route for the settings she needs. I restyled it to her real brand after noticing my first version used the wrong colours: navy #002854, her logo, Raleway and Fira Sans, all self-hosted.
+One HTML file with no build step, so it can be hosted anywhere and changed by anyone who can edit text. The landing step is a star selector. Four and five stars go to the Google review link. One to three stars open a private feedback form that emails the owner through Web3Forms. Below that, a wall of curated reviews shown with initials only. There is a hidden owner panel at a hash route that turns a new Google review into a wall snippet and a social post. I restyled it to her real brand after noticing my first version used the wrong colours: navy #002954, her logo, Raleway and Fira Sans, all self-hosted. On the demo, the form falls back to the mail app and the review link is a preview until the owner's addresses are set.
 
 ## Decisions
 
 - **Cloudflare Pages instead of Vercel**, because Vercel's free tier does not allow commercial use and this is a business.
 - **Web3Forms instead of a mailto link**, because mailto is unreliable inside social-media browsers and the form gives 250 free submissions a month.
-- **A compliance toggle.** While researching, I found that routing customers by star rating ("review gating") is against Google's policy and is named as a concern under the Competition Act and RIBO Guidance 006 for Ontario brokers. I documented the risk for the client and built a switch so the page can run an ask-everyone flow without a developer.
+- **A compliance toggle.** While researching, I found that routing customers by star rating ("review gating") is against Google's policy and is named as a concern under RIBO Guidance 006 for Ontario brokers. I documented the risk for the client and built a switch so the page can run an ask-everyone flow without a developer.
 
 ## What went wrong or what I would change
 
