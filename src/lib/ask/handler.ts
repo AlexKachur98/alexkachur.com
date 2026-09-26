@@ -2,19 +2,19 @@
 // clock, deadline) so every branch can be tested with fakes. Order: input, kill switch, rate
 // limit, cache, cap, model, validation. Nothing here logs or returns the question text or the
 // visitor's address, and the address reaches the store only as limitKey's keyed hash.
-import { createHash, createHmac } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { AnthropicError, APIError } from '@anthropic-ai/sdk';
 import type { ParsedMessage } from '@anthropic-ai/sdk/lib/parser';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import type { Database } from 'sql.js';
 import { FUNCTION_SECONDS, MODEL } from './config.ts';
 import type { AskConfig } from './config.ts';
-import { counterKeys, monthOf } from './counters.ts';
 import { errorType, reasonFor } from './errors.ts';
+import { counterKeys, limitKey, monthOf } from './keys.ts';
 import { normaliseQuestion } from './normalise.ts';
 import { correctionTurn, PROMPT_VERSION, questionTurn, requestParams, schemaHash8 } from './prompt.ts';
 import type { AskOutput } from './prompt.ts';
-import { QUESTION_LENGTH } from './question.ts';
+import { readQuestion } from './question.ts';
 import { retryAfter, StoreError } from './redis.ts';
 import { TTL } from './storage.ts';
 import type { Store } from './redis.ts';
@@ -24,8 +24,6 @@ import { explanationProblem, validateSql } from './validate-sql.ts';
 export const DEADLINE_MS = FUNCTION_SECONDS * 1000 - 3_000;
 // A corrective retry is a second attempt with its own timeout, so it only starts with this much left.
 const RETRY_NEEDS_MS = MODEL.timeoutMs + 1_000;
-
-export { QUESTION_LENGTH };
 
 export type AskRequest = ReturnType<typeof requestParams>;
 export type ModelReply = Pick<ParsedMessage<AskOutput>, 'parsed_output' | 'stop_reason'>;
@@ -59,25 +57,9 @@ export interface AskResult {
 
 const unusable = { error: 'unusable_output' };
 
-export function readQuestion(body: unknown): string | null {
-  if (body === null || typeof body !== 'object' || Array.isArray(body)) return null;
-  const value = (body as { question?: unknown }).question;
-  if (typeof value !== 'string') return null;
-  const question = value.trim();
-  return question.length >= QUESTION_LENGTH.min && question.length <= QUESTION_LENGTH.max ? question : null;
-}
-
 export function cacheKey(env: string, question: string): string {
   const digest = createHash('sha256').update(normaliseQuestion(question)).digest('hex');
   return `ask:${env}:cache:v${PROMPT_VERSION}:${schemaHash8}:${digest}`;
-}
-
-// The rate limiter's key for an address. A plain hash of an IPv4 address can be reversed by
-// hashing every address in turn; keyed with a secret, the stored key cannot be matched back to
-// an address without the secret. The storage table's "scrambled form of your address" relies on
-// this, so a change here changes that row.
-export function limitKey(secret: string, ip: string): string {
-  return createHmac('sha256', secret).update(ip).digest('hex');
 }
 
 export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promise<AskResult> {

@@ -1,8 +1,8 @@
 import { createHmac } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { AskConfig } from '../src/lib/ask/config.ts';
-import { limitKey } from '../src/lib/ask/handler.ts';
 import type { AskResult, LogEntry } from '../src/lib/ask/handler.ts';
+import { limitKey } from '../src/lib/ask/keys.ts';
 import { StoreError } from '../src/lib/ask/redis.ts';
 import type { SentQuestion, Store } from '../src/lib/ask/redis.ts';
 import { handleSend, mintToken, SEND, tokenKey, tokenValid, withToken } from '../src/lib/ask/send.ts';

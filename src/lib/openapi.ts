@@ -2,7 +2,7 @@
 // (one component per table, every column with its type and description) and the endpoint list,
 // so the API loads into any client that reads OpenAPI. Paths are the exact ones the files are
 // served at, .json suffix included.
-import { QUESTION_LENGTH } from './ask/handler.ts';
+import { QUESTION_LENGTH } from './ask/question.ts';
 import { SEND, SEND_DESCRIPTION } from './ask/send.ts';
 import { RATE_LIMIT } from './ask/storage.ts';
 import { endpoints } from './endpoints.ts';

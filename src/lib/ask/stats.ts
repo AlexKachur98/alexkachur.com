@@ -1,7 +1,7 @@
 // GET /api/stats as a function over injected pieces (store, clock, build values) so every branch
 // can be tested with fakes. One MGET reads both counters; nothing here increments anything.
 import type { AskConfig } from './config.ts';
-import { counterKeys, monthOf } from './counters.ts';
+import { counterKeys, monthOf } from './keys.ts';
 import { StoreError } from './redis.ts';
 import type { Store } from './redis.ts';
 import { STATS_CACHE } from './storage.ts';

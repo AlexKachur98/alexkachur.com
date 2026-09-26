@@ -3,6 +3,7 @@
 // with a fake.
 import { Ratelimit } from '@upstash/ratelimit';
 import type { Redis } from '@upstash/redis';
+import { limitPrefix } from './keys.ts';
 import { RATE_LIMIT } from './storage.ts';
 
 export interface CacheEntry {
@@ -73,7 +74,7 @@ export function redisStore(env: string, redis: Redis): Store {
   const limiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, `${RATE_LIMIT.windowSeconds} s`),
-    prefix: `ask:${env}:limit`,
+    prefix: limitPrefix(env),
     ephemeralCache: false,
     analytics: false,
     timeout: 0,

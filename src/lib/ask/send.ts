@@ -5,9 +5,9 @@
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 import type { AskConfig } from './config.ts';
 import { errorType } from './errors.ts';
-import { limitKey, readQuestion } from './handler.ts';
 import type { AskResult, LogEntry } from './handler.ts';
-import { normaliseQuestion } from './normalise.ts';
+import { limitKey, questionKey, sentDayKey } from './keys.ts';
+import { readQuestion } from './question.ts';
 import { retryAfter, StoreError } from './redis.ts';
 import type { Store } from './redis.ts';
 import { DAY, keptFor, TTL } from './storage.ts';
@@ -104,12 +104,11 @@ export async function handleSend(body: unknown, ip: string, deps: SendDeps): Pro
     // One clock reading for the day's count, the stored date and the expiry, so a send that
     // crosses midnight cannot land in two days.
     const day = dayOf(started);
-    const dayKey = `ask:${config.env}:sent:${day.date}`;
+    const dayKey = sentDayKey(config.env, day.date);
     // A full day opens again at the next UTC midnight.
     if ((await store.peek(dayKey)) >= SEND.dailyCap) return { ...done(429, { error: 'daily_cap' }, 'daily_cap'), headers: retryAfter((day.start + DAY) * 1000, started) };
     // Keyed by the question, so the same question sent again is stored once and its expiry kept.
-    const key = `ask:${config.env}:question:${createHash('sha256').update(normaliseQuestion(question)).digest('hex')}`;
-    const written = await store.save(key, { question, date: day.date }, day.start + TTL.sentQuestion);
+    const written = await store.save(questionKey(config.env, question), { question, date: day.date }, day.start + TTL.sentQuestion);
     // Counted only when stored, so replaying one token cannot use up the day. Sends of different
     // questions at the same moment can each pass the check above, so the count can end a few over
     // the cap; each of those needed a question of its own asked first.

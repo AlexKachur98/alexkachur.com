@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AskConfig } from '../src/lib/ask/config.ts';
-import { counterKeys, monthOf } from '../src/lib/ask/counters.ts';
+import { counterKeys, monthOf } from '../src/lib/ask/keys.ts';
 import { skippedStore, StoreError } from '../src/lib/ask/redis.ts';
 import type { Store } from '../src/lib/ask/redis.ts';
 import { handleStats, STATS_CACHE_CONTROL } from '../src/lib/ask/stats.ts';
