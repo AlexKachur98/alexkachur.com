@@ -32,11 +32,10 @@ const schemaTable = new RegExp(`\\b(${BANNED_WORDS.filter((word) => word.startsW
 // The one write statement a WITH clause can introduce that no banned word catches.
 const replaceInto = /\bREPLACE\s+INTO\b/i;
 
-// Rewrites the quoted regions of a statement. String literals always become a space; quoted
-// identifiers (double quotes, backticks, brackets) become a space too unless keepIdentifiers
-// is set, when only their quote characters go and the name inside stays visible. Returns null
-// when a quote never closes.
-function rewriteQuoted(sql: string, keepIdentifiers: boolean): string | null {
+// Rewrites the quoted regions of a statement: string literals and quoted identifiers (double
+// quotes, backticks, brackets) each become a space, or with keepText only their quote characters
+// go and the text inside stays visible. Returns null when a quote never closes.
+function rewriteQuoted(sql: string, keepText: boolean): string | null {
   let out = '';
   let i = 0;
   while (i < sql.length) {
@@ -59,7 +58,7 @@ function rewriteQuoted(sql: string, keepIdentifiers: boolean): string | null {
       j = end + 1;
       break;
     }
-    out += keepIdentifiers && ch !== "'" ? ` ${sql.slice(i + 1, j - 1)} ` : ' ';
+    out += keepText ? ` ${sql.slice(i + 1, j - 1)} ` : ' ';
     i = j;
   }
   return out;
@@ -85,8 +84,8 @@ export function precheck(input: string): Validation {
   if (!/^(SELECT|WITH)\b/i.test(bare)) return lexical('the statement must start with SELECT or WITH');
   const hit = banned.exec(bare) ?? replaceInto.exec(bare);
   if (hit) return lexical(`${hit[1] ?? 'REPLACE INTO'} is not allowed`);
-  // A quoted "sqlite_master" is still that table to the engine, so the schema tables are
-  // checked again with identifier quotes removed.
+  // A quoted "sqlite_master" is still that table to the engine, and so is 'sqlite_master' where
+  // only a name fits, so the schema tables are checked again with every quote removed.
   const quoted = schemaTable.exec(rewriteQuoted(sql, true) ?? '');
   if (quoted) return lexical(`${quoted[1]} is not allowed`);
   return { ok: true, sql };

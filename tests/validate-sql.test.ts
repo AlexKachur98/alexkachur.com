@@ -136,7 +136,15 @@ describe('validateSql rejects at the lexical stage', () => {
     expect(check('SELECT * FROM [sqlite_master]')).toEqual(lexical('sqlite_master is not allowed'));
     expect(check('SELECT * FROM `sqlite_schema`')).toEqual(lexical('sqlite_schema is not allowed'));
     expect(check('SELECT sql FROM main."sqlite_temp_master"')).toEqual(lexical('sqlite_temp_master is not allowed'));
-    expect(check("SELECT 'sqlite_master' AS t FROM projects")).toMatchObject({ ok: true });
+  });
+
+  // SQLite reads a string where only a name fits as that name, so these two would run. Telling
+  // that place from a plain value takes a parser, so the text is refused in any string.
+  it('rejects a schema table named in single quotes, even as a plain value', () => {
+    expect(() => db.prepare("SELECT name FROM 'sqlite_master'").free()).not.toThrow();
+    expect(check("SELECT name FROM 'sqlite_master'")).toEqual(lexical('sqlite_master is not allowed'));
+    expect(check("SELECT name FROM main.'sqlite_schema'")).toEqual(lexical('sqlite_schema is not allowed'));
+    expect(check("SELECT 'sqlite_master' AS t FROM projects")).toEqual(lexical('sqlite_master is not allowed'));
   });
 
   it('rejects REPLACE INTO after a WITH clause but keeps the replace function', () => {
