@@ -269,9 +269,9 @@ describe(`built output in ${root}`, () => {
     expect(api).toMatch(/<section\b[^>]*id="api-questions"/);
     expect(text(api)).toContain(RATE_LIMITS_SENTENCE);
     expect(text(api)).toContain('Replace TOKEN with the token /api/ask returned for that question.');
-    // The index under the lead links every endpoint's section, in page order.
+    // The index under the lead links every endpoint's section, in page order, under the same label.
     const index = api.match(/<nav\b[^>]*\saria-label="Endpoints"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? '';
-    const linked = [...index.matchAll(/<a href="#([^"]+)"[^>]*>([^<]*)<\/a>/g)].map(([, id, label]) => ({ id: id!, label: decode(label!) }));
+    const linked = [...index.matchAll(/<a href="#([^"]+)"[^>]*\saria-label="([^"]*)"/g)].map(([, id, label]) => ({ id: id!, label: decode(label!) }));
     const sections = [...api.matchAll(/<section class="section endpoint"[^>]*\sid="([^"]+)"[^>]*>\s*<h2\b[^>]*aria-label="([^"]*)"/g)].map(([, id, label]) => ({ id: id!, label: decode(label!) }));
     expect(linked.length).toBeGreaterThan(10);
     expect(linked).toEqual(sections);

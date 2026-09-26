@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import BreakablePath from '../../components/BreakablePath.astro';
 import { tables } from '../../content/schemas.ts';
 import schema from '../../generated/schema.json';
 import { chips, storageQuery } from '../../data/examples.ts';
@@ -113,7 +114,9 @@ for (const path of Object.keys(samples)) {
         <ul class="index" role="list">
           {docs.map((endpoint) => (
             <li>
-              <a href={`#${endpointId(endpoint.path)}`}>{endpoint.method} {endpoint.path}</a>
+              <a href={`#${endpointId(endpoint.path)}`} aria-label={`${endpoint.method} ${endpoint.path}`}>
+                {endpoint.method} <BreakablePath path={endpoint.path} />
+              </a>
             </li>
           ))}
         </ul>
@@ -122,9 +125,8 @@ for (const path of Object.keys(samples)) {
     {
       docs.map((endpoint) => (
         <section class="section endpoint" id={endpointId(endpoint.path)}>
-          <!-- Chrome names the heading with a space at each <wbr>, so the label gives the path as written. -->
           <h2 aria-label={`${endpoint.method} ${endpoint.path}`}>
-            {endpoint.method} /{endpoint.path.split('/').slice(1).map((part, index, parts) => (index < parts.length - 1 ? <>{part}/<wbr /></> : part))}
+            {endpoint.method} <BreakablePath path={endpoint.path} />
           </h2>
           {endpoint.description ? (
             <p>{endpoint.description}</p>

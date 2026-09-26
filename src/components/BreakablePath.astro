@@ -1,0 +1,11 @@
+---
+// A path that may wrap after any slash but the first, never inside a name. Chrome names an element
+// with a space at each <wbr>, so the element around a path gives the path as written in its label.
+interface Props {
+  path: string;
+}
+
+const [, ...parts] = Astro.props.path.split('/');
+---
+
+/{parts.map((part, index) => (index < parts.length - 1 ? <>{part}/<wbr /></> : part))}
