@@ -29,12 +29,6 @@ export interface WorkedExample {
   explanation: string;
 }
 
-function example(index: number, explanation: string): WorkedExample {
-  const entry = examples[index];
-  if (!entry) throw new Error(`no example ${index}`);
-  return { question: entry.label, sql: entry.sql.replace(/;$/, ''), explanation };
-}
-
 export const workedExamples: readonly WorkedExample[] = [
   // A broad question gets one row per group and a pointer to the details, and a question naming a
   // group gets its rows, here nine, so the model sees that eight is no limit on a named group.
@@ -57,13 +51,8 @@ export const workedExamples: readonly WorkedExample[] = [
     sql: 'SELECT name, skill_area FROM technologies WHERE core = 1 ORDER BY skill_area, name',
     explanation: 'Lists the technologies Alex counts as core skills, with the skill area of each.',
   },
-  example(0, 'Lists the projects Alex was paid for, with the client, the start year and the live URL.'),
-  example(1, 'Lists the projects where a language model does real work, with what it does in each.'),
-  example(2, "Lists Alex's past jobs, the ones that have ended, with dates and a summary of each."),
-  example(3, 'Lists what this site stores, how long it keeps each thing and why.'),
-  example(4, 'Counts the projects each technology appears in and keeps the ones used more than once.'),
-  example(5, 'Lists the course codes and names for the Fall 2026 term.'),
-  example(7, 'Reads where Alex is, what he is doing now and when he is available from the facts table.'),
+  // The console's examples that carry an explanation, in their order.
+  ...examples.flatMap(({ label, sql, explanation }) => (explanation ? [{ question: label, sql: sql.replace(/;$/, ''), explanation }] : [])),
   // Here "where" is the school rather than the city, so the model sees both readings of the word.
   {
     question: 'What is Alex studying and where?',
