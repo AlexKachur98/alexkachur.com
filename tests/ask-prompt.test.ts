@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import schema from '../src/generated/schema.json';
 import { openDatabase } from '../src/lib/ask/db.ts';
@@ -105,6 +106,10 @@ describe('systemPrompt', () => {
       expect(prompt).toContain(questionTurn(entry.question));
       expect(prompt).toContain(entry.explanation);
     }
+  });
+
+  it('sends as many worked examples as the write-up says', () => {
+    expect(readFileSync('src/content/pages/how-this-site-works.md', 'utf8')).toContain(`and ${workedExamples.length} worked examples.`);
   });
 
   it('states the refusal rule', () => {
