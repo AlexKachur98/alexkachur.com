@@ -46,7 +46,7 @@ describe('the questions on answering at the right level', () => {
       expect(check(question, technologies), question).toBeNull();
     }
     for (const question of ['What does Alex use?', 'Tell me about the things Alex uses.', 'What does Alex use for work and play?']) expect(check(question, uses), question).toBeNull();
-    // Leaving out what Alex is learning is an honest reading of a question about what he uses.
+    // Leaving out Learning is a fair reading of a question about what is in use.
     expect(check('What does Alex use?', "SELECT section, COUNT(*) AS items FROM uses WHERE section <> 'Learning' GROUP BY section")).toBeNull();
     expect(check('What games does Alex play?', "SELECT category, name, note FROM interests WHERE area = 'Games' ORDER BY id")).toBeNull();
     expect(check('What games does Alex play?', "SELECT name, note FROM interests WHERE category = 'video game'")).toBeNull();

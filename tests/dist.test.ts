@@ -13,9 +13,7 @@ import { usesQuery } from '../src/lib/uses-query.ts';
 import { pageFiles, recordedEval, siteNumbers } from '../scripts/build-db.ts';
 import { walk } from './helpers.ts';
 
-// The build output test: no HTML comment and no TODO marker anywhere, every link into the two
-// immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
-// first (pretest), so the tree is the current one.
+// Checks on the built site. npm test builds first (pretest), so the tree is the current one.
 const root = 'dist/client';
 if (!existsSync(join(root, 'index.html'))) throw new Error('no build output: run npm run build first');
 
@@ -108,8 +106,8 @@ describe(`built output in ${root}`, () => {
     expect(offenders).toEqual([]);
   });
 
-  // A section whose only content is a note to me is left out until it has copy; a heading with
-  // nothing after it means one slipped through.
+  // A section whose only content is a TODO note is left out; a heading with nothing after it means
+  // one slipped through.
   it('renders no section heading with nothing after it', () => {
     const bare = files
       .filter((path) => path.endsWith('.html'))
@@ -156,9 +154,7 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  // A project has a case study under /work/ unless another page covers it; then its old address
-  // redirects there for good, with no page of its own in the build.
-  it('links back to the work list from every case study pager, between Previous and Next', () => {
+  it('builds every case study page and redirects a project another page covers', () => {
     const projects = (db.exec('SELECT slug, page FROM projects ORDER BY id')[0]!.values as string[][]).map(([slug, page]) => ({ slug: slug!, page: page! }));
     const studies = pages.filter(({ url }) => url.startsWith('/work/'));
     expect(studies.map(({ url }) => url).sort()).toEqual(projects.map(({ page }) => page).filter((page) => page.startsWith('/work/')).sort());
@@ -169,6 +165,11 @@ describe(`built output in ${root}`, () => {
       expect(routes.find((route) => route.src === `^/work/${slug}$`), slug).toMatchObject({ status: 301, headers: { Location: page } });
       expect(pages.some(({ url }) => url === page), slug).toBe(true);
     }
+  });
+
+  it('links back to the work list from every case study pager, between Previous and Next', () => {
+    const studies = pages.filter(({ url }) => url.startsWith('/work/'));
+    expect(studies.length).toBeGreaterThan(0);
     for (const { url, html } of studies) {
       const pager = html.match(/<nav\b[^>]*\saria-label="Case studies"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? '';
       expect(pager, url).toMatch(/<a\b[^>]*\shref="\/#work"[^>]*>All work<\/a>/);
@@ -189,9 +190,8 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  // Every same-site link lands somewhere: a file in the build (the path, path/index.html or
-  // path.html), an on-demand endpoint, or a redirect the Vercel config carries; and a link to a
-  // spot on a page names an id that page has, since a missing id opens the page at its top.
+  // Somewhere real is a file in the build (the path, path/index.html or path.html), an on-demand
+  // endpoint or a redirect in the Vercel config. A missing id would open the page at its top.
   it('points every same-site link somewhere real, and every fragment at an id', () => {
     const ids = new Map(pages.map(({ url, html }) => [url, new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(([, id]) => id))]));
     const onDemand = new Set(['/api/ask', '/api/questions', '/api/stats']);
@@ -218,8 +218,7 @@ describe(`built output in ${root}`, () => {
     expect(broken).toEqual([]);
   });
 
-  // The table the storage chip's line links to: the query, then exactly the rows it returns from
-  // the built database.
+  // The table the storage chip's line links to.
   it('shows what is stored on /api as the storage table under the query that reads it', () => {
     const api = pages.find(({ url }) => url === '/api')!.html;
     const block = api.match(/<h3\b[^>]*\sid="what-is-stored"[^>]*>What is stored<\/h3>\s*<pre\b[^>]*><code\b[^>]*>([^<]*)<\/code><\/pre>\s*<div\b([^>]*)>\s*<table\b[^>]*>([\s\S]*?)<\/table>/);
@@ -237,8 +236,6 @@ describe(`built output in ${root}`, () => {
     expect(rows).toEqual(result.values.map((row) => row.map(String)));
   });
 
-  // Sending a question is offered by a block that starts hidden; the page shows it only after a typed
-  // question the site could not answer, and nothing is sent until its button is clicked.
   it('carries the send offer hidden in every Ask box, with its consent line and thanks', () => {
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
@@ -265,7 +262,8 @@ describe(`built output in ${root}`, () => {
     const sections = [...api.matchAll(/<section class="section endpoint"[^>]*\sid="([^"]+)"[^>]*>\s*<h2\b[^>]*aria-label="([^"]*)"/g)].map(([, id, label]) => ({ id: id!, label: decode(label!) }));
     expect(linked.length).toBeGreaterThan(10);
     expect(linked).toEqual(sections);
-    // The on-demand endpoints list the fields of a 200 body and every status, as the OpenAPI document has them.
+    // The on-demand endpoints list the fields of a 200 body and every status, as the OpenAPI
+    // document has them.
     const openapi = JSON.parse(readFileSync(join(root, 'api', 'openapi.json'), 'utf8')) as { paths: Record<string, Record<string, { responses: Record<string, unknown> }>> };
     for (const path of ['/api/ask', '/api/questions', '/api/stats']) {
       const section = api.match(new RegExp(`<section class="section endpoint"[^>]*\\sid="${path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}"[^>]*>([\\s\\S]*?)</section>`))?.[1] ?? '';
@@ -278,8 +276,6 @@ describe(`built output in ${root}`, () => {
     expect(text(api)).toContain('It is kept for 90 days, and no endpoint ever returns it.');
   });
 
-  // The Ask box on the home page and the 404: four chips, the privacy note with no link, and the
-  // storage example's line, hidden until that example runs, linking to the table above.
   it('shows the four chips, the privacy note and the storage line in every Ask box', () => {
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
@@ -300,9 +296,7 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  // The clear control sits in the question field's box after the input, starts hidden, is a button
-  // of its own type so Enter still asks, stays out of the Tab order, and takes its name from hidden
-  // words beside the glyph. Ask stays the form's one submit button, after the field.
+  // type="button", so Enter still asks, and out of the Tab order, since Escape does the same.
   it('puts a hidden clear control inside the question field in every Ask box', () => {
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
@@ -320,8 +314,7 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  // The console's Clear follows Run with nothing between them, so Run's box never moves, starts
-  // hidden, and is named Clear query, the shown word first; the 404 page has no console and no Clear.
+  // Nothing between them, so Run never moves. The 404 page has no console and no Clear.
   it("puts the console's Clear, hidden, straight after Run", () => {
     const home = pages.find((page) => page.url === '/')!.html;
     expect(home).toContain(
@@ -343,10 +336,9 @@ describe(`built output in ${root}`, () => {
     }
   });
 
-  // The words saying the results box scrolls start hidden and follow the status region rather than
-  // sit in it, so they are never announced and never join the results' name. Both results boxes
-  // keep the role, name and tab stop a box that scrolls needs; the live one starts hidden, since
-  // the question that names it is empty until one is asked.
+  // After the status region, not inside it, so the scroll words are never announced or part of the
+  // results' name. The live box starts hidden, since the question that names it is empty until one
+  // is asked.
   it('carries the scroll words hidden after the status, and keeps both results boxes focusable regions', () => {
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
@@ -367,8 +359,7 @@ describe(`built output in ${root}`, () => {
     expect(example).toMatch(/\stabindex="0"/);
   });
 
-  // The resume is a document, not a page, so it alone opens a new tab and says so in words a screen
-  // reader reads; every other link keeps the Back button working.
+  // The resume is a document, not a page; every other link keeps the Back button working.
   it('opens the resume, and only the resume, in a new tab, with a warning for screen readers', () => {
     let resumeLinks = 0;
     for (const { url, html } of pages) {
@@ -554,8 +545,6 @@ describe(`built output in ${root}`, () => {
     expect(unversioned).toEqual([]);
   });
 
-  // The example beside the Ask box is answered at build time, so its SQL must be one the site's
-  // own validator accepts, and the page must show exactly the rows the built database gives.
   it('shows the example answer with SQL the validator accepts and the rows the built database gives', () => {
     const home = pages.find(({ url }) => url === '/')!.html;
     const block = home.match(/<div\b[^>]*\sclass="ask-example-answer"[^>]*>([\s\S]*?)<\/table>/)?.[1] ?? '';
@@ -596,8 +585,8 @@ describe(`built output in ${root}`, () => {
     expect(shown).toEqual(rows.map((row) => row.map((value) => (value === null ? 'NULL' : String(value)))));
   });
 
-  // A fixed name is never cached immutable: the /data/ files keep their names, so only a request
-  // that carries a version in its query gets the immutable header; the bare address revalidates.
+  // The /data/ files keep their names, so only a request with a version in its query gets the
+  // immutable header; the bare address revalidates.
   it('makes only /_astro/, /vendor/ and versioned /data/ addresses immutable in vercel.json', () => {
     const config = JSON.parse(readFileSync('vercel.json', 'utf8')) as VercelConfig;
     const immutable = config.headers.filter((rule) => rule.headers.some((header) => header.key === 'Cache-Control' && header.value.includes('immutable')));
@@ -611,19 +600,15 @@ describe(`built output in ${root}`, () => {
     expect(versioned!.headers.find((header) => header.key === 'Cache-Control')?.value).toContain('immutable');
   });
 
-  // Every image is resized when the site is built, so the function behind the on-demand routes
-  // carries no image library and nothing can make it resize an image on request.
+  // Every image is resized at build time, so the server function needs no image library.
   it('ships the server function without an image library', () => {
     const modules = readdirSync('.vercel/output/functions/_render.func/node_modules');
     expect(modules).toContain('@anthropic-ai');
     expect(modules).not.toContain('sharp');
   });
 
-  // The sections table holds each page's text as the page shows it: every section of every case
-  // study but Screenshots, which is the page's own; the About and Now text on the home page; the
-  // 404's heading and lead; and the lead and sections of /how-this-site-works. What only a page
-  // can add, the flow diagram inside What I built and the blocks marked data-page-only, is left
-  // out of the comparison.
+  // What only a page adds is left out of the comparison: Screenshots, the flow diagram inside What
+  // I built and the blocks marked data-page-only.
   it('shows on every page exactly the text its rows in the sections table hold', () => {
     const rows = new Map<string, { heading: string; body: string }[]>();
     for (const [page, heading, body] of db.exec('SELECT page, heading, body FROM sections ORDER BY page, position')[0]!.values as string[][]) {
@@ -665,14 +650,12 @@ describe(`built output in ${root}`, () => {
     expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
   });
 
-  // What only the write-up shows beside its text: the blocks marked data-page-only, the numbers
-  // under its title, links to the build script and the security policy at the built commit, the
-  // cost and Lighthouse sentences filled from the build, and the curl sample with the resume it gets.
   it("shows the write-up's page-only numbers, links and samples from the build", () => {
     const works = pages.find((page) => page.url === '/how-this-site-works')!.html;
     const pageOnly = /<(figure|pre|p|ul|dl|div)\b[^>]*\sdata-page-only\b[^>]*>[\s\S]*?<\/\1>/g;
     expect(works.match(pageOnly)?.length ?? 0).toBeGreaterThanOrEqual(8);
-    // The numbers under the title are the build's, and the build script links to its source at the built commit.
+    // The numbers under the title are the build's, and the build script links to its source at the
+    // built commit.
     const facts = works.match(/<dl class="facts"[^>]*\sdata-page-only[^>]*>([\s\S]*?)<\/dl>/)?.[1] ?? '';
     const pairs = [...facts.matchAll(/<dt[^>]*>([^<]*)<\/dt>\s*<dd[^>]*>([^<]*)<\/dd>/g)].map(([, label, value]) => [decode(label!), decode(value!)]);
     expect(pairs.map(([label]) => label)).toEqual(['Tables', 'Model calls a month, at most', 'Tokens a question sends', 'A month at the cap, at most', 'Eval questions on every push']);
@@ -691,9 +674,6 @@ describe(`built output in ${root}`, () => {
     expect(text(works)).toContain(readFileSync(join(root, 'resume.txt'), 'utf8').split('\n')[0]!);
   });
 
-  // A home page row shows its first screenshot, or the drawing its file names, each under the
-  // same overlay link, with no caption; the drawing is named by the row's sentence and only the
-  // first screenshot loads eagerly.
   it('shows on each Selected work row its screenshot or its drawing, uncaptioned, under one link', () => {
     const projects = (db.exec('SELECT p.page, p.row_image, p.row_image_alt, (SELECT alt FROM project_images i WHERE i.project_id = p.id AND i.position = 1) AS shot FROM projects p ORDER BY p.id')[0]!.values as (string | null)[][]).map(([page, image, alt, shot]) => ({ page: page!, image: image!, alt, shot }));
     const home = pages.find(({ url }) => url === '/')!.html;
@@ -726,8 +706,6 @@ describe(`built output in ${root}`, () => {
     expect(drawn).toBe(2);
   });
 
-  // Each case study's screenshots carry the alt text and caption of its project_images rows,
-  // numbers filled in, so a visitor's query and the page cannot disagree.
   it('captions every case-study screenshot as its project_images row does', () => {
     const rows = db.exec('SELECT p.slug, i.alt, i.caption FROM project_images i JOIN projects p ON p.id = i.project_id ORDER BY p.id, i.position')[0]!.values as (string | null)[][];
     let captioned = 0;
@@ -745,9 +723,7 @@ describe(`built output in ${root}`, () => {
     expect(captioned).toBeGreaterThan(0);
   });
 
-  // The sizes /how-this-site-works gives for the scripts a page loads before interaction are the
-  // built files' own, gzipped as the bootstrap budget above measures them, and the beacon's is
-  // the one measured from the live site.
+  // The beacon's size is the one measured from the live site.
   it('lists the four scripts every page loads first with the sizes of the files in the build', () => {
     const works = pages.find(({ url }) => url === '/how-this-site-works')!.html;
     const list = works.match(/<section class="section"[^>]*\sid="performance"[^>]*>[\s\S]*?<ul\b[^>]*\sdata-page-only\b[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? '';
@@ -786,8 +762,6 @@ describe(`built output in ${root}`, () => {
     expect(uses).toMatch(/<a href="\/api\/uses\.json"[^>]*>\/api\/uses\.json<\/a>/);
   });
 
-  // The numbers a resume bullet, a caption or a page names are filled in by build-db; none may
-  // reach a page, a file or an endpoint as its placeholder.
   it('holds no unfilled number placeholder anywhere', () => {
     const sections = (db.exec('SELECT page, body FROM sections')[0]!.values as string[][]).map(([page, body]) => ({ page: page!, body: body! }));
     const placeholder = new RegExp(`\\{(?:${Object.keys(siteNumbers(sections, recordedEval())).join('|')})\\}`);

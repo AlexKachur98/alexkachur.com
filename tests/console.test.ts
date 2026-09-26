@@ -548,8 +548,6 @@ describe('bringing the answer into sight', () => {
     expect(scrollToShow({ top: -51, bottom: 10 }, sight, 300)).toBe(-67);
   });
 
-  // Bringing the answer into sight scrolls the page only: it never takes focus, and it jumps as the
-  // page does rather than animate.
   it('never moves focus and never animates the scroll', () => {
     const reveal = source.slice(source.indexOf('const REVEAL_DELAY'), source.indexOf('// Clears the Ask panel'));
     expect(reveal.length).toBeGreaterThan(0);
@@ -557,8 +555,7 @@ describe('bringing the answer into sight', () => {
     expect(reveal).not.toContain('behavior');
   });
 
-  // Only a control in the form shown as focused holds the page, and a text box only where the
-  // pointer is a mouse or trackpad: a tap, or a click on a chip, leaves the page free to move.
+  // A text box holds the page only where the pointer is a mouse or trackpad.
   it('holds the page only for a control in the form reached by keyboard', () => {
     const form = { contains: (element: unknown) => (element as { inForm: boolean }).inForm };
     const control = (tagName: string, visible: boolean, inForm = true) => ({ tagName, inForm, matches: (selector: string) => selector === ':focus-visible' && visible }) as unknown as Element;

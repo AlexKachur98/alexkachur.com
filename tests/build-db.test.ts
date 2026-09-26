@@ -549,7 +549,7 @@ describe('build-db', () => {
     expect(query('SELECT page FROM page_images').map((row) => row.page)).toEqual(['/#about', '/404']);
   });
 
-  // The Now text is Alex's prose, but it repeats a fact, so the two must agree.
+  // The Now text repeats a fact, so the two must agree.
   it('names in the Now text the month the facts table says Alex is available from', () => {
     const available = query("SELECT value FROM facts WHERE key = 'available_from'")[0]!.value as string;
     const month = new Date(`${available}-01T00:00:00Z`).toLocaleString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' });

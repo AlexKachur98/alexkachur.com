@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { repoFiles } from './helpers.ts';
 
-// Checks on the style source: type that survives zoom and a larger default text size, and the one
-// hue besides yellow kept inside the dark panels.
+// Checks on the style source: type that survives zoom and a larger default text size, the keyword
+// colour kept to the console panels, and the rules the Ask and console panels depend on.
 
 const files = repoFiles().filter((file) => file !== 'tests/styles.test.ts');
 const styleFiles = files.filter((file) => file.startsWith('src/') && /\.(css|astro)$/.test(file));
@@ -83,8 +83,6 @@ describe('the Ask and console panels', () => {
     expect(askBox.slice(0, wide)).not.toContain('--example-height');
   });
 
-  // The Ask results scroll inside a box only beside the form, on a mouse or trackpad and a window
-  // tall enough; the raw console and everything else keep growing.
   it('caps the Ask results only in the wide, tall, fine-pointer layout', () => {
     expect(consoleCss).not.toMatch(/max-height/);
     const cap = askBox.indexOf('max-height: 25rem;');
