@@ -64,6 +64,9 @@ function fakeStore(): FakeStore {
       store.counters.set(k, counter);
       return counter.value;
     },
+    async release() {
+      throw new Error('send must not take back a count');
+    },
     async counts() {
       throw new Error('send must not read the monthly counters');
     },

@@ -113,8 +113,12 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
     const messages: MessageParam[] = [{ role: 'user', content: questionTurn(question) }];
     let retried = false;
     for (;;) {
-      // Reserve the call before making it: the counter bounds spend exactly, retries and failures included.
-      if ((await store.count(modelKey, TTL.counter)) > config.cap) return done(503, { reason: 'budget' }, 'cap');
+      // Reserve the call before making it: the counter bounds spend exactly, retries and failures
+      // included. A refused reservation is taken back, so the counter holds only calls made.
+      if ((await store.count(modelKey, TTL.counter)) > config.cap) {
+        await store.release(modelKey);
+        return done(503, { reason: 'budget' }, 'cap');
+      }
 
       let reply: ModelReply;
       try {

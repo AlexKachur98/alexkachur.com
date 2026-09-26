@@ -103,6 +103,11 @@ function fakeStore(): FakeStore {
       store.counters.set(key, { value: 1, ttl });
       return 1;
     },
+    async release(key) {
+      store.calls.push(['release', key]);
+      throwIf('release');
+      store.counters.get(key)!.value -= 1;
+    },
     async counts(keys) {
       store.calls.push(['counts', ...keys]);
       throwIf('counts');
@@ -360,6 +365,8 @@ describe('the monthly cap', () => {
     const { result } = await run(QUESTION, { store, model });
     expect(result).toEqual({ status: 503, body: { reason: 'budget' } });
     expect(model.calls).toBe(0);
+    // The refused reservation is taken back, so the counter still holds only the calls made.
+    expect(store.counters.get(MODEL_KEY)?.value).toBe(100);
   });
 
   it('allows the call that lands exactly on the cap', async () => {
@@ -480,7 +487,7 @@ describe('the corrective retry', () => {
     const { result, store } = await run(QUESTION, { model, config: { cap: 1 } });
     expect(result).toEqual({ status: 503, body: { reason: 'budget' } });
     expect(model.calls).toBe(1);
-    expect(store.counters.get(MODEL_KEY)?.value).toBe(2);
+    expect(store.counters.get(MODEL_KEY)?.value).toBe(1);
   });
 });
 

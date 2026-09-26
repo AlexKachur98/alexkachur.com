@@ -37,6 +37,8 @@ export interface Store {
   // INCR; the key's lifetime is set with its first count and never pushed back, so a counter
   // expires on its own.
   count(key: string, ttlSeconds: number): Promise<number>;
+  // DECR, to take back a count that was refused.
+  release(key: string): Promise<void>;
   // MGET of counters, one number per key; a key never incremented reads as 0.
   counts(keys: string[]): Promise<number[]>;
   // A counter's value without changing it; a key never incremented reads as 0.
@@ -105,6 +107,10 @@ export function redisStore(env: string, redis: Redis): Store {
         const [, n] = await redis.multi().set(key, 0, { nx: true, ex: ttlSeconds }).incr(key).exec<[unknown, number]>();
         return n;
       }),
+    release: (key) =>
+      guard(async () => {
+        await redis.decr(key);
+      }),
     counts: (keys) =>
       guard(async () => {
         const values = await redis.mget<(number | string | null)[]>(...keys);
@@ -126,6 +132,7 @@ export function skippedStore(): Store {
     read: async () => null,
     write: async () => {},
     count: async () => 0,
+    release: async () => {},
     counts: async (keys) => keys.map(() => 0),
     peek: async () => 0,
     save: async () => false,
