@@ -2,8 +2,12 @@
 // is inlined at build time and a missing variable reaches the config branch instead of throwing
 // at module load.
 
-// The model id and its output budget live together so a swap touches one place.
-export const MODEL = { id: 'claude-haiku-4-5', maxTokens: 512 } as const;
+// The model id, its output budget and the time one call may take live together so a swap touches
+// one place.
+export const MODEL = { id: 'claude-haiku-4-5', maxTokens: 512, timeoutMs: 15_000 } as const;
+
+// The on-demand function's time limit on Vercel, set in astro.config.mjs.
+export const FUNCTION_SECONDS = 30;
 
 export const DEFAULT_CAP = 2000;
 

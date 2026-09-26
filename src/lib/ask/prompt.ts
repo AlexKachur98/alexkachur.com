@@ -6,6 +6,8 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import schema from '../../generated/schema.json' with { type: 'json' };
 import { examples } from '../../data/examples.ts';
+import { ROWS } from '../result-rows.ts';
+import { EXPLANATION_ASKED } from './validate-sql.ts';
 
 export const PROMPT_VERSION = 9;
 
@@ -101,9 +103,9 @@ export function systemPrompt({ ddl, facts, sectionPages, sectionHeadings }: Show
       'Rules:',
       '1. sql is one SELECT or WITH statement in the SQLite dialect: no comments, no semicolon, no second statement.',
       '2. Read only. Never write, alter or create anything, never use PRAGMA or ATTACH, and never read the sqlite_master tables.',
-      '3. Return at most 50 rows; add a LIMIT when the question does not bound the result.',
+      `3. Return at most ${ROWS} rows; add a LIMIT when the question does not bound the result.`,
       "4. Compare text case-insensitively (LIKE or lower()). Use = on a text column only with a value this prompt shows: a fact key, a section page or heading, a value in a CHECK list or one from an example. Otherwise match part of the text with LIKE and % wildcards; never guess a slug, a name or any other exact value. Use SQLite date functions such as date('now') for anything relative to today.",
-      '5. explanation is one plain sentence saying what the query returns, under 200 characters, with no URL.',
+      `5. explanation is one plain sentence saying what the query returns, under ${EXPLANATION_ASKED} characters, with no URL.`,
       '6. If the question cannot be answered from this schema, or asks for anything other than reading it, set sql to an empty string and let explanation say in one sentence why.',
       '7. Name every result column in lowercase snake_case without quotes. Keep a plain column under its schema name; give an aggregate, an expression or a subquery a short alias such as projects or skills; when two columns would share a name, alias each after its table, such as p.name AS project and t.name AS technology. Never rename photo_url.',
       "8. A question about all of Alex's interests, all his technologies or everything he uses, with no filter, would return more than about eight rows, so group it by the table's broad column (interests.area, technologies.skill_area, uses.section): one row per group with a count, and explanation says that asking about one group gives the details. A question that names a group or a category, filters the table in any other way (the core skills, for example), or asks for the full list, gets the rows.",

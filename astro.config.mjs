@@ -2,13 +2,14 @@
 import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel';
 import { markdown } from './src/lib/markdown.ts';
+import { FUNCTION_SECONDS } from './src/lib/ask/config.ts';
 import { siteOrigin } from './src/lib/site.ts';
 
 export default defineConfig({
   site: siteOrigin(),
   output: 'static',
   trailingSlash: 'never',
-  adapter: vercel({ maxDuration: 30 }),
+  adapter: vercel({ maxDuration: FUNCTION_SECONDS }),
   build: { inlineStylesheets: 'never' },
   image: { endpoint: { route: '/_image', entrypoint: './src/lib/image-endpoint.ts' } },
   markdown,

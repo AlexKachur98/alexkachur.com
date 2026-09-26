@@ -7,6 +7,7 @@ import { AnthropicError, APIError } from '@anthropic-ai/sdk';
 import type { ParsedMessage } from '@anthropic-ai/sdk/lib/parser';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import type { Database } from 'sql.js';
+import { FUNCTION_SECONDS, MODEL } from './config.ts';
 import type { AskConfig } from './config.ts';
 import { counterKeys, monthOf } from './counters.ts';
 import { errorType, reasonFor } from './errors.ts';
@@ -19,10 +20,10 @@ import { TTL } from './storage.ts';
 import type { Store } from './redis.ts';
 import { explanationProblem, validateSql } from './validate-sql.ts';
 
-// The whole handler must answer inside the function's 30 s; the deadline leaves room to respond.
-export const DEADLINE_MS = 27_000;
+// The whole handler must answer inside the function's time limit; the deadline leaves room to respond.
+export const DEADLINE_MS = FUNCTION_SECONDS * 1000 - 3_000;
 // A corrective retry is a second attempt with its own timeout, so it only starts with this much left.
-const RETRY_NEEDS_MS = 16_000;
+const RETRY_NEEDS_MS = MODEL.timeoutMs + 1_000;
 
 export { QUESTION_LENGTH };
 

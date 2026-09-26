@@ -23,6 +23,9 @@ const BANNED_WORDS = [
   'sqlite_temp_schema',
 ] as const;
 
+// The prompt asks for an explanation under EXPLANATION_ASKED characters, and the check allows a
+// little more, so one that runs slightly long still reaches the visitor.
+export const EXPLANATION_ASKED = 200;
 const EXPLANATION_MAX = 240;
 
 export type Validation = { ok: true; sql: string } | { ok: false; stage: 'lexical' | 'engine'; message: string };

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import Anthropic from '@anthropic-ai/sdk';
-import { readConfig } from '../../lib/ask/config.ts';
+import { MODEL, readConfig } from '../../lib/ask/config.ts';
 import { openDatabase } from '../../lib/ask/db.ts';
 import { env } from '../../lib/ask/env.ts';
 import { DEADLINE_MS, handleAsk } from '../../lib/ask/handler.ts';
@@ -19,7 +19,7 @@ function modelFor(apiKey: string | undefined): ModelCall | null {
     let call: ModelCall | null = null;
     if (apiKey) {
       // No retry inside the SDK: every call has to pass the monthly counter first.
-      const client = new Anthropic({ apiKey, timeout: 15_000, maxRetries: 0 });
+      const client = new Anthropic({ apiKey, timeout: MODEL.timeoutMs, maxRetries: 0 });
       call = (params, options) => client.messages.parse(params, options);
     }
     model = { apiKey, call };

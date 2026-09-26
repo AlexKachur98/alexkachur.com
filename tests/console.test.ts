@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { clearable, clearConsole, createExecutor, guard, markOverflow, onScreen, renderCell, ROWS, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { clearable, clearConsole, createExecutor, guard, markOverflow, onScreen, renderCell, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { ROWS } from '../src/lib/result-rows.ts';
 import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 

@@ -4,6 +4,8 @@
 // paints results into either panel: the raw console and the Ask box, which posts the question
 // to /api/ask and runs the SQL it gets back through the same path.
 import { photoAlt } from '../generated/schema.json';
+import { FUNCTION_SECONDS } from '../lib/ask/config.ts';
+import { ROWS } from '../lib/result-rows.ts';
 
 export type Cell = string | number | null | Uint8Array;
 
@@ -37,11 +39,11 @@ export interface ExecutorOptions {
   load: () => Promise<ArrayBuffer>;
 }
 
-export const ROWS = 50;
 export const THUMB = 48;
+const TIMEOUT_MS = 3000;
 const GUARD_MESSAGE = 'Read-only console: SELECT, WITH and EXPLAIN only.';
-const TIMEOUT_MESSAGE = 'query stopped after 3 s';
-const TRUNCATED_MESSAGE = 'showing 50 of more';
+const TIMEOUT_MESSAGE = `query stopped after ${TIMEOUT_MS / 1000} s`;
+const TRUNCATED_MESSAGE = `showing ${ROWS} of more`;
 // The empty-result sentence is split: its first words go on the status line and the rest under
 // the results, so the status line always fits on one line.
 const EMPTY_STATUS = 'No rows';
@@ -74,7 +76,6 @@ const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven
 export function countWord(n: number): string {
   return NUMBER_WORDS[n] ?? String(n);
 }
-const TIMEOUT_MS = 3000;
 const WORKER_URL = '/console-worker.js';
 const ASK_URL = '/api/ask';
 const SEND_URL = '/api/questions';
@@ -886,13 +887,13 @@ async function sendAsked(): Promise<void> {
 
 async function post(question: string): Promise<Reply | null> {
   try {
-    // The function is stopped at 30 s, so an answer still missing at 35 s is not coming; giving
-    // up frees the box, chips included, and shows the examples.
+    // The function is stopped at its time limit, so an answer still missing five seconds later is
+    // not coming; giving up frees the box, chips included, and shows the examples.
     const response = await fetch(ASK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question }),
-      signal: AbortSignal.timeout(35_000),
+      signal: AbortSignal.timeout((FUNCTION_SECONDS + 5) * 1000),
     });
     return { status: response.status, body: await response.json().catch(() => undefined) };
   } catch {
@@ -975,9 +976,13 @@ export function clearQuestion(field: QuestionField, control: Pick<HTMLElement, '
   control.hidden = true;
 }
 
+// A keydown that belongs to an input method's composition carries this keyCode, even the one
+// that ends it, when isComposing is already false.
+const COMPOSING_KEY_CODE = 229;
+
 // Escape clears only a field with text in it, and never during an input method's composition.
 export function escapeClears(event: ClearKey, value: string): boolean {
-  return event.key === 'Escape' && !event.isComposing && event.keyCode !== 229 && value !== '';
+  return event.key === 'Escape' && !event.isComposing && event.keyCode !== COMPOSING_KEY_CODE && value !== '';
 }
 
 // Typing in the question field, which the bootstrap forwards.

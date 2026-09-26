@@ -4,7 +4,8 @@ import { openDatabase } from '../lib/ask/db.ts';
 import { QUESTION_LENGTH } from '../lib/ask/handler.ts';
 import { keptFor, TTL } from '../lib/ask/storage.ts';
 import { dataFile } from '../lib/data-file.ts';
-import { ROWS, THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/console.ts';
+import { ROWS } from '../lib/result-rows.ts';
+import { THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/console.ts';
 import type { Cell, Result } from '../scripts/console.ts';
 import '../styles/console.css';
 

@@ -15,13 +15,14 @@ import initSqlJs from 'sql.js';
 import type { Database } from 'sql.js';
 import { portfolioDbBase64 } from '../src/generated/portfolio-db.ts';
 import { sqlWasmBase64 } from '../src/generated/sql-wasm.ts';
-import { readConfig } from '../src/lib/ask/config.ts';
+import { MODEL, readConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { AskResult, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
 import { PRICE } from '../src/lib/ask/pricing.ts';
 import { PROMPT_VERSION, schemaHash8 } from '../src/lib/ask/prompt.ts';
 import { skippedStore } from '../src/lib/ask/redis.ts';
+import { ROWS } from '../src/lib/result-rows.ts';
 import { questions } from './eval/questions.ts';
 import type { EvalQuestion } from './eval/questions.ts';
 
@@ -48,8 +49,8 @@ interface Fixture {
 
 type Kind = 'sql' | 'refusal' | 'error';
 
-// The console steps one row past the 50 it shows, so a check sees exactly what a visitor would.
-const ROW_LIMIT = 51;
+// The console steps one row past the ones it shows, so a check sees exactly what a visitor would.
+const ROW_LIMIT = ROWS + 1;
 
 const mode = process.argv.includes('--record') ? 'record' : process.argv.includes('--live') ? 'live' : 'replay';
 const fixturePath = resolve('scripts/eval/fixtures.json');
@@ -194,7 +195,7 @@ function printStats(model: string, results: RecordedQuestion[], calls: number): 
   const perCall = (value: number) => (replies.length > 0 ? Math.round(value / replies.length) : 0);
   console.log(`model calls ${calls}, input tokens ${input}, output tokens ${output}`);
   console.log(
-    model.startsWith('claude-haiku-4-5')
+    model.startsWith(MODEL.id)
       ? `cost ${((input * PRICE.input + output * PRICE.output) / 1e6).toFixed(4)} USD`
       : `cost not known for ${model}`,
   );
@@ -215,7 +216,7 @@ async function main(): Promise<number> {
     if (problem) return complain(problem);
   } else {
     if (!config.apiKey) return complain('ANTHROPIC_API_KEY is not set');
-    client = new Anthropic({ apiKey: config.apiKey, timeout: 15_000, maxRetries: 1 });
+    client = new Anthropic({ apiKey: config.apiKey, timeout: MODEL.timeoutMs, maxRetries: 1 });
   }
   const recordedFor = new Map((fixture?.questions ?? []).map((entry) => [entry.question, entry]));
   const db = await openDatabase();
