@@ -166,14 +166,16 @@ li {
   margin-bottom: var(--space-1);
 }
 
-/* Code blocks: the curl examples and the JSON previews on /api, the one-liner on /how-this-site-works. */
+/* Code blocks: commands, queries and JSON. A long line wraps, breaking inside a word if it must,
+   rather than scroll sideways: a box that scrolls needs a Tab stop to be read with a keyboard. */
 pre {
   margin: 0 0 var(--space-4);
   padding: var(--space-3);
-  overflow-x: auto;
   border: 1px solid var(--rule);
   background: var(--surface);
   font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 figure img {
