@@ -185,10 +185,10 @@ const shapes: Record<string, JsonSchema> = {
       cached: { type: 'boolean', description: 'True when the answer came from the cache rather than the model' },
       token: {
         type: 'string',
-        description: `Lets the visitor send this question to Alex through /api/questions within ${SEND.windowSeconds / 60} minutes`,
+        description: `Lets the visitor send this question to Alex through /api/questions within ${SEND.windowSeconds / 60} minutes; absent when the question holds a control or text-direction character, which that endpoint refuses`,
       },
     },
-    required: ['sql', 'explanation', 'cached', 'token'],
+    required: ['sql', 'explanation', 'cached'],
   },
   send_request: {
     type: 'object',

@@ -131,7 +131,8 @@ describe('the OpenAPI document', () => {
     expect(request.properties.question.maxLength).toBe(200);
     expect(request.required).toEqual(['question']);
     const answer = schemas['ask_answer'] as { required: string[] };
-    expect(answer.required).toEqual(['sql', 'explanation', 'cached', 'token']);
+    // The token is left out of an answer to a question that /api/questions would refuse.
+    expect(answer.required).toEqual(['sql', 'explanation', 'cached']);
     const unavailable = schemas['unavailable'] as { properties: { reason: { enum: string[] } } };
     expect(unavailable.properties.reason.enum).toEqual(['budget', 'config', 'upstream']);
   });
