@@ -15,7 +15,8 @@ import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { cacheKey, handleAsk } from '../src/lib/ask/handler.ts';
 import { limitKey } from '../src/lib/ask/keys.ts';
-import type { AskDeps, AskRequest, AskResult, LogEntry, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
+import type { AskDeps, AskRequest, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
+import type { EndpointResult, LogEntry } from '../src/lib/ask/result.ts';
 import { StoreError } from '../src/lib/ask/redis.ts';
 import type { CacheEntry, Store } from '../src/lib/ask/redis.ts';
 import { stored } from '../src/lib/ask/storage.ts';
@@ -172,7 +173,7 @@ interface Overrides {
 }
 
 interface Run {
-  result: AskResult;
+  result: EndpointResult;
   store: FakeStore;
   model: FakeModel;
   logs: LogEntry[];

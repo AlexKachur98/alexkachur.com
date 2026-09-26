@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { AskConfig } from '../src/lib/ask/config.ts';
-import type { AskResult, LogEntry } from '../src/lib/ask/handler.ts';
+import type { EndpointResult, LogEntry } from '../src/lib/ask/result.ts';
 import { limitKey } from '../src/lib/ask/keys.ts';
 import { StoreError } from '../src/lib/ask/redis.ts';
 import type { SentQuestion, Store } from '../src/lib/ask/redis.ts';
@@ -133,7 +133,7 @@ describe('the send token', () => {
   });
 
   it('is added to every 200 from /api/ask, and to nothing else', () => {
-    const answer: AskResult = { status: 200, body: { sql: '', explanation: 'No salary data.', cached: true } };
+    const answer: EndpointResult = { status: 200, body: { sql: '', explanation: 'No salary data.', cached: true } };
     const withIt = withToken(answer, { question: `  ${QUESTION}  ` }, config, NOW);
     expect(tokenValid(key, QUESTION, withIt.body.token, NOW)).toBe(true);
     expect(withToken({ status: 429, body: { error: 'rate_limited' } }, { question: QUESTION }, config, NOW).body).not.toHaveProperty('token');

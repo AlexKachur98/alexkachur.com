@@ -4,7 +4,8 @@ import { MODEL, readConfig } from '../../lib/ask/config.ts';
 import { openDatabase } from '../../lib/ask/db.ts';
 import { env } from '../../lib/ask/env.ts';
 import { DEADLINE_MS, handleAsk } from '../../lib/ask/handler.ts';
-import type { LogEntry, ModelCall } from '../../lib/ask/handler.ts';
+import type { ModelCall } from '../../lib/ask/handler.ts';
+import { logFailure, readBody, respond } from '../../lib/ask/result.ts';
 import { withToken } from '../../lib/ask/send.ts';
 import { storeFor } from '../../lib/ask/store.ts';
 
@@ -27,26 +28,17 @@ function modelFor(apiKey: string | undefined): ModelCall | null {
   return model.call;
 }
 
-function log(entry: LogEntry): void {
-  if (entry.status < 400) return;
-  console.warn(JSON.stringify(entry));
-}
-
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const config = readConfig(env);
-  const body: unknown = await request.json().catch(() => undefined);
+  const body = await readBody(request);
   const answered = await handleAsk(body, clientAddress, {
     config,
     store: storeFor(config, import.meta.env.DEV),
     model: modelFor(config.apiKey),
     db: await openDatabase(),
     signal: AbortSignal.timeout(DEADLINE_MS),
-    log,
+    log: logFailure,
   });
   // Every answer carries a token that lets the visitor send the question to Alex for ten minutes.
-  const result = withToken(answered, body, config, Date.now());
-  return new Response(JSON.stringify(result.body), {
-    status: result.status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...result.headers },
-  });
+  return respond(withToken(answered, body, config, Date.now()));
 };

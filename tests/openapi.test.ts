@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AskConfig } from '../src/lib/ask/config.ts';
 import { skippedStore } from '../src/lib/ask/redis.ts';
+import { respond } from '../src/lib/ask/result.ts';
 import { handleStats } from '../src/lib/ask/stats.ts';
 import { tables } from '../src/content/schemas.ts';
 import { endpoints } from '../src/lib/endpoints.ts';
@@ -149,7 +150,7 @@ describe('the OpenAPI document', () => {
 
   it('describes the stats body with exactly the fields the endpoint returns', async () => {
     const config: AskConfig = { env: 'test', model: 'm', maxTokens: 512, cap: 2000, apiKey: undefined, limitSecret: undefined, redis: null };
-    const response = await handleStats({ config, store: skippedStore(), build: { commit: 'abc1234', builtAt: '2026-10-02T08:00:00.000Z' } });
+    const response = respond(await handleStats({ config, store: skippedStore(), build: { commit: 'abc1234', builtAt: '2026-10-02T08:00:00.000Z' } }));
     const body = (await response.json()) as Record<string, unknown>;
     const stats = schemas['stats'] as { properties: Record<string, unknown>; required: string[] };
     expect(Object.keys(stats.properties).sort()).toEqual(Object.keys(body).sort());

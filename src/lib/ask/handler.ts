@@ -2,7 +2,6 @@
 // clock, deadline) so every branch can be tested with fakes. Order: input, kill switch, rate
 // limit, cache, cap, model, validation. Nothing here logs or returns the question text or the
 // visitor's address, and the address reaches the store only as limitKey's keyed hash.
-import { createHash } from 'node:crypto';
 import { AnthropicError, APIError } from '@anthropic-ai/sdk';
 import type { ParsedMessage } from '@anthropic-ai/sdk/lib/parser';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
@@ -10,14 +9,14 @@ import type { Database } from 'sql.js';
 import { FUNCTION_SECONDS, MODEL } from './config.ts';
 import type { AskConfig } from './config.ts';
 import { errorType, reasonFor } from './errors.ts';
-import { counterKeys, limitKey, monthOf } from './keys.ts';
-import { normaliseQuestion } from './normalise.ts';
+import { counterKeys, limitKey, monthOf, questionDigest } from './keys.ts';
 import { correctionTurn, PROMPT_VERSION, questionTurn, requestParams, schemaHash8 } from './prompt.ts';
 import type { AskOutput } from './prompt.ts';
 import { readQuestion } from './question.ts';
-import { retryAfter, StoreError } from './redis.ts';
-import { TTL } from './storage.ts';
 import type { Store } from './redis.ts';
+import { failed, finisher, rateLimited } from './result.ts';
+import type { EndpointResult, LogEntry } from './result.ts';
+import { TTL } from './storage.ts';
 import { explanationProblem, validateSql } from './validate-sql.ts';
 
 // The whole handler must answer inside the function's time limit; the deadline leaves room to respond.
@@ -28,13 +27,6 @@ const RETRY_NEEDS_MS = MODEL.timeoutMs + 1_000;
 export type AskRequest = ReturnType<typeof requestParams>;
 export type ModelReply = Pick<ParsedMessage<AskOutput>, 'parsed_output' | 'stop_reason'>;
 export type ModelCall = (params: AskRequest, options: { signal: AbortSignal }) => Promise<ModelReply>;
-
-export interface LogEntry {
-  status: number;
-  errorType: string | null;
-  requestId: string | null;
-  latencyMs: number;
-}
 
 export interface AskDeps {
   config: AskConfig;
@@ -48,27 +40,16 @@ export interface AskDeps {
   log: (entry: LogEntry) => void;
 }
 
-export interface AskResult {
-  status: number;
-  body: Record<string, unknown>;
-  // Headers beyond the fixed ones: a 429 carries Retry-After.
-  headers?: Record<string, string>;
-}
-
 const unusable = { error: 'unusable_output' };
 
 export function cacheKey(env: string, question: string): string {
-  const digest = createHash('sha256').update(normaliseQuestion(question)).digest('hex');
-  return `ask:${env}:cache:v${PROMPT_VERSION}:${schemaHash8}:${digest}`;
+  return `ask:${env}:cache:v${PROMPT_VERSION}:${schemaHash8}:${questionDigest(question)}`;
 }
 
-export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promise<AskResult> {
+export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promise<EndpointResult> {
   const now = deps.now ?? Date.now;
   const start = now();
-  const done = (status: number, result: Record<string, unknown>, type: string | null = null, requestId: string | null = null): AskResult => {
-    deps.log({ status, errorType: type, requestId, latencyMs: now() - start });
-    return { status, body: result };
-  };
+  const done = finisher(deps.log, now, start);
 
   const question = readQuestion(body);
   if (question === null) return done(400, { error: 'invalid_question' }, 'input');
@@ -80,7 +61,7 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
 
   try {
     const allowance = await store.allow(limitKey(config.limitSecret, ip));
-    if (!allowance.allowed) return { ...done(429, { error: 'rate_limited' }, 'rate_limit'), headers: retryAfter(allowance.resetAt, now()) };
+    if (!allowance.allowed) return rateLimited(done, allowance.resetAt, now());
 
     const { asked: askedKey, model: modelKey } = counterKeys(config.env, monthOf(now()));
     const key = cacheKey(config.env, question);
@@ -141,7 +122,6 @@ export async function handleAsk(body: unknown, ip: string, deps: AskDeps): Promi
       return done(422, unusable, `validator_${checked.stage}`);
     }
   } catch (error) {
-    if (error instanceof StoreError) return done(503, { reason: 'upstream' }, error.name);
-    return done(500, { error: 'internal' }, errorType(error));
+    return failed(done, error);
   }
 }

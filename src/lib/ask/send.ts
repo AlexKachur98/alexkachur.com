@@ -4,12 +4,12 @@
 // be stored. Nothing here stores or logs the visitor's address or any hash of it.
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 import type { AskConfig } from './config.ts';
-import { errorType } from './errors.ts';
-import type { AskResult, LogEntry } from './handler.ts';
 import { limitKey, questionKey, sentDayKey } from './keys.ts';
 import { readQuestion } from './question.ts';
-import { retryAfter, StoreError } from './redis.ts';
+import { retryAfter } from './redis.ts';
 import type { Store } from './redis.ts';
+import { failed, finisher, rateLimited } from './result.ts';
+import type { EndpointResult, LogEntry } from './result.ts';
 import { DAY, keptFor, TTL } from './storage.ts';
 
 // How long after an answer its question can be sent, and how far ahead of this server's clock a
@@ -57,7 +57,7 @@ export function tokenValid(key: Buffer, question: string, token: unknown, nowMs:
 // Adds the token to a 200 from /api/ask, cached answers and refusals included. It is minted per
 // response and never cached. A question /api/questions would refuse gets none, so the page never
 // offers to send it.
-export function withToken(result: AskResult, body: unknown, config: AskConfig, nowMs: number): AskResult {
+export function withToken(result: EndpointResult, body: unknown, config: AskConfig, nowMs: number): EndpointResult {
   const question = readQuestion(body);
   if (result.status !== 200 || question === null || UNPRINTABLE.test(question) || !config.limitSecret) return result;
   return { ...result, body: { ...result.body, token: mintToken(tokenKey(config.limitSecret, config.env), question, nowMs) } };
@@ -76,13 +76,10 @@ function dayOf(nowMs: number): { date: string; start: number } {
   return { date, start: Date.parse(`${date}T00:00:00Z`) / 1000 };
 }
 
-export async function handleSend(body: unknown, ip: string, deps: SendDeps): Promise<AskResult> {
+export async function handleSend(body: unknown, ip: string, deps: SendDeps): Promise<EndpointResult> {
   const now = deps.now ?? Date.now;
   const started = now();
-  const done = (status: number, result: Record<string, unknown>, type: string | null = null): AskResult => {
-    deps.log({ status, errorType: type, requestId: null, latencyMs: now() - started });
-    return { status, body: result };
-  };
+  const done = finisher(deps.log, now, started);
 
   const question = readQuestion(body);
   if (question === null || UNPRINTABLE.test(question)) {
@@ -100,7 +97,7 @@ export async function handleSend(body: unknown, ip: string, deps: SendDeps): Pro
 
   try {
     const allowance = await store.allow(limitKey(config.limitSecret, ip));
-    if (!allowance.allowed) return { ...done(429, { error: 'rate_limited' }, 'rate_limit'), headers: retryAfter(allowance.resetAt, now()) };
+    if (!allowance.allowed) return rateLimited(done, allowance.resetAt, now());
     // One clock reading for the day's count, the stored date and the expiry, so a send that
     // crosses midnight cannot land in two days.
     const day = dayOf(started);
@@ -116,8 +113,7 @@ export async function handleSend(body: unknown, ip: string, deps: SendDeps): Pro
     // The same answer whether or not someone sent the question before, so this reveals nothing.
     return done(200, { sent: true });
   } catch (error) {
-    if (error instanceof StoreError) return done(503, { reason: 'upstream' }, error.name);
-    return done(500, { error: 'internal' }, errorType(error));
+    return failed(done, error);
   }
 }
 

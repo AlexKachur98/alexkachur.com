@@ -31,7 +31,13 @@ export function sentDayKey(env: string, date: string): string {
   return `ask:${env}:sent:${date}`;
 }
 
-// A sent question, keyed by its normalised text, so the same question sent twice is stored once.
+// A question's fingerprint: its normalised text hashed, so two wordings that differ only in case,
+// spacing or closing punctuation share it.
+export function questionDigest(question: string): string {
+  return createHash('sha256').update(normaliseQuestion(question)).digest('hex');
+}
+
+// A sent question, keyed by its fingerprint, so the same question sent twice is stored once.
 export function questionKey(env: string, question: string): string {
-  return `ask:${env}:question:${createHash('sha256').update(normaliseQuestion(question)).digest('hex')}`;
+  return `ask:${env}:question:${questionDigest(question)}`;
 }

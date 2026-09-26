@@ -3,6 +3,7 @@ import type { AskConfig } from '../src/lib/ask/config.ts';
 import { counterKeys, monthOf } from '../src/lib/ask/keys.ts';
 import { skippedStore, StoreError } from '../src/lib/ask/redis.ts';
 import type { Store } from '../src/lib/ask/redis.ts';
+import { respond } from '../src/lib/ask/result.ts';
 import { handleStats, STATS_CACHE_CONTROL } from '../src/lib/ask/stats.ts';
 
 // The same marker convention as the ask handler tests: a leak of the store's failure text into a
@@ -43,7 +44,7 @@ function fakeStore(values: Record<string, number> = {}, failure?: Error): FakeSt
 }
 
 async function stats(store: Store | null, overrides: Partial<AskConfig> = {}) {
-  const response = await handleStats({ config: { ...config, ...overrides }, store, build, now });
+  const response = respond(await handleStats({ config: { ...config, ...overrides }, store, build, now }));
   return { response, body: (await response.json()) as Record<string, unknown> };
 }
 

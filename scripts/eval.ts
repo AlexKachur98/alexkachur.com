@@ -18,10 +18,11 @@ import { sqlWasmBase64 } from '../src/generated/sql-wasm.ts';
 import { MODEL, readConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
-import type { AskResult, ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
+import type { ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
 import { PRICE } from '../src/lib/ask/pricing.ts';
 import { PROMPT_VERSION, schemaHash8 } from '../src/lib/ask/prompt.ts';
 import { skippedStore } from '../src/lib/ask/redis.ts';
+import type { EndpointResult } from '../src/lib/ask/result.ts';
 import { ROWS } from '../src/lib/result-rows.ts';
 import { questions } from './eval/questions.ts';
 import type { EvalQuestion } from './eval/questions.ts';
@@ -36,7 +37,7 @@ interface RecordedReply {
 interface RecordedQuestion {
   question: string;
   replies: RecordedReply[];
-  result: AskResult;
+  result: EndpointResult;
 }
 
 interface Fixture {
@@ -139,14 +140,14 @@ function columnProblem(sql: string, columns: string[], values: unknown[][]): str
   return null;
 }
 
-function kindOf(result: AskResult): Kind {
+function kindOf(result: EndpointResult): Kind {
   if (result.status !== 200) return 'error';
   const { sql } = result.body;
   return sql === '' ? 'refusal' : typeof sql === 'string' ? 'sql' : 'error';
 }
 
 // null when the result meets the question's expectation, otherwise the reason it does not.
-export function checkProblem(entry: EvalQuestion, result: AskResult, db: Database): string | null {
+export function checkProblem(entry: EvalQuestion, result: EndpointResult, db: Database): string | null {
   if (result.status !== 200) return `status ${result.status}: ${String(result.body.reason ?? result.body.error ?? '')}`;
   const kind = kindOf(result);
   if (entry.expect !== 'either' && kind !== entry.expect) return `expected ${entry.expect}, got ${kind}`;
@@ -175,7 +176,7 @@ export function checkProblem(entry: EvalQuestion, result: AskResult, db: Databas
   return null;
 }
 
-function driftNote(fresh: AskResult, recorded: AskResult): string {
+function driftNote(fresh: EndpointResult, recorded: EndpointResult): string {
   if (fresh.status !== recorded.status) return `drift: status was ${recorded.status}`;
   const keys = new Set([...Object.keys(fresh.body), ...Object.keys(recorded.body)]);
   const changed = [...keys].filter((key) => !isDeepStrictEqual(fresh.body[key], recorded.body[key]));
