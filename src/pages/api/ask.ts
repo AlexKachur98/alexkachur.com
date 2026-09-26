@@ -18,7 +18,8 @@ function modelFor(apiKey: string | undefined): ModelCall | null {
   if (!model || model.apiKey !== apiKey) {
     let call: ModelCall | null = null;
     if (apiKey) {
-      const client = new Anthropic({ apiKey, timeout: 15_000, maxRetries: 1 });
+      // No retry inside the SDK: every call has to pass the monthly counter first.
+      const client = new Anthropic({ apiKey, timeout: 15_000, maxRetries: 0 });
       call = (params, options) => client.messages.parse(params, options);
     }
     model = { apiKey, call };
