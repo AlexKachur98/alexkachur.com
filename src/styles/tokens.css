@@ -1,13 +1,8 @@
-/* Design tokens. Components use these and never raw values. */
-
-/* Page colours, declared once with light-dark(). A custom property is never rejected when
-   parsed, so a plain fallback line would not help a browser without light-dark(); the
-   @property registrations at the end of this file carry each token's dark value as
-   initial-value, which is what a browser with @property but without light-dark() (Safari
-   16.4 to 17.4, Chrome 85 to 122) computes instead of dropping the colour. Older Safari has
-   neither and shows unstyled colours. Registration also resolves light-dark() once, on :root,
-   so a page token must never be used inside an element that sets its own color-scheme: the
-   console panel uses its own tokens. */
+/* Page colours, declared once with light-dark(). The @property registrations at the end give each
+   token its dark value as initial-value, which a browser with @property but no light-dark()
+   computes instead; a plain fallback line would not help, since a custom property is never
+   rejected when parsed. Registration resolves light-dark() once, on :root, so the console panel,
+   which sets its own color-scheme, has tokens of its own. */
 :root {
   color-scheme: light dark;
 
@@ -28,8 +23,8 @@
   --hover-ink: light-dark(#F4F1EA, #F3E600);
 }
 
-/* The console panel is dark in both themes. Its own set, never overrides of the page tokens,
-   so no [data-theme] selector reaches it. */
+/* The console panel's own tokens, never overrides of the page's, so no [data-theme] selector
+   reaches them. */
 :root {
   --console-bg: #121212;
   --console-ink: #E6E6E6;
@@ -51,11 +46,9 @@
   color-scheme: dark;
 }
 
-/* Type scale, rem on a 16px base; the heading and lead sizes step up at 768px, 1200px and 1600px.
-   Zooming shrinks the viewport, so a zoomed page can land on a smaller step: at the 500% most
-   browsers allow, the viewport is at most a fifth as wide. Keeping each token's largest step
-   within 2.5 times its smallest means zoomed text still reaches twice its default size. Every
-   step is in rem so it also follows the reader's default text size, which px ignores. */
+/* Type scale in rem, so it follows the reader's default text size. Heading and lead sizes step up
+   at 768px, 1200px and 1600px. Zoom narrows the viewport onto smaller steps, so each token's
+   largest step stays within 2.5 times its smallest: at 500% zoom, text still reaches double. */
 :root {
   --text-xs: 0.8125rem;
   --text-sm: 0.875rem;
@@ -112,10 +105,9 @@
   --space-9: 96px;
 }
 
-/* Layout, shape and motion. Breakpoints are 768px, 1200px and 1600px; media queries cannot read
-   custom properties, so they carry those values literally. The container is 1080px up to
-   1200px, 1240px from there and 1440px from 1600px; image sizes conditions also name 1080px
-   and 1240px, the widths at which the container stops growing. */
+/* Layout, shape and motion. Media queries cannot read custom properties, so the breakpoints
+   (768px, 1200px, 1600px) and the widths where the container stops growing (1080px, 1240px) also
+   appear literally in media queries and image sizes. */
 :root {
   --container: 1080px;
   --measure: 68ch;

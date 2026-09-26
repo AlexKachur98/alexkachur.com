@@ -1,4 +1,6 @@
-/* Fallback faces sized to the real fonts with @capsizecss/core from the fonts' own metrics. Arial and Consolas were read from the Windows font files; the Menlo face uses the metrics of DejaVu Sans Mono, the font Menlo is derived from (2048 units, ascent 1901, descent 483, advance 1233). */
+/* Fallback faces sized to the real fonts' metrics with @capsizecss/core. Arial's and Consolas's
+   metrics come from the Windows font files; Menlo's are those of DejaVu Sans Mono, which Menlo
+   derives from. */
 @font-face {
   font-family: "Barlow Fallback";
   src: local("Arial"), local("ArialMT");

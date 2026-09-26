@@ -1,8 +1,7 @@
-/* The console panel: dark in both themes on its own tokens, never the page's. The
-   results table is built at run time, so these rules are global rather than scoped. */
+/* The console panel, on its own tokens. The results table is built at run time, so these rules
+   are global rather than scoped. */
 
-/* Below 768px the raw console sits in a one-column grid, which would otherwise widen to a long
-   results table and the page with it; at zero the table scrolls inside the panel instead. */
+/* At zero, a long results table scrolls inside the panel instead of widening the page. */
 .console {
   --cut-fill: var(--console-bg);
 
@@ -35,15 +34,14 @@
   color: var(--console-ink);
 }
 
-/* Keywords in the SQL an answer shows; the spans are made at run time, so this rule is global. */
+/* Keywords in the SQL an answer shows. */
 .console .sql-keyword {
   color: var(--console-keyword);
 }
 
-/* Controls inside a panel (the Ask box's input, chips and button) take the console tokens: the
-   page tokens resolve once on the root, so they would carry the light theme into this dark
-   panel. Colours are set as longhands so the primary button keeps its zero border, and the
-   primary rule comes after the general one, which it ties with. */
+/* Controls inside a panel take the console tokens, since the page tokens, resolved once on the
+   root, would carry the light theme in. Colours are longhands so the primary button keeps its zero
+   border, and its rule comes after the general one, which it ties with. */
 .console .input {
   border-color: var(--console-muted);
   background: var(--console-bg);
@@ -81,8 +79,6 @@
   }
 }
 
-/* The header line: "query", the byte size, then the status region (monospace 14px, muted)
-   and the cursor. */
 .console-head {
   display: flex;
   flex-wrap: wrap;
@@ -169,10 +165,8 @@
   }
 }
 
-/* Clear empties the editor and what the last run showed. It reads as a link at control height,
-   like the fallback examples and the theme toggle, so Run stays the one framed control. While a
-   query runs it is hidden, and the module refuses a clear then as well, so a result can never
-   land in a panel that was just emptied. */
+/* Hidden while a query runs; the module refuses a clear then too, so a result never lands in an
+   emptied panel. */
 .console-clear {
   min-width: var(--control);
   margin-left: var(--space-4);
@@ -249,7 +243,6 @@
   color: var(--console-muted);
 }
 
-/* The one image shown at a fixed size and without a caption: the thumbnail in a results cell. */
 .console-results img {
   width: var(--thumb);
   height: var(--thumb);
