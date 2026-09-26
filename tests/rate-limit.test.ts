@@ -12,7 +12,8 @@ import type { Store } from '../src/lib/ask/redis.ts';
 
 // The rate limit as Redis sees it: the real store and the real limiter over a fake client that
 // records every command. The limiter runs its script with EVALSHA and falls back to EVAL with
-// the script's text on NOSCRIPT, so the fake refuses the first and answers the second.
+// the script's text on NOSCRIPT, so the fake refuses the first and answers the second, after a
+// delay when one is given.
 
 const SECRET = 'test-limit-secret';
 const QUESTION = 'Which projects use a language model?';
@@ -23,7 +24,7 @@ interface Command {
   args: unknown[];
 }
 
-function fakeRedis(blocked = false) {
+function fakeRedis(blocked = false, delayMs = 0) {
   const commands: Command[] = [];
   const scripts: string[] = [];
   const record = (method: string, args: unknown[]) => commands.push({ method, args });
@@ -35,6 +36,7 @@ function fakeRedis(blocked = false) {
     async eval(script: string, keys: string[], args: unknown[]) {
       record('eval', [keys, args]);
       scripts.push(script);
+      if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
       return blocked ? [-1, RATE_LIMIT.requests] : [RATE_LIMIT.requests - 1, RATE_LIMIT.requests];
     },
     async get(key: string) {
@@ -131,6 +133,23 @@ describe('the rate limit in Redis', () => {
       clock.mockRestore();
     }
     expect(limiterCalls(control.commands)).toHaveLength(1);
+  });
+
+  it('waits for a slow Redis instead of letting the request through', async () => {
+    vi.useFakeTimers();
+    try {
+      const { redis } = fakeRedis(true, 6_000);
+      const answer = redisStore('test', redis).allow('key');
+      // The library's default gives up on Redis after 5 s and lets the request through.
+      const control = fakeRedis(true, 6_000);
+      const fallback = new Ratelimit({ redis: control.redis, limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, `${RATE_LIMIT.windowSeconds} s`), prefix: 'control', ephemeralCache: false });
+      const passed = fallback.limit('key');
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(await answer).toMatchObject({ allowed: false });
+      expect(await passed).toMatchObject({ success: true, reason: 'timeout' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('counts in one transaction that gives a new counter its lifetime and never moves it', async () => {

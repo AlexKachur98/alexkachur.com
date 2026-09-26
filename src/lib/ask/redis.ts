@@ -66,13 +66,15 @@ export function redisStore(env: string, redis: Redis): Store {
   // with no in-memory cache the limiter keeps no key in the function's memory between requests.
   // Analytics stay off because they would store per-address identifiers. The storage table's
   // row for the rate limit takes its lifetime from the same window, and its "scrambled form of
-  // your address" rests on the cache being off and on the handler's limitKey.
+  // your address" rests on the cache being off and on the handler's limitKey. With no timeout, a
+  // slow Redis is waited for; the default lets the request through after 5 s.
   const limiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT.requests, `${RATE_LIMIT.windowSeconds} s`),
     prefix: `ask:${env}:limit`,
     ephemeralCache: false,
     analytics: false,
+    timeout: 0,
   });
   const guard = async <T>(run: () => Promise<T>): Promise<T> => {
     try {
