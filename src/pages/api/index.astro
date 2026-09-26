@@ -8,6 +8,7 @@ import { endpointId, endpoints, tableEndpoints } from '../../lib/endpoints.ts';
 import type { TableName } from '../../content/schemas.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
+import { keptFor, TTL } from '../../lib/ask/storage.ts';
 import { select } from '../../lib/query.ts';
 import { ASK_DESCRIPTION, openApiDocument, PROJECT_DESCRIPTION, RATE_LIMITS_SENTENCE, RESUME_DESCRIPTION, SCHEMA_DESCRIPTION, STATS_DESCRIPTION } from '../../lib/openapi.ts';
 import buildInfo from '../../generated/build-info.json';
@@ -106,7 +107,7 @@ for (const path of Object.keys(samples)) {
     <header class="page-head">
       <h1>API</h1>
       <p class="lead">Everything on this site is data first. These endpoints return the same records the pages are built from. All of them are static JSON generated at build time, except /api/ask, which turns a question into SQL, /api/questions, which passes on a question a visitor chose to send, and /api/stats, which reports the counters.</p>
-      <p>{RATE_LIMITS_SENTENCE} Every 429 carries a Retry-After header with the seconds to wait before you try again. /api/questions also returns 429 with error "daily_cap" once the day's {SEND.dailyCap} sent questions are used up. A question to /api/ask is cached for a month by its wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
+      <p>{RATE_LIMITS_SENTENCE} Every 429 carries a Retry-After header with the seconds to wait before you try again. /api/questions also returns 429 with error "daily_cap" once the day's {SEND.dailyCap} sent questions are used up. An answer from /api/ask is cached for {keptFor(TTL.answer)} and a refusal for {keptFor(TTL.refusal)}, keyed by the question's normalized wording, so repeat questions are free. The monthly cap counts model calls, not questions, in the UTC calendar month.</p>
       <p>Try it:</p>
       <pre><code>curl {url('/api/projects.json')}</code></pre>
       <p>The whole API as an OpenAPI 3.1 document, built from the same schema and endpoint list, for loading into any client: <a href="/api/openapi.json">/api/openapi.json</a></p>
@@ -211,8 +212,8 @@ for (const path of Object.keys(samples)) {
               <p>Everything in the table but the theme choice is held in Upstash Redis.</p>
               <p>Your address is scrambled with a keyed hash (HMAC-SHA-256) before anything is stored: a plain hash of an address could be reversed by hashing every address in turn, but without the site's secret key the stored value cannot be matched back to an address.</p>
               <p>One line per failed request: status, error type, request ID and timing, written to Vercel's logs. Never the question or your address.</p>
-              <p>Anthropic, which runs the model, receives the question and, under its <a href="https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data">data retention policy</a>, deletes API inputs and outputs within 30 days, or keeps them up to 2 years if its safety systems flag a request; it does not train on them, since this site's account has not opted in to share data.</p>
-              <p>Vercel, which hosts the site, keeps its request logs, that failed-request line included, for one hour on this site's plan, and counts page views for Web Analytics without cookies, discarding the visitor hash after 24 hours.</p>
+              <p>Anthropic, which runs the model, receives the question and, under its <a href="https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data">data retention policy</a>, deletes API inputs and outputs within 30 days, or keeps them up to 2 years (and its safety classification scores up to 7) if its safety systems flag a request; it does not train on them, since this site's account has not opted in to share data.</p>
+              <p>Vercel, which hosts the site, keeps its request logs, which record your address and browser as well as that failed-request line, for one hour on this site's plan, and counts page views for Web Analytics without cookies, discarding the visitor hash after 24 hours.</p>
             </Fragment>
           )}
           <pre><code>{endpoint.response}</code></pre>

@@ -264,7 +264,7 @@ function operation(endpoint: Endpoint, tables: Map<string, SchemaTable>): JsonSc
           '200': jsonResponse('SQL for the question, or an explanation of why there is none', ref('ask_answer')),
           '400': jsonResponse(`The body has no question of ${QUESTION_LENGTH.min} to ${QUESTION_LENGTH.max} characters`, errorBody('invalid_question')),
           '422': jsonResponse('The model gave nothing that prepares as a safe query', errorBody('unusable_output')),
-          '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions in a minute from one address`, errorBody('rate_limited'), RETRY_AFTER),
+          '429': jsonResponse(`More than ${RATE_LIMIT.requests} questions or sends in a minute from one address`, errorBody('rate_limited'), RETRY_AFTER),
           '500': jsonResponse('An unexpected failure', errorBody('internal')),
           '503': jsonResponse('Not answering: the monthly cap is reached, the service is not set up, or the model did not respond', ref('unavailable')),
         },
