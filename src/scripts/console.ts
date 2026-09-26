@@ -583,6 +583,9 @@ function paint(panel: Panel, result: Result): void {
   // Each result starts at its first row and column, wherever the last one was scrolled to.
   panel.results.scrollTo(0, 0);
   panel.results.tabIndex = 0;
+  // The Ask box's results start hidden: a region named by the question, which is empty until one
+  // is asked.
+  panel.results.hidden = false;
 }
 
 // The rest of an empty result's sentence belongs to the "No rows" it follows. A run removes it

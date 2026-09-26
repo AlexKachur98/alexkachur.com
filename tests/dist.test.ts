@@ -357,7 +357,8 @@ describe(`built output in ${root}`, () => {
 
   // The words saying the results box scrolls start hidden and follow the status region rather than
   // sit in it, so they are never announced and never join the results' name. Both results boxes
-  // keep the role, name and tab stop a box that scrolls needs.
+  // keep the role, name and tab stop a box that scrolls needs; the live one starts hidden, since
+  // the question that names it is empty until one is asked.
   it('carries the scroll words hidden after the status, and keeps both results boxes focusable regions', () => {
     const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     for (const url of ['/', '/404']) {
@@ -370,6 +371,7 @@ describe(`built output in ${root}`, () => {
       const live = html.match(/<div\b[^>]*\sdata-ask-results\b[^>]*>/)?.[0] ?? '';
       expect(live, url).toMatch(/\srole="region"/);
       expect(live, url).toMatch(/\saria-labelledby="ask-question ask-status"/);
+      expect(live, url).toMatch(/\shidden\b/);
     }
     const home = pages.find(({ url }) => url === '/')!.html;
     const example = home.match(/<div\b[^>]*\sclass="ask-example-answer"[^>]*>[\s\S]*?(<div\b[^>]*\sclass="console-results"[^>]*>)/)?.[1] ?? '';

@@ -156,7 +156,7 @@ const answer = shown ? await run(shown.sql) : undefined;
     <pre class="ask-sql" data-ask-sql></pre>
     {editable && <button type="button" class="console-run" data-ask-edit hidden>Edit this query</button>}
     <p class="console-error" role="alert" data-ask-error></p>
-    <div class="console-results" role="region" aria-labelledby="ask-question ask-status" data-ask-results></div>
+    <div class="console-results" role="region" aria-labelledby="ask-question ask-status" data-ask-results hidden></div>
     {
       examples.map(
         (example, index) =>
