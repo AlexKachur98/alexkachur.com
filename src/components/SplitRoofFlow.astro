@@ -14,7 +14,7 @@ interface Props {
 
 const { title = 'How the assistant answers' } = Astro.props;
 const description =
-  "A question like 'who owes what this month?' goes to the model, Claude Haiku 4.5, which can only call three typed tool functions. The functions read the household's real data and return exact figures, and the model turns them into a sentence. There is no write path, so the worst a bad answer can do is word something badly.";
+  "A question like 'who owes what this month?' goes to the model, Claude Haiku 4.5, which can only call three typed tool functions. The functions read the household's own data (in the spike, a sample household) and return exact figures, and the model turns them into a sentence. There is no write path, so the worst a bad answer can do is word something badly.";
 ---
 
 <figure class="flow-figure" data-page-only>
@@ -53,7 +53,7 @@ const description =
     <line class="arrow" x1="352" y1="190" x2="352" y2="216"></line>
     <rect class="box" x="272" y="216" width="160" height="44"></rect>
     <text class="label center" x="352" y="231">the household's</text>
-    <text class="label center" x="352" y="249">real data</text>
+    <text class="label center" x="352" y="249">own data</text>
     <text class="note center" x="352" y="276">no write path</text>
 
     <line class="arrow" x1="84" y1="128" x2="84" y2="216"></line>
@@ -95,7 +95,7 @@ const description =
     <line class="arrow" x1="152" y1="296" x2="152" y2="320"></line>
     <rect class="box" x="40" y="320" width="224" height="44"></rect>
     <text class="label center" x="152" y="333">the household's</text>
-    <text class="label center" x="152" y="351">real data</text>
+    <text class="label center" x="152" y="351">own data</text>
     <text class="note center" x="152" y="380">no write path</text>
 
     <path class="arrow" d="M40 88 H20 V400"></path>

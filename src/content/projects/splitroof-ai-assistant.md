@@ -2,10 +2,10 @@
 order: 1
 name: SplitRoof AI assistant
 kind: team
-summary: An assistant inside a shared-household expense app that answers questions from the household's real data and never does the math itself.
+summary: An assistant inside a shared-household expense app that answers questions from the household's own data and never does the math itself.
 card: A read-only assistant that answers "who owes what this month" from a household's own data. Group project, 2026, I own the AI end to end.
 role: AI integration, documentation, schedule
-team: group project, COMP 231 Software Development Project, Fall 2026
+team: group project, COMP 231 Software Development Project 1, Fall 2026
 year_start: 2026
 year_end: null
 client_name: null
