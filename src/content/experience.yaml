@@ -10,7 +10,7 @@
   summary: Uraz Hoops (urazhoops.com); Think Smarter Insurance review funnel (demo live, go-live pending).
   highlights:
     - Built and handed off a one-page marketing site for Uraz Hoops, a basketball training business (HTML, CSS, JavaScript, FormSubmit, Vercel), live at urazhoops.com, with a handoff guide so the owner can update it himself.
-    - "Designed and built a customer review funnel for Think Smarter Insurance, an Ontario brokerage: single-file HTML, CSS and JavaScript with no build step, on Cloudflare Pages, with private feedback routed by email and an owner settings panel. Demo live, go-live pending."
+    - "Designed and built a customer review funnel for Think Smarter Insurance, an Ontario brokerage: single-file HTML, CSS and JavaScript with no build step, on Cloudflare Pages, with private feedback routed by email. Demo live, go-live pending."
     - Researched review-gating rules (Google policy, Competition Act, RIBO Guidance 006), documented the risk for the client, and shipped a one-word setting that switches the page to an ask-everyone flow.
 - id: qa-tester
   title: QA Tester
