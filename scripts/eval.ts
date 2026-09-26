@@ -1,11 +1,8 @@
-// Runs the eval questions through the ask handler and reports what came back. With no flag the
-// model replies recorded in scripts/eval/fixtures.json stand in for the API, so the run is
-// offline and repeatable, and any change in a response is reported as drift. A replay fails on
-// drift, on a question the fixture lacks, and on any answer that misses its expectation, so CI
-// catches a wrong answer as well as a changed one. --record calls
-// the API and writes that file; --live calls the API and only reports. A fixture is tied to the
-// model id, the prompt version and the schema hash the prompt embeds, so it must be recorded
-// again when any of them changes. Runs under Node's type stripping, like build-db.ts.
+// Runs the eval questions through the ask handler. With no flag, the model replies recorded in
+// scripts/eval/fixtures.json stand in for the API, and the run fails on drift, on a question the
+// fixture lacks and on any answer that misses its expectation. --record calls the API and writes
+// that file; --live calls the API and only reports. A fixture must be recorded again when the
+// model id, the prompt version or the schema hash changes.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';

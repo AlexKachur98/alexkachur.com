@@ -1,8 +1,6 @@
-// Splits rendered markdown into its h2 sections, so a page can place each one in the site's
-// section layout and insert its own blocks between them (Screenshots goes before Credits; the
-// SplitRoof flow diagram sits inside What I built). The heading ids come from
-// the processor's heading-ids plugin. A title is the heading's text, decoded, since Section
-// escapes it again when it writes the h2.
+// Splits rendered Markdown into its h2 sections, so a page can lay each out as a Section and insert
+// its own blocks between them. The heading ids come from the processor's heading-ids plugin; a
+// title is the heading's text, decoded, since Section escapes it again.
 import { inlineText } from './page-text.ts';
 
 export interface Section {

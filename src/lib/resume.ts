@@ -74,7 +74,7 @@ export function resumeData(query: Query): ResumeData {
     highlights: text(row.highlights).split('\n'),
     stack: query(stackQuery(Number(row.id))).map((link) => text(link.name)),
   }));
-  // Each area's core skills first, then the rest, each by name; the areas in the order Alex listed them.
+  // Each area's core skills first, then the rest, each by name; the areas in skillAreas order.
   const byArea = grouped(query('SELECT skill_area, name FROM technologies ORDER BY core DESC, lower(name), name'), 'skill_area', 'name');
   const skills = skillAreas.flatMap((area) => {
     const names = byArea.find((group) => group.key === area)?.values;

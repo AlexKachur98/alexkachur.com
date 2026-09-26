@@ -88,7 +88,7 @@ export function factRows(entries: Entry<FactContent>[]): FactRow[] {
 export function projectRows(entries: Entry<ProjectInput>[]): ProjectRow[] {
   const sorted = [...entries].sort((a, b) => a.data.order - b.data.order);
   rejectRepeats(sorted, (entry) => entry.data.order, 'project order');
-  // Only the project listed first is featured, so the flag can never disagree with the order.
+  // Featured follows the order: only the first project has it.
   return sorted.map(({ id, data }, index) => {
     const { order, page, card, team, highlights, technologies, screenshots, row_image, ...row } = data;
     return {
@@ -190,13 +190,12 @@ export function experienceRows(entries: Entry<ExperienceContent>[]): ExperienceR
     .map((row, index) => ({ id: index + 1, ...row }));
 }
 
-// In the order Alex listed them, which is the file's order, each under the area its category
-// belongs to.
+// File order, each under the area its category belongs to.
 export function interestRows(entries: Entry<InterestContent>[]): InterestRow[] {
   return entries.map(({ data: { category, name, note } }, index) => ({ id: index + 1, category, area: interestAreaOf[category], name, note }));
 }
 
-// In the order Alex listed them, which is the file's order and the page's.
+// File order, which the page keeps.
 export function usesRows(entries: Entry<UsesContent>[]): UsesRow[] {
   return entries.map(({ data: { id, ...row } }, index) => ({ position: index + 1, ...row }));
 }

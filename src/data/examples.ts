@@ -1,5 +1,4 @@
-// The example queries (the pets query selects born instead of age, which the pets table does not
-// store). One source for the console buttons, the Ask chips, the fallback list and the worked
+// The example queries, for the console buttons, the Ask chips, the fallback list and the worked
 // examples in the ask prompt.
 export interface Example {
   label: string;
@@ -67,12 +66,10 @@ export const examples: readonly Example[] = [
 // work when the monthly cap is reached or the model is down.
 export const chips: readonly Example[] = examples.slice(0, 4);
 
-// The query behind the storage chip, which the /api page also shows above its table.
 export const storageQuery = storage.sql;
 
-// The answer beside the Ask box on a wide screen before anyone asks, run at build time: a
-// question the chips do not already ask. One row per skill area of the core skills, the areas and
-// the names inside each in alphabetical order, so the rows never depend on insertion order.
+// The answer beside the Ask box before the first question, run at build time: a question no chip
+// asks. Both levels are sorted, so the rows never depend on insertion order.
 export const answerExample: Example = {
   label: "What are Alex's core skills?",
   sql: "SELECT skill_area, GROUP_CONCAT(name, ', ' ORDER BY name) AS skills FROM technologies WHERE core = 1 GROUP BY skill_area ORDER BY lower(skill_area);",

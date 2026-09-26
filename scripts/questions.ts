@@ -8,7 +8,7 @@ import { Redis } from '@upstash/redis';
 import { readConfig } from '../src/lib/ask/config.ts';
 import { isMain } from './is-main.ts';
 
-// The part of the Redis client this script uses, so a test can hand in a fake.
+// The part of the Redis client this script uses.
 export interface QuestionsRedis {
   scan(cursor: string | number, options: { match: string; count: number }): Promise<[string | number, string[]]>;
   mget<T>(...keys: string[]): Promise<T>;

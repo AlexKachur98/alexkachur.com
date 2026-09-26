@@ -1,6 +1,5 @@
-// Numbers in the site's text are never typed twice: a resume bullet, a caption or a page names one
-// as {key}, and the build fills it in from the thing it counts, so a count can never go stale while
-// the sentence stays the same. The keys and where each value comes from live in scripts/build-db.ts.
+// A resume bullet, a caption or a page names a count as {key}, and the build fills it in from the
+// thing it counts. The keys and where each value comes from are in scripts/build-db.ts.
 const numberWords = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
 // A whole number with a comma between each group of three digits, as the pages print numbers.
@@ -25,8 +24,8 @@ export function fillNumbers(text: string, values: Readonly<Record<string, string
   return fillPlaceholders(text, values, where);
 }
 
-// The one count a sentence of Alex's prose gives, as digits or as a word up to twelve. A sentence
-// that no longer gives exactly one fails the build, so the number is never guessed.
+// The one count a sentence gives, as digits or as a word up to twelve; a sentence that no longer
+// gives exactly one fails the build.
 export function countIn(text: string, pattern: RegExp, where: string): number {
   const matches = [...text.matchAll(pattern)];
   if (matches.length !== 1) throw new Error(`${where}: expected one match of ${pattern}, found ${matches.length}`);

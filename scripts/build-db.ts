@@ -302,8 +302,7 @@ export interface Measurements {
   lighthouse: { date: string; tool: string; chrome: string; method: string; pages: Record<'home' | 'works' | 'case_study', MeasuredPage> };
 }
 
-// The Lighthouse medians measured on the live pages, with the day and the tool, so every sentence
-// that quotes them is filled from this one record and measuring again is one edit.
+// The Lighthouse medians measured on the live pages, with the day and the tool.
 export function recordedMeasurements(path = measurementsPath): Measurements {
   const measured = JSON.parse(readFileSync(path, 'utf8')) as Measurements;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(measured.lighthouse.date)) throw new Error(`${path}: the date is not YYYY-MM-DD`);
@@ -316,12 +315,7 @@ export function recordedMeasurements(path = measurementsPath): Measurements {
   return measured;
 }
 
-// The numbers the site's text may name, each from the thing it counts, so a count typed in two
-// places can never go stale in one of them: the eval's questions, the OpenAPI version the API
-// document declares, the two SplitRoof test counts from the case study's own sentence (where they
-// sit beside the screenshot that shows them), the table count, the limits and lifetimes the code
-// stores with, what a model call costs from the recorded eval and the published prices, and the
-// Lighthouse scores from the measurements record.
+// The numbers the site's text may name, each taken from the thing it counts.
 export function siteNumbers(sections: readonly { page: string; body: string }[], recorded: RecordedEval, measured: Measurements = recordedMeasurements()): Record<string, string> {
   const { promptTokens } = recorded;
   const splitroof = sections.filter((section) => section.page === '/work/splitroof-ai-assistant').map((section) => section.body).join('\n');

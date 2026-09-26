@@ -1,6 +1,6 @@
-// The public endpoints, one list for the /api docs page and the OpenAPI document so neither can
-// name a path the other lacks. Paths are exact: the prerendered ones end in .json because they
-// are written as files, and a client fetches them by that name.
+// The public endpoints, one list for the /api page and the OpenAPI document. Paths are exact: the
+// prerendered ones end in .json because they are written as files, and a client fetches them by
+// that name.
 import { tables } from '../content/schemas.ts';
 import type { TableName } from '../content/schemas.ts';
 
@@ -18,8 +18,8 @@ export const tableEndpoints: readonly (Endpoint & { rows: TableName })[] = (Obje
   .sort((a, b) => Number(b === 'projects') - Number(a === 'projects'))
   .map((table) => ({ method: 'GET', path: `/api/${table}.json`, rows: table }));
 
-// The id of an endpoint's section on the /api page, so the index under the lead and the sections
-// agree: the path with every run of other characters as one hyphen.
+// The id of an endpoint's section on /api: the path with every run of other characters as one
+// hyphen.
 export function endpointId(path: string): string {
   return path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
 }

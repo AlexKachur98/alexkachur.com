@@ -1,8 +1,7 @@
 // The scripts a page loads before any interaction, with their sizes gzipped at zlib's default
-// level, the measure the build test holds the bootstrap to. The three in the build are read from
-// the client output while a page renders, which comes after the client build; in dev, where no
-// client build exists, the page shows nothing. The beacon is Vercel's own file, injected at run
-// time, so its size is the one measured from the live site on the day given.
+// level. Those in the build are read from the client output, which exists by the time pages
+// render; in dev it does not, and the page shows none. The beacon is Vercel's own file, injected at
+// run time, so its size was measured from the live site on the day given.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';

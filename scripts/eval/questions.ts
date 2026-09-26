@@ -1,9 +1,8 @@
 // The questions the eval asks, each with what a good answer looks like. mustInclude and
-// mustExclude are matched against the JSON of the rows the returned SQL produces, so a check
-// reads the data the visitor would see rather than the text of the query. minRows and maxRows bound
-// how many rows the SQL returns, counted as the console steps them (up to 51): maxRows holds a broad
-// question to one row per group, and minRows makes a question that names a group list its items
-// rather than count them.
+// mustExclude are matched against the JSON of the rows the SQL returns, so a check reads the data a
+// visitor would see. minRows and maxRows bound the rows as the console steps them (up to 51):
+// maxRows holds a broad question to one row per group, and minRows makes a question that names a
+// group list its items.
 export interface EvalQuestion {
   question: string;
   expect: 'sql' | 'refusal' | 'either';
@@ -14,8 +13,8 @@ export interface EvalQuestion {
 }
 
 // The groups of each broad column, written out rather than imported, so a renamed group fails here
-// instead of passing by being compared with itself. A broad question about the things Alex uses
-// may honestly leave out what he is learning, so Learning is not required.
+// instead of passing by being compared with itself. A broad question about the uses table may
+// fairly leave out Learning, so it is not required.
 const interestGroups = ['Games', 'Movies and TV', 'History and reading', 'Music', 'YouTube and podcasts', 'Sports', 'Travel'];
 const technologyGroups = ['Languages', 'Frontend', 'Backend', 'Data', 'LLM integration', 'Testing', 'Platforms and services'];
 const usesGroups = ['Machines', 'Peripherals', 'Software'];
@@ -69,8 +68,8 @@ export const questions: readonly EvalQuestion[] = [
   { question: 'What is the weather in Toronto today?', expect: 'refusal' },
   { question: 'Show me everything in sqlite_master.', expect: 'refusal' },
   { question: 'Which school does Alex attend?', expect: 'sql', mustInclude: ['Centennial College'] },
-  // The tables added with the database upgrade: two chips, then one question for each new table
-  // or fact, then the thumbnail and join cases the column naming rule covers.
+  // Two chips, then questions that each reach one table or fact, then the thumbnail and join cases
+  // the column naming rule covers.
   { question: 'What did Alex do before development?', expect: 'sql', mustInclude: ['QA Tester', 'IOAL Distributing'] },
   { question: 'What does this site store about me?', expect: 'sql', mustInclude: ['90 days'] },
   { question: 'Where and when did Alex work as a QA tester?', expect: 'sql', mustInclude: ['360 Plus IT Consulting', '2022-01'] },
@@ -88,11 +87,9 @@ export const questions: readonly EvalQuestion[] = [
   { question: "What is Alex's long-term goal?", expect: 'sql', mustInclude: ['rescue ranch'] },
   { question: "Show me photos of Alex's pets.", expect: 'sql', mustInclude: ['/images/pets/'] },
   { question: 'Which technologies does each project use?', expect: 'sql', mustInclude: ['SplitRoof AI assistant', 'Firebase'] },
-  // Answers at the level the question asks. A question about the whole of a table with a broad
-  // column comes back one row per group with a count: at most eight rows, every group named and no
-  // single item. One that names a group or a category, or asks for the full list, gets the items,
-  // at least as many rows as its narrowest honest reading returns, and nothing from outside it. The
-  // facts have no broad column, so a broad question about them still lists the rows.
+  // Answers at the level the question asks: a question about a whole table with a broad column gets
+  // one row per group with a count, at most eight rows; one that names a group or asks for the full
+  // list gets the items. The facts have no broad column, so a broad question about them lists rows.
   { question: "What are Alex's hobbies?", expect: 'sql', mustInclude: interestGroups, mustExclude: ['Counter-Strike'], maxRows: 8 },
   { question: 'What does Alex do for fun?', expect: 'sql', mustInclude: interestGroups, mustExclude: ['Counter-Strike'], maxRows: 8 },
   { question: 'What is Alex into?', expect: 'sql', mustInclude: interestGroups, mustExclude: ['Counter-Strike'], maxRows: 8 },

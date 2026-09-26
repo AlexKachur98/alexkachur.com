@@ -1,6 +1,5 @@
-// How markdown is rendered, for the site and for the database alike, so the text a page shows and
-// the text its table holds come from one renderer. Rendered markdown keeps the characters of the
-// source (no curly quotes, no dashes made from --) and loses its HTML comments, the TODO checklist.
+// How Markdown is rendered, for the pages and the database alike. It keeps the source's characters
+// (no curly quotes, no dashes made from --) and drops HTML comments.
 import { satteri } from '@astrojs/markdown-satteri';
 import type { AstroUserConfig } from 'astro';
 import { stripComments } from './strip-comments.ts';

@@ -1,6 +1,5 @@
-// One source for the row shapes and their descriptions. Imported by src/content.config.ts
-// (Astro validates the content files) and by scripts/build-db.ts (plain Node writes the
-// database, schema.json and the DDL), so the two cannot drift.
+// The row shapes and their descriptions, for src/content.config.ts, where Astro validates the
+// content files, and for scripts/build-db.ts, which writes the database, schema.json and the DDL.
 import { z } from 'astro/zod';
 
 const flag = z.literal([0, 1]);
@@ -37,7 +36,7 @@ export const interestCategories = [
   'travelled to',
   'wants to visit',
 ] as const;
-// In the order Alex listed the areas.
+// The skill areas, in display order.
 export const skillAreas = [
   'Languages',
   'Frontend',
@@ -47,7 +46,7 @@ export const skillAreas = [
   'Testing',
   'Platforms and services',
 ] as const;
-// The broad areas the interest categories fall under, in the order Alex listed them.
+// The broad areas the interest categories fall under, in display order.
 export const interestAreas = [
   'Games',
   'Movies and TV',
@@ -58,8 +57,8 @@ export const interestAreas = [
   'Travel',
 ] as const;
 
-// The area of each category, Alex's grouping. The build fills interests.area from it, so the
-// content file never repeats it, and a category left without an area fails the type check.
+// The area of each category. The build fills interests.area from it, so the content file never
+// repeats it, and a category left without an area fails the type check.
 export const interestAreaOf: Readonly<Record<(typeof interestCategories)[number], (typeof interestAreas)[number]>> = {
   'video game': 'Games',
   'game genre': 'Games',

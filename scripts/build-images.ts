@@ -114,11 +114,10 @@ interface Fonts {
   regular: hb.Font;
 }
 
-// The link-preview card: the name with its section square and the role line, set like the home
-// page's hero at 1600px scaled up and centred on the card. The address is left off, since every
-// app prints the domain or the site name beside the image. Text stays well inside a centred 1080
-// by 540 area, so a preview cropped towards the middle keeps it, and clear of the bottom-left
-// corner, where X lays its own label over the image.
+// The link-preview card: the name and role, set like the hero at 1600px, scaled up and centred.
+// Apps print the domain beside the image, so the card leaves it off. The text stays inside a
+// centred 1080 by 540 area, which survives a crop, and clear of the bottom-left corner, where X
+// lays its own label.
 const preview = { width: 1200, height: 630 };
 
 function previewSvg({ colours, trackingHeading }: ReturnType<typeof readTokens>, fonts: Fonts, card: CardFacts): string {
