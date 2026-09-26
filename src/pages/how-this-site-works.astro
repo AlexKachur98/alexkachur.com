@@ -124,19 +124,9 @@ const resumeHead = `${readFileSync(join(process.cwd(), 'public', 'resume.txt'), 
 </Base>
 
 <style>
-  .page-head {
-    padding-top: var(--space-8);
-  }
-
   /* The model's name comes from a setting, so a long one breaks where it must rather than
      widening the page. */
   [data-model] {
     overflow-wrap: anywhere;
-  }
-
-  @media (min-width: 768px) {
-    .page-head {
-      padding-top: var(--space-9);
-    }
   }
 </style>

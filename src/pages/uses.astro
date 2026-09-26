@@ -52,10 +52,6 @@ const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated
 </Base>
 
 <style>
-  .page-head {
-    padding-top: var(--space-8);
-  }
-
   .updated {
     margin: 0 0 var(--space-4);
     color: var(--muted);
@@ -71,11 +67,5 @@ const updated = (await select("SELECT value FROM facts WHERE key = 'uses_updated
 
   b {
     font-weight: 600;
-  }
-
-  @media (min-width: 768px) {
-    .page-head {
-      padding-top: var(--space-9);
-    }
   }
 </style>

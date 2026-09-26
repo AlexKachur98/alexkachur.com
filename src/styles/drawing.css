@@ -1,0 +1,63 @@
+/* The line drawings: boxes, arrows and their labels in the page's tokens. Each drawing comes in a
+   wide version and a stacked one for phones, and sets its own arrowheads, whose ids are its own. */
+.drawing-figure {
+  margin-block: var(--space-4) var(--space-6);
+  overflow-x: auto;
+}
+
+.drawing {
+  display: block;
+  font-family: var(--font-mono);
+}
+
+.drawing-wide {
+  display: none;
+}
+
+.drawing .box {
+  fill: var(--surface);
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.drawing .arrow {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.drawing .head {
+  fill: var(--ink);
+}
+
+.drawing .label,
+.drawing .note {
+  font-size: var(--text-xs);
+  dominant-baseline: middle;
+}
+
+.drawing .label {
+  fill: var(--ink);
+}
+
+.drawing .note {
+  fill: var(--muted);
+}
+
+.drawing .center {
+  text-anchor: middle;
+}
+
+.drawing .right {
+  text-anchor: end;
+}
+
+@media (min-width: 768px) {
+  .drawing-phone {
+    display: none;
+  }
+
+  .drawing-wide {
+    display: block;
+  }
+}

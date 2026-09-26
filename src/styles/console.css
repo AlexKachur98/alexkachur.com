@@ -142,16 +142,12 @@
   }
 }
 
-/* Clear empties the editor and what the last run showed. It reads as a link at control height,
-   like the fallback examples and the theme toggle, so Run stays the one framed control. While a
-   query runs it is hidden, and the module refuses a clear then as well, so a result can never
-   land in a panel that was just emptied. */
-.console-clear {
+/* A button that reads as a link at control height: the console's Clear and the Ask panel's
+   example questions. */
+.text-button {
   display: inline-flex;
   align-items: center;
-  min-width: var(--control);
   min-height: var(--control);
-  margin-left: var(--space-4);
   padding: 0;
   border: 0;
   background: none;
@@ -166,16 +162,26 @@
   transition: text-decoration-color var(--duration) var(--ease);
 }
 
-.console[data-working] > .console-clear {
-  visibility: hidden;
-}
-
 @media (hover: hover) {
-  .console-clear:hover {
+  .text-button:hover {
     text-decoration-thickness: 2px;
     text-decoration-color: var(--console-accent);
   }
 }
+
+/* Clear empties the editor and what the last run showed. It reads as a link at control height,
+   like the fallback examples and the theme toggle, so Run stays the one framed control. While a
+   query runs it is hidden, and the module refuses a clear then as well, so a result can never
+   land in a panel that was just emptied. */
+.console-clear {
+  min-width: var(--control);
+  margin-left: var(--space-4);
+}
+
+.console[data-working] > .console-clear {
+  visibility: hidden;
+}
+
 
 /* The cursor exists only while a query is in flight: a blink in two steps. Idle,
    the textarea's own caret is the only cursor. */

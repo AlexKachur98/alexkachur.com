@@ -337,7 +337,7 @@ describe(`built output in ${root}`, () => {
   it("puts the console's Clear, hidden, straight after Run", () => {
     const home = pages.find((page) => page.url === '/')!.html;
     expect(home).toContain(
-      '<button type="button" class="console-run" data-console-run>Run</button><button type="button" class="console-clear" data-console-clear hidden><span class="visually-hidden">Clear query</span><span aria-hidden="true">Clear</span></button><p class="console-error"',
+      '<button type="button" class="console-run" data-console-run>Run</button><button type="button" class="console-clear text-button" data-console-clear hidden><span class="visually-hidden">Clear query</span><span aria-hidden="true">Clear</span></button><p class="console-error"',
     );
     expect(home.match(/data-console-clear/g)).toHaveLength(1);
     expect(pages.find((page) => page.url === '/404')!.html).not.toContain('data-console-clear');

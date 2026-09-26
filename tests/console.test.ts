@@ -747,12 +747,12 @@ describe("the console's Clear", () => {
   it('sits hidden straight after Run as a text button, and hides while a query runs', () => {
     // Named for what it clears, the shown word first, as the theme toggle names itself.
     expect(markup).toMatch(
-      /<button type="button" class="console-run" data-console-run>Run<\/button>\s*<!--[\s\S]*?-->\s*<button type="button" class="console-clear" data-console-clear hidden><span class="visually-hidden">Clear query<\/span><span aria-hidden="true">Clear<\/span><\/button>/,
+      /<button type="button" class="console-run" data-console-run>Run<\/button>\s*<!--[\s\S]*?-->\s*<button type="button" class="console-clear text-button" data-console-clear hidden><span class="visually-hidden">Clear query<\/span><span aria-hidden="true">Clear<\/span><\/button>/,
     );
+    const button = css.match(/\n\.text-button \{([^}]*)\}/)![1]!;
+    for (const line of ['border: 0;', 'background: none;', 'text-decoration: underline;', 'min-height: var(--control);']) expect(button).toContain(line);
     const rule = css.match(/\n\.console-clear \{([^}]*)\}/)![1]!;
-    for (const line of ['border: 0;', 'background: none;', 'text-decoration: underline;', 'min-width: var(--control);', 'min-height: var(--control);', 'margin-left: var(--space-4);']) {
-      expect(rule).toContain(line);
-    }
+    for (const line of ['min-width: var(--control);', 'margin-left: var(--space-4);']) expect(rule).toContain(line);
     expect(css).toMatch(/\.console\[data-working\] > \.console-clear \{\s*visibility: hidden;\s*\}/);
   });
 });

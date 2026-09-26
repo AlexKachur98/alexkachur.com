@@ -1,4 +1,6 @@
 ---
+import '../styles/drawing.css';
+
 // The flow diagram for the SplitRoof case study: the question goes to the model, the model can
 // only call the three typed tool functions, the functions read the household's data and hand
 // back exact figures, and the model turns them into a sentence. The labels are the words of the
@@ -17,8 +19,8 @@ const description =
   "A question like 'who owes what this month?' goes to the model, Claude Haiku 4.5, which can only call three typed tool functions. The functions read the household's own data (in the spike, a sample household) and return exact figures, and the model turns them into a sentence. There is no write path, so the worst a bad answer can do is word something badly.";
 ---
 
-<figure class="flow-figure" data-page-only>
-  <svg class="flow flow-wide" width="456" height="290" viewBox="0 0 456 290" role="img" aria-labelledby="splitroof-flow-title" aria-describedby="splitroof-flow-desc">
+<figure class="drawing-figure" data-page-only>
+  <svg class="drawing drawing-wide" width="456" height="290" viewBox="0 0 456 290" role="img" aria-labelledby="splitroof-flow-title" aria-describedby="splitroof-flow-desc">
     <title id="splitroof-flow-title">{title}</title>
     <desc id="splitroof-flow-desc">{description}</desc>
     <defs>
@@ -60,7 +62,7 @@ const description =
     <rect class="box" x="16" y="216" width="136" height="32"></rect>
     <text class="label center" x="84" y="232">a sentence</text>
   </svg>
-  <svg class="flow flow-phone" width="272" height="440" viewBox="0 0 272 440" role="img" aria-labelledby="splitroof-flow-title-phone" aria-describedby="splitroof-flow-desc-phone">
+  <svg class="drawing drawing-phone" width="272" height="440" viewBox="0 0 272 440" role="img" aria-labelledby="splitroof-flow-title-phone" aria-describedby="splitroof-flow-desc-phone">
     <title id="splitroof-flow-title-phone">{title}</title>
     <desc id="splitroof-flow-desc-phone">{description}</desc>
     <defs>
@@ -105,26 +107,6 @@ const description =
 </figure>
 
 <style>
-  .flow-figure {
-    margin-block: var(--space-4) var(--space-6);
-    overflow-x: auto;
-  }
-
-  .flow {
-    display: block;
-    font-family: var(--font-mono);
-  }
-
-  .flow-wide {
-    display: none;
-  }
-
-  .box {
-    fill: var(--surface);
-    stroke: var(--muted);
-    stroke-width: 1;
-  }
-
   .group {
     fill: none;
     stroke: var(--rule);
@@ -132,49 +114,10 @@ const description =
   }
 
   .arrow {
-    fill: none;
-    stroke: var(--ink);
-    stroke-width: 1;
     marker-end: url("#splitroof-arrow");
   }
 
-  .flow-phone .arrow {
+  .drawing-phone .arrow {
     marker-end: url("#splitroof-arrow-phone");
-  }
-
-  .head {
-    fill: var(--ink);
-  }
-
-  .label,
-  .note {
-    font-size: var(--text-xs);
-    dominant-baseline: middle;
-  }
-
-  .label {
-    fill: var(--ink);
-  }
-
-  .note {
-    fill: var(--muted);
-  }
-
-  .center {
-    text-anchor: middle;
-  }
-
-  .right {
-    text-anchor: end;
-  }
-
-  @media (min-width: 768px) {
-    .flow-phone {
-      display: none;
-    }
-
-    .flow-wide {
-      display: block;
-    }
   }
 </style>

@@ -1,4 +1,6 @@
 ---
+import '../styles/drawing.css';
+
 // The architecture diagram: monochrome, with the request path of /api/ask marked in --mark,
 // yellow in the dark theme and ink in the light one, where yellow would not show. The labels are
 // the words of the description a reader who cannot see the drawing gets; the name is the page's
@@ -16,8 +18,8 @@ const description =
   "At build time, the site's Markdown and YAML become a SQLite database and JSON endpoints. Your browser loads the database with sql.js when you need it. Your question goes to /api/ask, which sends it with the schema to a language model, checks the SQL that comes back by preparing it against the real database, and returns the SQL to your browser to run. The model never runs a query and never sees the results.";
 ---
 
-<figure class="diagram-figure" data-page-only>
-  <svg class="diagram diagram-wide" width="456" height="324" viewBox="0 0 456 324" role="img" aria-labelledby="architecture-title" aria-describedby="architecture-desc">
+<figure class="drawing-figure" data-page-only>
+  <svg class="drawing drawing-wide" width="456" height="324" viewBox="0 0 456 324" role="img" aria-labelledby="architecture-title" aria-describedby="architecture-desc">
     <title id="architecture-title">{title}</title>
     <desc id="architecture-desc">{description}</desc>
     <defs>
@@ -70,7 +72,7 @@ const description =
     <text class="note center" x="228" y="296">The model never runs a query</text>
     <text class="note center" x="228" y="313">and never sees the results.</text>
   </svg>
-  <svg class="diagram diagram-phone" width="272" height="418" viewBox="0 0 272 418" role="img" aria-labelledby="architecture-title-phone" aria-describedby="architecture-desc-phone">
+  <svg class="drawing drawing-phone" width="272" height="418" viewBox="0 0 272 418" role="img" aria-labelledby="architecture-title-phone" aria-describedby="architecture-desc-phone">
     <title id="architecture-title-phone">{title}</title>
     <desc id="architecture-desc-phone">{description}</desc>
     <defs>
@@ -127,39 +129,12 @@ const description =
 </figure>
 
 <style>
-  .diagram-figure {
-    margin-block: var(--space-4) var(--space-6);
-    overflow-x: auto;
-  }
-
-  .diagram {
-    display: block;
-    font-family: var(--font-mono);
-  }
-
-  .diagram-wide {
-    display: none;
-  }
-
-  .box {
-    fill: var(--surface);
-    stroke: var(--muted);
-    stroke-width: 1;
-  }
-
   .arrow {
-    fill: none;
-    stroke: var(--ink);
-    stroke-width: 1;
     marker-end: url("#arch-arrow");
   }
 
-  .diagram-phone .arrow {
+  .drawing-phone .arrow {
     marker-end: url("#arch-arrow-phone");
-  }
-
-  .head {
-    fill: var(--ink);
   }
 
   /* The one highlight in the drawing: the request path of /api/ask, a 2px rule in --mark with a
@@ -170,43 +145,11 @@ const description =
     marker-end: url("#arch-arrow-ask");
   }
 
-  .diagram-phone .ask-path line {
+  .drawing-phone .ask-path line {
     marker-end: url("#arch-arrow-ask-phone");
   }
 
   .head-ask {
     fill: var(--mark);
-  }
-
-  .label,
-  .note {
-    font-size: var(--text-xs);
-    dominant-baseline: middle;
-  }
-
-  .label {
-    fill: var(--ink);
-  }
-
-  .note {
-    fill: var(--muted);
-  }
-
-  .center {
-    text-anchor: middle;
-  }
-
-  .right {
-    text-anchor: end;
-  }
-
-  @media (min-width: 768px) {
-    .diagram-phone {
-      display: none;
-    }
-
-    .diagram-wide {
-      display: block;
-    }
   }
 </style>

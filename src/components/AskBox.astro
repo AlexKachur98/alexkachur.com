@@ -171,7 +171,7 @@ const answer = shown ? await run(shown.sql) : undefined;
       {
         examples.map((example, index) => (
           <li>
-            <button type="button" class="ask-example" data-sql={example.sql} data-more={example.more ? index : undefined}>
+            <button type="button" class="ask-example text-button" data-sql={example.sql} data-more={example.more ? index : undefined}>
               {example.label}
             </button>
             <code>{example.sql}</code>
@@ -399,29 +399,7 @@ const answer = shown ? await run(shown.sql) : undefined;
 
   /* Each label is a button that runs its SQL here; it reads as a link, at control height. */
   .ask-example {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--control);
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--console-ink);
-    font-family: var(--font-sans);
-    font-size: var(--text-md);
-    font-weight: 600;
-    line-height: var(--leading-body);
     text-align: left;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.15em;
-    transition: text-decoration-color var(--duration) var(--ease);
-  }
-
-  @media (hover: hover) {
-    .ask-example:hover {
-      text-decoration-thickness: 2px;
-      text-decoration-color: var(--console-accent);
-    }
   }
 
   .ask-fallback code {

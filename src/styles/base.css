@@ -229,6 +229,11 @@ figcaption {
   vertical-align: 0.15em;
 }
 
+/* The title block that opens every page but the home page, clear of the site header. */
+.page-head {
+  padding-top: var(--space-8);
+}
+
 /* The facts list under a page title: a case study's role, year, client and stack, or the
    write-up's measured numbers; labels in the muted mono, values beside them. */
 .facts {
@@ -266,6 +271,10 @@ figcaption {
   .section,
   .site-footer {
     margin-top: var(--space-9);
+  }
+
+  .page-head {
+    padding-top: var(--space-9);
   }
 }
 
