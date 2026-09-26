@@ -6,28 +6,19 @@ import Section from './Section.astro';
 import SplitRoofFlow from './SplitRoofFlow.astro';
 import { projectPage } from '../lib/rows.ts';
 
-// Rows separated by rules, never cards, every one laid out alike: the image takes four of the
-// twelve columns from 768px and six from 1200px. A row shows its first screenshot, which fills
-// the column from 1200px, so screenshots cropped to one ratio share one size; the sizes list
-// follows the grid: fluid between 768px and 1080px and again between 1200px and the 1240px
-// container, fixed at each container width, and held on a phone by the width attribute. The
-// largest candidate is double the widest column, or the whole source where that is narrower.
-// A row whose page shows no interface, or whose page is the write-up of the site, shows the
-// drawing that page explains instead, named by the sentence its file gives it: the drawing fills
-// the column as a screenshot does (the phone one below 768px, the wide one from 1200px), and
-// between 768px and 1199px, where the column is too narrow for either, the row shows its text
-// alone. No thumbnail carries a caption: the title and the card sentence are
-// the row's words, and the case study shows the captions. The first screenshot loads eagerly,
-// since on tall windows it is the largest thing in the first screen, with no raised fetch
-// priority, because on most windows a line of the hero's text is; every other image waits until
-// it is near the viewport. A thumbnail is a second way into the page for a pointer; hovering it or
-// the title marks both, so the two read as one link.
+// One row per project with its first screenshot. A row whose page has no interface to show, or
+// is this site's write-up, shows that page's drawing instead, and between 768px and 1199px, where
+// the column is too narrow for a drawing, its text alone.
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
 const technologies = await getCollection('technologies');
 const names = new Map(technologies.map((entry) => [entry.id, entry.data.name]));
 const diagrams = { architecture: ArchitectureDiagram, 'splitroof-flow': SplitRoofFlow } as const;
+// Loaded eagerly: on tall windows it is the largest thing in the first screen. Its fetch priority
+// stays normal, since on most windows a line of the hero's text is.
 const firstShot = projects.findIndex((project) => !project.data.row_image && project.data.screenshots.length > 0);
 
+// sizes follows the grid: fluid from 768px to 1080px and from 1200px to the 1240px container,
+// fixed at each container width. The largest width is double the widest column.
 const rowWidths = [312, 660, 984, 1320];
 const rowSizes =
   '(min-width: 1600px) 660px, (min-width: 1240px) 560px, (min-width: 1200px) calc(50vw - 60px), (min-width: 1080px) 312px, (min-width: 768px) calc(33.33vw - 48px), (min-width: 360px) 312px, calc(100vw - 48px)';
@@ -120,10 +111,8 @@ const rowSizes =
     transition: border-color var(--duration) var(--ease);
   }
 
-  /* A drawing gets the frame and the overlay link a screenshot has, and fills the column the way
-     a screenshot does: the drawing scales with its viewBox, words included, and the column is
-     never narrower than the drawing where a row shows one, so the words only ever grow. The
-     component's figure keeps no margin of its own inside the row. */
+  /* A drawing gets a screenshot's frame and overlay link. It scales with its viewBox, words
+     included, and its column is never narrower than the drawing, so the words only grow. */
   .work-diagram .linked {
     position: relative;
     border: 1px solid var(--rule);
@@ -146,6 +135,7 @@ const rowSizes =
     margin: 0;
   }
 
+  /* Hovering the title or the thumbnail marks both, so they read as one link. */
   @media (hover: hover) {
     .work-row:has(h3 a:hover, .work-shot :global(a):hover) h3 a {
       text-decoration-thickness: 2px;
@@ -186,8 +176,6 @@ const rowSizes =
     }
   }
 
-  /* The img comes from Figure, so only :global reaches it; its width attribute would otherwise
-     stop it short of the wider column, and the frame around it would stay as narrow. */
   @media (min-width: 1200px) {
     .work-text {
       grid-column: 1 / 7;
@@ -201,6 +189,7 @@ const rowSizes =
       display: block;
     }
 
+    /* Figure's img would otherwise stop at its width attribute, short of the wider column. */
     .work-shot :global(.linked) {
       width: auto;
     }

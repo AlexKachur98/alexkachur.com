@@ -1,8 +1,7 @@
 ---
-// Both labels are in the markup; CSS shows the one for the theme a click will switch to, from
-// [data-theme] and, when the attribute is absent, prefers-color-scheme. The hidden
-// label is display:none, so exactly one accessible name is ever read. The click handler is in
-// src/scripts/bootstrap.ts.
+// Both labels are in the markup; CSS shows the one for the theme a click switches to, from
+// [data-theme] or, without it, prefers-color-scheme. The other is display:none, so exactly one
+// accessible name is read. The click handler is in src/scripts/bootstrap.ts.
 ---
 
 <button type="button" class="theme-toggle" data-theme-toggle>

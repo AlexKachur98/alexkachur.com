@@ -1,16 +1,8 @@
 ---
 import '../styles/drawing.css';
 
-// The flow diagram for the SplitRoof case study: the question goes to the model, the model can
-// only call the three typed tool functions, the functions read the household's data and hand
-// back exact figures, and the model turns them into a sentence. The labels are the words of the
-// description a reader who cannot see the drawing gets. The drawing keeps its natural width so
-// the text stays on the type scale; below 768px a stacked drawing of the same boxes and words
-// takes its place, 272px wide, so it fits a 320px screen whole. Each drawing has its own
-// marker: Chrome draws no arrowhead from a marker inside a hidden drawing. The figure is the
-// page's own, not part of the text the sections table holds. The name is the drawing's own, or
-// the sentence a home page row gives it.
 interface Props {
+  // A home page row passes its own sentence.
   title?: string;
 }
 

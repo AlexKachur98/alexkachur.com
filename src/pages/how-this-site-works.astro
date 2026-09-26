@@ -13,14 +13,10 @@ import { pageEntry } from '../lib/page-entry.ts';
 import { siteRepo } from '../lib/query.ts';
 import { splitSections } from '../lib/sections.ts';
 
-// The prose is the page entry, the text the sections table holds, with its numbers filled in the
-// way the table's were. What only this page can add follows the prose of its section and is
-// marked data-page-only, so the build test can compare the rest with the table: the numbers under
-// the title, the diagram, the curl one-liner with the first lines it returns, the versioned link
-// to the dump, the model's name read from /api/stats after load (never baked, so the page cannot
-// go stale when the variable changes), the cost arithmetic, and the sizes of the scripts every
-// page loads before interaction, measured from the client build. The build script's name links
-// to its source at the commit the site was built from, so the link cannot rot.
+// The prose is the page entry, the text the sections table holds. What only this page adds is
+// marked data-page-only, so the build test can compare the rest with the table. The model's name
+// is read from /api/stats after load rather than baked, so it follows the variable. The build
+// script's name links to its source at the commit the site was built from, so the link lasts.
 const page = await pageEntry('how-this-site-works');
 const where = 'pages/how-this-site-works.md';
 const [lead, ...sections] = splitSections(page.rendered?.html ?? '', { lead: page.data.title }).map((section) => ({

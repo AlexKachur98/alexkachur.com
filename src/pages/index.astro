@@ -14,7 +14,7 @@ import { availableMonth, siteFacts } from '../lib/facts.ts';
 const home = new URL('/', Astro.site).href;
 const facts = await siteFacts();
 const { month, year } = availableMonth(facts);
-// The city alone, as the description says where Alex works: the location fact is "city, country".
+// The city alone: the location fact is "city, country".
 const city = facts.location.split(', ')[0];
 // The WebSite node gives search results the site's name; the ProfilePage says the home page is
 // about one person. The GitHub and LinkedIn addresses are the hero's links.

@@ -1,11 +1,8 @@
 ---
 import { examples } from '../data/examples.ts';
 
-// The example queries as buttons carrying their SQL. The bootstrap hands a click
-// to the console chunk, which shows the SQL in the panel and runs it.
-// The list sits in a div marked data-nosnippet (a div, since Google honours the attribute only on
-// div, span and section): the labels are buttons rather than the page's text, and most of them
-// name Alex, so a search result for the name would otherwise quote them.
+// The example queries as buttons carrying their SQL, which the console runs when one is clicked.
+// data-nosnippet sits on a div because Google honours it only on div, span and section.
 ---
 
 <div data-nosnippet>

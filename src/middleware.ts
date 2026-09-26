@@ -1,8 +1,8 @@
 import { defineMiddleware } from 'astro:middleware';
 import { stripHtmlComments } from './lib/strip-comments.ts';
 
-// Page-output half of the comment stripping: runs at build time for every
-// prerendered page, including 404, and leaves non-HTML responses alone.
+// The page half of the comment stripping: runs at build time for every prerendered page, 404
+// included, and leaves non-HTML responses alone.
 export const onRequest = defineMiddleware(async (_context, next) => {
   const response = await next();
   if (!response.headers.get('content-type')?.startsWith('text/html')) return response;

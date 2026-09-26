@@ -5,12 +5,9 @@ import { pageEntry } from '../lib/page-entry.ts';
 import { select } from '../lib/query.ts';
 import { usesQuery } from '../lib/uses-query.ts';
 
-// The page opens with the one-sentence lead from its page entry, the text the sections table
-// holds, then shows the uses table as a visitor's query returns it, grouped under its sections in
-// page order, with the item in bold at the left edge, where a reader scanning the list looks.
-// A row whose details already begin with the item reads as the details alone, the item still
-// bold. The query itself sits under the date with a link to the same rows as JSON, both marked
-// data-nosnippet as interface text.
+// The uses table as a visitor's query returns it, grouped by section. A row whose details already
+// begin with the item shows the details alone, the item still bold. The query and the JSON link
+// are marked data-nosnippet as interface text.
 const page = await pageEntry('uses');
 const lead = page.rendered?.html ?? '';
 const { rows } = await select(usesQuery);

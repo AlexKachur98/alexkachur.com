@@ -14,8 +14,8 @@ import { ASK_DESCRIPTION, openApiDocument, PROJECT_DESCRIPTION, RATE_LIMITS_SENT
 import buildInfo from '../../generated/build-info.json';
 import recorded from '../../data/api-samples.json';
 
-// The on-demand endpoints show the fields of their 200 body and every status they answer, read
-// from the same OpenAPI document /api/openapi.json serves, so no value is typed in twice.
+// The on-demand endpoints' fields and statuses come from the OpenAPI document /api/openapi.json
+// serves.
 type Shape = { properties?: Record<string, { type?: string | string[]; description?: string; const?: unknown; enum?: unknown[] }>; $ref?: string };
 type Operation = { responses: Record<string, { description: string; content?: { 'application/json'?: { schema: Shape } } }> };
 const document = openApiDocument(schema, { site: Astro.site!.origin, version: buildInfo.commit });
@@ -54,7 +54,7 @@ const question = chips[0]!.label;
 // on-demand endpoints whose bodies carry live values show a response recorded from the deployed
 // site on the day given, since the build cannot know those numbers.
 const minutes = SEND.windowSeconds / 60;
-// The recorded ask must answer the question the curl line sends, or the page would show a reply to something else.
+// The recorded ask must answer the question the curl line sends.
 if (recorded.ask.question !== question) throw new Error(`the recorded /api/ask sample answers "${recorded.ask.question}", not the page's example "${question}"`);
 const samples: Record<string, { curl: string; response: string; description?: string; recorded?: string; note?: string }> = {
   ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableObjects(rows), { items: shownRows[rows] ?? 2 }) }]))),
@@ -212,9 +212,8 @@ for (const path of Object.keys(samples)) {
 </Base>
 
 <style>
-  /* A method and a path are data, so the endpoint titles are mono. A path breaks only after one of
-     its slashes, never inside a name, and on a phone the titles take the body size so most fit on
-     one line. */
+  /* A method and a path are data, so the titles are mono; on a phone they take the body size, so
+     most fit on one line. */
   .endpoint h2 {
     font-family: var(--font-mono);
     font-size: var(--text-md);
@@ -232,7 +231,6 @@ for (const path of Object.keys(samples)) {
     white-space: nowrap;
   }
 
-  /* The line naming each table, in the caption style, with room above it after the block before. */
   .label {
     margin: var(--space-5) 0 var(--space-2);
     color: var(--muted);
@@ -243,15 +241,12 @@ for (const path of Object.keys(samples)) {
     margin-bottom: var(--space-4);
   }
 
-  /* The day a recorded sample was taken, or the note under a curl line, in the caption style. */
   .recorded {
     margin-top: calc(-1 * var(--space-2));
     color: var(--muted);
     font-size: var(--text-sm);
   }
 
-  /* The endpoint index: one line per endpoint in the mono the titles use, so the on-demand
-     endpoints at the foot of the page are reachable from the first screen. */
   .index {
     display: flex;
     flex-wrap: wrap;

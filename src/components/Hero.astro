@@ -98,9 +98,7 @@ const [before, school, after] = at === -1 ? [facts.status, '', ''] : [facts.stat
     min-width: 0;
   }
 
-  /* One stack, then the Ask panel, in the order they are read. From 768px the stack takes columns
-     1 to 9 and leaves the right side empty, and the panel takes the same columns on its own row,
-     so an answer growing in it moves nothing above it. */
+  /* The Ask panel has a row of its own, so an answer growing in it moves nothing above it. */
   @media (min-width: 768px) {
     .hero {
       padding-top: var(--space-9);
@@ -116,9 +114,8 @@ const [before, school, after] = at === -1 ? [facts.status, '', ''] : [facts.stat
     }
   }
 
-  /* From 1200px the panel spans its row as a subgrid of all twelve columns: the form in 1 to 8 and
-     the answer in 8 to 13, which shows an example until the first question or chip. A browser
-     without subgrid keeps the panel whole in columns 1 to 9. */
+  /* From 1200px the panel spans all twelve columns, which AskBox splits; without subgrid it stays in
+     columns 1 to 9. */
   @media (min-width: 1200px) {
     @supports (grid-template-columns: subgrid) {
       .hero-ask {

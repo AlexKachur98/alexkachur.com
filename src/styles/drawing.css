@@ -1,5 +1,7 @@
-/* The line drawings: boxes, arrows and their labels in the page's tokens. Each drawing comes in a
-   wide version and a stacked one for phones, and sets its own arrowheads, whose ids are its own. */
+/* The line drawings. Each comes in a wide version and a stacked one for phones, 272px wide to fit
+   a 320px screen; on its own page a drawing keeps its natural width, so the words stay on the type
+   scale. Each version has its own arrowheads, since Chrome draws none from a marker inside a
+   hidden drawing. The labels use the words of the drawing's text alternative. */
 .drawing-figure {
   margin-block: var(--space-4) var(--space-6);
   overflow-x: auto;

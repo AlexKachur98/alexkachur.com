@@ -2,13 +2,9 @@
 import { dataFile } from '../lib/data-file.ts';
 import '../styles/console.css';
 
-// The header line and the loading message show the database's real size, and the module
-// fetches the file through the versioned URL baked in here, so the immutable cache never serves
-// a returning visitor an older database than this page was built with. The panel is wired by
-// src/scripts/console.ts once the bootstrap loads it on the first interaction; the two live
-// regions are always present and are emptied, never removed, so they announce. The panel is
-// marked data-nosnippet like the schema list beside it, so a search result never quotes its
-// header line or button as the page's text.
+// src/scripts/console.ts wires the panel on the first interaction. Its two live regions are always
+// present and only emptied, so they announce. data-nosnippet keeps a search result from quoting
+// the panel's header line and button as the page's text.
 const database = dataFile('portfolio.sqlite');
 const kb = Math.round(database.bytes / 1000);
 ---
@@ -32,10 +28,8 @@ const kb = Math.round(database.bytes / 1000);
     aria-labelledby="console-label"
     data-console-input></textarea>
   <button type="button" class="console-run" data-console-run>Run</button>
-  <!-- Clear starts hidden; the console module shows it while the editor, the results or the error
-       line hold something, and the stylesheet hides it while a query runs. Its name says what it
-       clears, since the Ask box above has a clear control of its own, and starts with the word
-       shown, so a voice command for the visible word still finds it. -->
+  <!-- The name says what it clears, since the Ask box has a clear control too, and starts with
+       the visible word, so a voice command for that word still finds it. -->
   <button type="button" class="console-clear text-button" data-console-clear hidden><span class="visually-hidden">Clear query</span><span aria-hidden="true">Clear</span></button>
   <p class="console-error" role="alert" data-console-error></p>
   <div class="console-results" role="region" aria-labelledby="console-label console-status" data-console-results></div>

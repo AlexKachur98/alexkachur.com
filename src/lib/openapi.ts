@@ -1,7 +1,5 @@
-// The OpenAPI 3.1 document served as /api/openapi.json, built at build time from schema.json
-// (one component per table, every column with its type and description) and the endpoint list,
-// so the API loads into any client that reads OpenAPI. Paths are the exact ones the files are
-// served at, .json suffix included.
+// The OpenAPI 3.1 document at /api/openapi.json, built from schema.json and the endpoint list.
+// Paths are the exact ones the files are served at, .json included.
 import { QUESTION_LENGTH } from './ask/question.ts';
 import { SEND, SEND_DESCRIPTION } from './ask/send.ts';
 import { RATE_LIMIT } from './ask/storage.ts';
@@ -9,8 +7,7 @@ import { endpoints } from './endpoints.ts';
 import type { Endpoint } from './endpoints.ts';
 import { OPENAPI_VERSION } from './openapi-version.ts';
 
-// What each endpoint is, for the /api page and this document alike, so the two cannot drift. Third
-// person, Alex named, the API caller addressed as "you" where it must be.
+// What each endpoint is, as /api and this document describe it.
 export const PROJECT_DESCRIPTION = 'The projects row with this slug, plus the names of its technologies. Its screenshots are the project_images rows with its id, at /api/project_images.json.';
 export const SCHEMA_DESCRIPTION =
   'The tables and columns of the database, the SQL that created them, the keys of the facts table with what each means, the pages and headings of the sections table, and a hash covering all of those. The SQL and those three lists are the schema the Ask box sends to the model.';
@@ -18,7 +15,7 @@ export const RESUME_DESCRIPTION = "Alex's resume in the JSON Resume format, buil
 export const ASK_DESCRIPTION =
   "Send a question and get back SQL that answers it from this site's database, checked against the real database first, or a short refusal when the data can't answer it. It never runs the SQL; you do.";
 export const STATS_DESCRIPTION = 'The numbers behind the footer: questions answered this month, model calls this month and the monthly cap, the model the Ask box runs on, and the commit and time of the build.';
-// The limits, with the number from the code, for the /api lead and the ask operation alike.
+// The limits as the /api lead and the ask operation state them.
 export const RATE_LIMITS_SENTENCE = `Rate limits: ${RATE_LIMIT.requests} questions a minute per address, shared by /api/ask and /api/questions, and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`;
 
 interface SchemaColumn {

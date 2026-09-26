@@ -9,25 +9,15 @@ import { THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/r
 import type { Result } from '../scripts/results.ts';
 import '../styles/console.css';
 
-// The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,
-// in the answer area below the chips. The whole box is one console panel, dark in both themes
-// with one fill and one cut; the form and the answer share it. The chips carry reviewed SQL and
-// run it locally with no request. The answer area is always in the markup, so its status and
-// error regions exist before anything is written to them; it takes up space only once it holds
-// something.
-// The examples are the fallback listed when the AI is out of reach; one of them carries a line
-// shown under its table, which starts hidden and is revealed when that example runs. A page
-// without the raw console (404) gets no Edit this query button, since there is nowhere to edit.
-// After a typed question the site could not answer, the send block offers to pass the question
-// on; nothing is sent unless its button is clicked, and the sentence under it takes the lifetime
-// from the code.
-// With example, the box sets the answer beside the form from 1200px, and until the first question
-// or chip that pane shows an example answer: its SQL run here at build time against the built
-// database and written into the page, so it needs no request and no script.
-// The whole box is marked data-nosnippet: its label, chips, notes and the example table are
-// controls and data rather than the page's text, so a search result should not quote them.
+// The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser; a chip
+// runs reviewed SQL with no request. The answer area is always in the markup, so its live regions
+// exist before anything is written to them. The box is marked data-nosnippet: its controls and
+// data are not the page's text for a search result to quote.
 interface Props {
+  // Adds Edit this query; the 404 page has no console to edit in.
   editable?: boolean;
+  // From 1200px, sets the answer beside the form, showing an answer run at build time until the
+  // first question.
   example?: boolean;
 }
 
@@ -35,8 +25,7 @@ const { editable = false, example = false } = Astro.props;
 const database = dataFile('portfolio.sqlite');
 const kb = Math.round(database.bytes / 1000);
 
-// The way the browser's worker runs a query: the first statement, stepped up to one row past the
-// cap, so the example shows what running its SQL in the browser would.
+// As the browser's worker runs a query: stepped to one row past the cap.
 async function run(sql: string): Promise<Result> {
   const { columns, rows } = await select(sql, ROWS + 1);
   return { columns, rows, truncated: rows.length === ROWS + 1 };
@@ -47,15 +36,14 @@ const answer = shown ? await run(shown.sql) : undefined;
 ---
 
 <div class:list={['console cut ask', { 'ask-split': example }]} data-ask data-nosnippet data-kb={kb} data-db-url={database.url}>
-  <!-- Enter submits through the form. Its method makes the browser's own submission a no-op
-       (there is no dialog around it), so a question typed before the script has loaded, or
-       with scripts off, never lands in the URL; the submit event still fires for the script. -->
+  <!-- Outside a dialog, method="dialog" makes the browser's own submission a no-op, so a question
+       typed before the script loads, or with scripts off, never lands in the URL; the submit
+       event still fires. -->
   <form class="ask-form" method="dialog" data-ask-form>
     <label class="ask-label" for="ask-input">Ask about Alex in plain English. The site writes SQL, and you can read it.</label>
     <div class="ask-row">
-      <!-- The clear control sits over the field's right end and shows while the field holds text.
-           Escape in the field does the same from the keyboard, so the control is not a Tab stop and
-           Tab from the field still goes to Ask. -->
+      <!-- Escape in the field does what the clear control does, so the control is not a Tab stop
+           and Tab goes on to Ask. -->
       <div class="ask-field">
         <input class="input" id="ask-input" type="text" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
         <button type="button" class="ask-clear" tabindex="-1" data-ask-clear hidden>
@@ -206,10 +194,8 @@ const answer = shown ? await run(shown.sql) : undefined;
     margin-bottom: var(--space-3);
   }
 
-  /* The field and its clear control share a box. The control's target is a 44px square, one control
-     height and a step, standing 2px proud of the 40px field above and below; it has no fill or
-     frame, so the field's edge shows through. The field keeps that width free of text whether or
-     not the control shows, so typed text never runs under it or moves when it appears. */
+  /* The clear control's 44px target stands 2px proud of the 40px field above and below. The field
+     keeps that width free of text whether or not the control shows, so text never moves. */
   .ask-field {
     position: relative;
     flex: 1;
@@ -245,7 +231,7 @@ const answer = shown ? await run(shown.sql) : undefined;
     }
   }
 
-  /* One chip per line at every width, so the questions read down the form as a list. */
+  /* One chip per line at every width, so the questions read as a list. */
   .ask-chips {
     display: flex;
     flex-direction: column;
@@ -267,9 +253,8 @@ const answer = shown ? await run(shown.sql) : undefined;
     font-size: var(--text-sm);
   }
 
-  /* The answer area sits inside the box's own padding, so it has none. It keeps the console
-     class for the cursor, which blinks while this element is working. Closed, its empty lines
-     have no height, so nothing shows. */
+  /* Inside the box's padding, so it has none of its own; it keeps the console class for the working
+     cursor. Closed, it takes no space. */
   .ask-panel {
     margin-top: var(--space-4);
     padding: 0;
@@ -290,10 +275,8 @@ const answer = shown ? await run(shown.sql) : undefined;
     scroll-margin: var(--space-4);
   }
 
-  /* Here the head line is the question, balanced like a heading, and under it the status with the
-     cursor on a line of its own. While the panel is open that line keeps its height even with
-     nothing on it, so the head does not grow or shrink as "working" gives way to the row count and
-     nothing below it moves. The cursor stands on the text's baseline, as in the raw console. */
+  /* The question, balanced like a heading, over a status line that keeps its height while the panel
+     is open, so nothing below moves as "working" gives way to the row count. */
   .ask-panel .console-head {
     display: block;
   }
@@ -315,9 +298,8 @@ const answer = shown ? await run(shown.sql) : undefined;
     vertical-align: baseline;
   }
 
-  /* The example only ever stands beside the form, so it shows nowhere below 1200px, and the first
-     question or chip removes it. Its rows are part of the page, so they are there from the start
-     rather than revealed one by one. */
+  /* The example shows only beside the form, from 1200px. Its rows are part of the page, so they skip
+     the row reveal. */
   .ask-example-answer {
     display: none;
   }
@@ -366,8 +348,7 @@ const answer = shown ? await run(shown.sql) : undefined;
     overflow-wrap: anywhere;
   }
 
-  /* The SQL as it came back, wrapped rather than scrolled, in the console's ink with its
-     keywords picked out; the code-block frame from the page styles does not apply here. */
+  /* Wrapped rather than scrolled, and without the page's code-block frame. */
   .ask-sql {
     padding: 0;
     border: 0;
@@ -397,7 +378,7 @@ const answer = shown ? await run(shown.sql) : undefined;
     margin-top: var(--space-2);
   }
 
-  /* Each label is a button that runs its SQL here; it reads as a link, at control height. */
+  /* A label that wraps lines up on the left, as text does. */
   .ask-example {
     text-align: left;
   }
@@ -413,12 +394,9 @@ const answer = shown ? await run(shown.sql) : undefined;
       padding: var(--space-6);
     }
 
-    /* Beside the form, the box is a subgrid of the page's twelve columns: the form takes 1 to 8
-       and the answer 8 to 13. The box's padding only insets the two outer tracks, so the split
-       stays on the page's column line 8. The console rules would place any panel in 1 to 8, hence
-       the explicit columns. A 1px rule down the middle of the grid's gap parts the two panes. A
-       browser without subgrid skips all of this and keeps the box whole, its answers opening under
-       the form, with no example. */
+    /* A subgrid of the page's twelve columns, so the split falls on the page's column line 8; the
+       box's padding only insets the outer tracks. Without subgrid the box stays whole, answers open
+       under the form, and there is no example. */
     @supports (grid-template-columns: subgrid) {
       .ask-split {
         display: grid;
@@ -426,8 +404,8 @@ const answer = shown ? await run(shown.sql) : undefined;
         grid-template-columns: subgrid;
       }
 
-      /* The answer pane is the taller side, so the privacy note goes to the foot of the form's
-         column, level with the end of the pane, rather than leaving the space under it empty. */
+      /* The privacy note sits at the foot of the form's column, level with the end of the taller
+         answer pane. */
       .ask-split .ask-form {
         display: flex;
         flex-direction: column;
@@ -438,9 +416,8 @@ const answer = shown ? await run(shown.sql) : undefined;
         margin-top: auto;
       }
 
-      /* After the first question or chip the pane keeps the example's height as its smallest
-         height (begin() in console.ts records it as the example goes), so a short answer leaves
-         the row, the privacy note and the work list where they were. */
+      /* The pane keeps the example's height as its smallest (begin() in console.ts records it), so
+         a short answer moves nothing below it. */
       .ask-split .ask-panel {
         position: relative;
         grid-column: 8 / 13;
@@ -462,15 +439,11 @@ const answer = shown ? await run(shown.sql) : undefined;
         display: block;
       }
 
-      /* A long answer here would stretch the hero and push the work list down, so its rows scroll
-         inside a box at most 25rem tall, the column names held at its top, while the question,
-         status, SQL and buttons stay outside it. Only where the main pointer is a mouse or
-         trackpad, since on a touch screen the box would take swipes meant for the page, and only
-         on a window at least 42.5rem tall, so the box never fills more than 59% of it; everywhere
-         else the answer grows as it does below 1200px. The scroll padding keeps a link that takes
-         focus clear of the held header row at the top, and leaves room for its focus ring at the
-         bottom. With separate borders each header cell draws its own rule, so the rule stays with
-         the header while it is held. */
+      /* A long answer here would stretch the hero, so its rows scroll in a box with the column
+         names held at the top. Only with a mouse or trackpad, since on a touch screen the box would
+         take the page's swipes, and only on a window tall enough that the box fills at most 59% of
+         it. The scroll padding keeps a focused link clear of the held header row; with separate
+         borders each header cell keeps its rule. */
       @media (min-height: 42.5rem) and (hover: hover) and (pointer: fine) {
         .ask-split .console-results {
           max-height: 25rem;

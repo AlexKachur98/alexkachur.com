@@ -1,14 +1,10 @@
 ---
 import schema from '../generated/schema.json';
 
-// Every table and column with its one-line description, from the schema.json the
-// build writes out of the zod descriptions, so this list, /api/schema.json and the ask prompt
-// cannot drift. Columns sit under their table's name rather than repeating it as table.column,
-// which would leave no room for the descriptions beside the console. The list scrolls inside a
-// bounded height, so it takes focus for keyboard users.
-// A search engine that passes over the page's description quotes page text under the result
-// instead, and this list of table and column descriptions reads as prose about Alex. The
-// data-nosnippet attribute keeps it out of that text; the list stays on the page and in the index.
+// Every table and column with its description, from the schema.json the build writes out of the
+// zod descriptions. The list scrolls inside a bounded height, so it takes focus for keyboard users.
+// data-nosnippet keeps a search result from quoting the descriptions as the page's text; the list
+// stays on the page and in the index.
 ---
 
 <div class="schema" data-nosnippet>
