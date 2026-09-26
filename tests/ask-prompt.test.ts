@@ -137,7 +137,7 @@ describe('cache key parts', () => {
     const standIn = { ddl: 'CREATE TABLE t (x TEXT);', facts: [{ key: 'k', description: 'd' }], sectionPages: ['/p'], sectionHeadings: ['H'] };
     const sent = [systemPrompt(standIn), correctionTurn('the error'), JSON.stringify(outputFormat())].join('\n');
     const hash = createHash('sha256').update(sent).digest('hex').slice(0, 16);
-    expect({ PROMPT_VERSION, hash }).toEqual({ PROMPT_VERSION: 9, hash: '2c7ea3ced05bc8d7' });
+    expect({ PROMPT_VERSION, hash }).toEqual({ PROMPT_VERSION: 10, hash: 'f397410d1ead0ae9' });
   });
 
   it('takes the first eight hex characters of the schema hash', () => {

@@ -85,6 +85,9 @@ export const questions: readonly EvalQuestion[] = [
   { question: "What graphics card is in Alex's main PC?", expect: 'sql', mustInclude: ['RTX 5090'] },
   { question: 'What went wrong on the Uraz Hoops project?', expect: 'sql', mustInclude: ['pricing'] },
   { question: "What is Alex's long-term goal?", expect: 'sql', mustInclude: ['rescue ranch'] },
+  // Questions about the site itself read its write-up, which the prompt has to point at.
+  { question: "What are the site's Lighthouse scores?", expect: 'sql', mustInclude: ['Lighthouse', '100'] },
+  { question: 'How much does it cost to run the Ask box?', expect: 'sql', mustInclude: ['2,000'] },
   { question: "Show me photos of Alex's pets.", expect: 'sql', mustInclude: ['/images/pets/'] },
   { question: 'Which technologies does each project use?', expect: 'sql', mustInclude: ['SplitRoof AI assistant', 'Firebase'] },
   // Answers at the level the question asks: a question about a whole table with a broad column gets

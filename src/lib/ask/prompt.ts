@@ -8,7 +8,7 @@ import { EXPLANATION_ASKED } from './validate-sql.ts';
 
 // Bump whenever this text, the examples or the validator change, so answers cached under the old
 // rules are not served again.
-export const PROMPT_VERSION = 9;
+export const PROMPT_VERSION = 10;
 
 // Part of every cache key, beside PROMPT_VERSION.
 export const schemaHash8 = schema.hash.slice(0, 8);
@@ -83,7 +83,11 @@ function factList(facts: ShownSchema['facts']): string {
 // The same for the sections table: a question about part of a page needs the page and the heading
 // as stored, and a case study's page is not its project's slug alone.
 function sectionPageList(pages: string[]): string {
-  return ["The sections table's pages:", ...pages.map((page) => `- ${page}`)].join('\n');
+  return [
+    "The sections table's pages:",
+    ...pages.map((page) => `- ${page}`),
+    "The /how-this-site-works rows are the site's own write-up, so a question about how this site is built, what it costs or how fast it is, its Lighthouse scores included, reads them.",
+  ].join('\n');
 }
 
 function sectionHeadingList(headings: string[]): string {
