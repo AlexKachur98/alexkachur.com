@@ -6,9 +6,9 @@ import { countIn } from '../src/lib/numbers.ts';
 import { monthYear } from '../src/lib/resume.ts';
 import { questions } from '../scripts/eval/questions.ts';
 
-// The PDF is exported by hand from portfolio-materials/Alex-Kachur-Resume.docx, so this test holds
-// it to the database: every claim the site makes about Alex that the PDF repeats must read the same.
-const fix = 'Change it in portfolio-materials/Alex-Kachur-Resume.docx, export the PDF again and replace public/Alex-Kachur-Resume.pdf.';
+// The PDF is exported by hand, so it is checked against the database: every claim the site makes
+// that the PDF repeats must read the same.
+const fix = 'Export the PDF again and replace public/Alex-Kachur-Resume.pdf.';
 
 const pdf = await getDocumentProxy(new Uint8Array(readFileSync('public/Alex-Kachur-Resume.pdf')));
 const extracted = (await extractText(pdf, { mergePages: true })).text;
