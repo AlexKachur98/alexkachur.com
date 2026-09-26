@@ -1,12 +1,12 @@
 ---
 import { answerExample, chips, examples } from '../data/examples.ts';
-import { openDatabase } from '../lib/ask/db.ts';
 import { QUESTION_LENGTH } from '../lib/ask/question.ts';
 import { keptFor, TTL } from '../lib/ask/storage.ts';
 import { dataFile } from '../lib/data-file.ts';
+import { select } from '../lib/query.ts';
 import { ROWS } from '../lib/result-rows.ts';
 import { THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/console.ts';
-import type { Cell, Result } from '../scripts/console.ts';
+import type { Result } from '../scripts/console.ts';
 import '../styles/console.css';
 
 // The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,
@@ -38,15 +38,8 @@ const kb = Math.round(database.bytes / 1000);
 // The way the browser's worker runs a query: the first statement, stepped up to one row past the
 // cap, so the example shows what running its SQL in the browser would.
 async function run(sql: string): Promise<Result> {
-  const db = await openDatabase();
-  const statement = db.prepare(sql);
-  try {
-    const rows: Cell[][] = [];
-    while (rows.length < ROWS + 1 && statement.step()) rows.push(statement.get());
-    return { columns: statement.getColumnNames(), rows, truncated: rows.length === ROWS + 1 };
-  } finally {
-    statement.free();
-  }
+  const { columns, rows } = await select(sql, ROWS + 1);
+  return { columns, rows, truncated: rows.length === ROWS + 1 };
 }
 
 const shown = example ? answerExample : undefined;

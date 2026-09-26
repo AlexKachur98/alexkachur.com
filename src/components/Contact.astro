@@ -1,12 +1,11 @@
 ---
 import Section from './Section.astro';
 import { siteFacts } from '../lib/facts.ts';
-import { select } from '../lib/query.ts';
+import { siteRepo } from '../lib/query.ts';
 
 // The repo link goes to this site's own repository, the Portfolio site project's, not the profile.
 const facts = await siteFacts();
-const repo = (await select("SELECT repo_url FROM projects WHERE slug = 'this-site'")).rows[0]?.[0];
-if (typeof repo !== 'string') throw new Error('the this-site project has no repo_url');
+const repo = await siteRepo();
 ---
 
 <Section id="contact" title="Contact">

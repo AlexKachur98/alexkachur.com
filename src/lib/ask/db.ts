@@ -8,10 +8,11 @@ import { sqlWasmBase64 } from '../../generated/sql-wasm.ts';
 let opening: Promise<Database> | undefined;
 
 export function openDatabase(): Promise<Database> {
-  return (opening ??= open());
+  return (opening ??= openConnection());
 }
 
-async function open(): Promise<Database> {
+// A connection of its own, for a caller that must never step the shared one.
+export async function openConnection(): Promise<Database> {
   const wasm = Buffer.from(sqlWasmBase64, 'base64');
   const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
   const db = new SQL.Database(Buffer.from(portfolioDbBase64, 'base64'));

@@ -9,8 +9,7 @@ import type { TableName } from '../../content/schemas.ts';
 import { previewJson } from '../../lib/preview-json.ts';
 import { SEND, SEND_DESCRIPTION } from '../../lib/ask/send.ts';
 import { keptFor, TTL } from '../../lib/ask/storage.ts';
-import { select } from '../../lib/query.ts';
-import { stackQuery } from '../../lib/rows.ts';
+import { projectDetail, resumeJsonFor, select, tableObjects } from '../../lib/query.ts';
 import { ASK_DESCRIPTION, openApiDocument, PROJECT_DESCRIPTION, RATE_LIMITS_SENTENCE, RESUME_DESCRIPTION, SCHEMA_DESCRIPTION, STATS_DESCRIPTION } from '../../lib/openapi.ts';
 import buildInfo from '../../generated/build-info.json';
 import recorded from '../../data/api-samples.json';
@@ -38,21 +37,14 @@ const statusesOf = (path: string) => {
   return Object.entries(operation.responses).map(([status, response]) => ({ status, body: bodyOf(response), meaning: response.description }));
 };
 const shapesShown: Record<string, string> = { '/api/ask': 'ask_answer', '/api/questions': 'send_answer', '/api/stats': 'stats' };
-import { queryOf, resumeData, resumeJson } from '../../lib/resume.ts';
-import { openDatabase } from '../../lib/ask/db.ts';
 
-// The example responses are cut from the same rows the endpoints serve.
-// A table's rows as its endpoint serves them, and how many the page shows of each.
-async function tableRows(table: TableName) {
-  const { columns, rows } = await select(`SELECT * FROM ${table} ORDER BY rowid`);
-  return rows.map((row) => Object.fromEntries(columns.map((name, index) => [name, row[index]])));
-}
-const first = (await tableRows('projects'))[0]!;
-const stack = await select(stackQuery(Number(first.id)));
-const single = { ...first, technologies: stack.rows.map(([name]) => name) };
-const resume = resumeJson(resumeData(queryOf(await openDatabase())), Astro.site!.origin);
+// The example responses are cut from what the endpoints serve.
+const first = (await tableObjects('projects'))[0]!;
+const single = await projectDetail(first);
+const resume = await resumeJsonFor(Astro.site!.origin);
 
 const url = (path: string) => new URL(path, Astro.site).href;
+// How many rows each table's example shows; two unless named here.
 const shownRows: Partial<Record<TableName, number>> = { projects: 1, pets: 1, technologies: 3, sections: 1, experience: 1 };
 // What is stored: the storage table itself, run at build time, under the query that reads it.
 const storage = await select(storageQuery);
@@ -65,7 +57,7 @@ const minutes = SEND.windowSeconds / 60;
 // The recorded ask must answer the question the curl line sends, or the page would show a reply to something else.
 if (recorded.ask.question !== question) throw new Error(`the recorded /api/ask sample answers "${recorded.ask.question}", not the page's example "${question}"`);
 const samples: Record<string, { curl: string; response: string; description?: string; recorded?: string; note?: string }> = {
-  ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableRows(rows), { items: shownRows[rows] ?? 2 }) }]))),
+  ...Object.fromEntries(await Promise.all(tableEndpoints.map(async ({ path, rows }) => [path, { curl: `curl ${url(path)}`, response: previewJson(await tableObjects(rows), { items: shownRows[rows] ?? 2 }) }]))),
   '/api/projects/{slug}.json': { curl: `curl ${url(`/api/projects/${first.slug}.json`)}`, description: PROJECT_DESCRIPTION, response: previewJson(single) },
   '/api/schema.json': { curl: `curl ${url('/api/schema.json')}`, description: SCHEMA_DESCRIPTION, response: previewJson(schema, { items: 1, chars: 60 }) },
   '/api/resume.json': { curl: `curl ${url('/api/resume.json')}`, description: RESUME_DESCRIPTION, response: previewJson(resume, { items: 1, chars: 60 }) },

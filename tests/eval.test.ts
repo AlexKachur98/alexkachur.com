@@ -1,7 +1,8 @@
 import type { Database } from 'sql.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import schema from '../src/generated/schema.json';
-import { checkDatabase, checkProblem } from '../scripts/eval.ts';
+import { checkProblem } from '../scripts/eval.ts';
+import { openConnection } from '../src/lib/ask/db.ts';
 import { questions } from '../scripts/eval/questions.ts';
 import type { EvalQuestion } from '../scripts/eval/questions.ts';
 
@@ -9,7 +10,7 @@ import type { EvalQuestion } from '../scripts/eval/questions.ts';
 // could never fail, or an expectation a correct answer cannot meet, shows up without a model call.
 let db: Database;
 beforeAll(async () => {
-  db = await checkDatabase();
+  db = await openConnection();
 });
 
 const answer = (sql: string) => ({ status: 200, body: { sql, explanation: 'x', cached: false } });

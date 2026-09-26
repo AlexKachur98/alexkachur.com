@@ -10,7 +10,7 @@ import numbers from '../generated/numbers.json';
 import { dataFile } from '../lib/data-file.ts';
 import { BOOTSTRAP_BUDGET_BYTES, INSIGHTS, loadedScripts } from '../lib/loaded-scripts.ts';
 import { fillPlaceholders } from '../lib/numbers.ts';
-import { select } from '../lib/query.ts';
+import { siteRepo } from '../lib/query.ts';
 import { splitSections } from '../lib/sections.ts';
 
 // The prose is the page entry, the text the sections table holds, with its numbers filled in the
@@ -33,8 +33,7 @@ const dump = dataFile('portfolio.sql');
 const scripts = loadedScripts();
 const group = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-const repo = (await select("SELECT repo_url FROM projects WHERE slug = 'this-site'")).rows[0]?.[0];
-if (typeof repo !== 'string') throw new Error('the this-site project has no repo_url');
+const repo = await siteRepo();
 const commit = /^[0-9a-f]{7,40}$/.test(buildInfo.commit) ? buildInfo.commit : 'main';
 const source = (path: string) => `${repo}/blob/${commit}/${path}`;
 const linked = (html: string, path: string) => html.replace(path, `<a href="${source(path)}">${path}</a>`);

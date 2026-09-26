@@ -11,18 +11,17 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import Anthropic from '@anthropic-ai/sdk';
-import initSqlJs from 'sql.js';
 import type { Database } from 'sql.js';
-import { portfolioDbBase64 } from '../src/generated/portfolio-db.ts';
-import { sqlWasmBase64 } from '../src/generated/sql-wasm.ts';
 import { MODEL, readConfig } from '../src/lib/ask/config.ts';
-import { openDatabase } from '../src/lib/ask/db.ts';
+import { openConnection, openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { ModelCall, ModelReply } from '../src/lib/ask/handler.ts';
 import { PRICE } from '../src/lib/ask/pricing.ts';
 import { PROMPT_VERSION, schemaHash8 } from '../src/lib/ask/prompt.ts';
 import { skippedStore } from '../src/lib/ask/redis.ts';
 import type { EndpointResult } from '../src/lib/ask/result.ts';
+import { rowsOf } from '../src/lib/query.ts';
+import type { Rows } from '../src/lib/query.ts';
 import { ROWS } from '../src/lib/result-rows.ts';
 import { questions } from './eval/questions.ts';
 import type { EvalQuestion } from './eval/questions.ts';
@@ -103,26 +102,6 @@ function liveModel(client: Anthropic, replies: RecordedReply[], counter: Counter
   };
 }
 
-// A second connection for the checks, so they never step the one the handler validates against.
-export async function checkDatabase(): Promise<Database> {
-  const wasm = Buffer.from(sqlWasmBase64, 'base64');
-  const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-  const db = new SQL.Database(Buffer.from(portfolioDbBase64, 'base64'));
-  db.run('PRAGMA query_only = 1');
-  return db;
-}
-
-function rows(db: Database, sql: string): { columns: string[]; values: unknown[][] } {
-  const statement = db.prepare(sql);
-  try {
-    const values: unknown[][] = [];
-    while (values.length < ROW_LIMIT && statement.step()) values.push(statement.get());
-    return { columns: statement.getColumnNames(), values };
-  } finally {
-    statement.free();
-  }
-}
-
 // The console turns a column named photo_url into thumbnails, and SQLite reads a mistyped
 // double-quoted name as a string instead of failing, so every answer keeps plain lowercase names.
 function columnProblem(sql: string, columns: string[], values: unknown[][]): string | null {
@@ -153,21 +132,21 @@ export function checkProblem(entry: EvalQuestion, result: EndpointResult, db: Da
   if (entry.expect !== 'either' && kind !== entry.expect) return `expected ${entry.expect}, got ${kind}`;
   if (kind !== 'sql') return null;
   const sql = result.body.sql as string;
-  let found: { columns: string[]; values: unknown[][] };
+  let found: Rows;
   try {
-    found = rows(db, sql);
+    found = rowsOf(db, sql, ROW_LIMIT);
   } catch (error) {
     return `query failed: ${error instanceof Error ? error.message : String(error)}`;
   }
-  const naming = columnProblem(sql, found.columns, found.values);
+  const naming = columnProblem(sql, found.columns, found.rows);
   if (naming) return naming;
   // Counted before the text checks, so an answer that lists every row fails on its count rather
-  // than on a missing group name. Reading stops one row past the 50 shown.
-  const count = found.values.length;
+  // than on a missing group name. Reading stops one row past the ones shown.
+  const count = found.rows.length;
   const counted = `${count === ROW_LIMIT ? `${count} or more` : count} ${count === 1 ? 'row' : 'rows'}`;
   if (entry.maxRows !== undefined && count > entry.maxRows) return `${counted}, more than ${entry.maxRows}`;
   if (entry.minRows !== undefined && count < entry.minRows) return `${counted}, fewer than ${entry.minRows}`;
-  const text = JSON.stringify(found.values);
+  const text = JSON.stringify(found.rows);
   const quoted = (values: string[]) => values.map((value) => JSON.stringify(value)).join(', ');
   const missing = (entry.mustInclude ?? []).filter((needle) => !text.includes(needle));
   if (missing.length > 0) return `rows lack ${quoted(missing)}`;
@@ -221,7 +200,8 @@ async function main(): Promise<number> {
   }
   const recordedFor = new Map((fixture?.questions ?? []).map((entry) => [entry.question, entry]));
   const db = await openDatabase();
-  const checks = await checkDatabase();
+  // A second connection for the checks, so they never step the one the handler validates against.
+  const checks = await openConnection();
   const results: RecordedQuestion[] = [];
   let passed = 0;
   const missed: number[] = [];
