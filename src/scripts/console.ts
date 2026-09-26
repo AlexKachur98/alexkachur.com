@@ -390,11 +390,10 @@ export function askState(reply: Reply | null, withConsole: boolean, listed: numb
   // A 400 (a question under three characters) shares the unusable sentence.
   if (status === 400 || status === 422) return { kind: 'failed', message: UNUSABLE_MESSAGE, fallback: false };
   if (status === 429) return { kind: 'failed', message: RATE_LIMITED_MESSAGE[wording], fallback: false };
-  // A missing variable in production reads the same as a used-up month to the visitor.
-  const reason = field(body, 'reason');
-  if (status === 503 && (reason === 'budget' || reason === 'config')) {
+  if (status === 503 && field(body, 'reason') === 'budget') {
     return { kind: 'failed', message: BUDGET_MESSAGE[wording](count), fallback: true };
   }
+  // Anything else, a fault in the site's own settings included, reads as the service not responding.
   return upstream;
 }
 

@@ -61,13 +61,14 @@ describe('askState', () => {
     expect(state({ status: 429, body: { error: 'rate_limited' } })).toEqual(failed(RATE_LIMITED, false));
   });
 
-  it('shows the budget sentence and the examples for a 503 budget, and the same for config', () => {
+  it('shows the budget sentence and the examples for a 503 budget', () => {
     expect(state({ status: 503, body: { reason: 'budget' } })).toEqual(failed(BUDGET, true));
-    expect(state({ status: 503, body: { reason: 'config' } })).toEqual(failed(BUDGET, true));
   });
 
-  it('shows the upstream sentence and the examples for a 503 upstream', () => {
+  // A missing key or a retired model is no used-up month, so it never says the budget is spent.
+  it('shows the upstream sentence and the examples for a 503 upstream or config', () => {
     expect(state({ status: 503, body: { reason: 'upstream' } })).toEqual(failed(UPSTREAM, true));
+    expect(state({ status: 503, body: { reason: 'config' } })).toEqual(failed(UPSTREAM, true));
   });
 
   it('shows the upstream sentence for no reply, an unknown reason and any other status', () => {
@@ -97,7 +98,7 @@ describe('askState', () => {
   it('cuts the console clause from the sentences on a page without the raw console', () => {
     expect(state({ status: 429, body: {} }, false)).toEqual(failed('Too many questions from your connection. Try again in a minute.', false));
     expect(state({ status: 503, body: { reason: 'budget' } }, false)).toEqual(failed('The AI budget for this month is used up. Here are eight questions with their SQL.', true));
-    expect(state({ status: 503, body: { reason: 'config' } }, false)).toEqual(failed('The AI budget for this month is used up. Here are eight questions with their SQL.', true));
+    expect(state({ status: 503, body: { reason: 'config' } }, false)).toEqual(failed('The AI service is not responding right now. Here are eight questions with their SQL.', true));
     expect(state({ status: 503, body: { reason: 'upstream' } }, false)).toEqual(failed('The AI service is not responding right now. Here are eight questions with their SQL.', true));
     expect(state(null, false)).toEqual(failed('The AI service is not responding right now. Here are eight questions with their SQL.', true));
     // The unusable sentence names no console and stays whole.
