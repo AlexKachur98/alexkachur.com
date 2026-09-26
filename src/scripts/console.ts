@@ -230,7 +230,8 @@ export function createExecutor({ spawn, load, timeout = TIMEOUT_MS }: ExecutorOp
 // must get the database this page was built with, not the one their browser kept.
 async function fetchDatabase(url: string | undefined): Promise<ArrayBuffer> {
   if (!url) throw new Error('console: data-db-url is missing');
-  const response = await fetch(url);
+  // A download that stalls fails like any other rather than leave the console loading for good.
+  const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw new Error(`${response.status} ${url}`);
   return response.arrayBuffer();
 }
@@ -884,10 +885,13 @@ async function sendAsked(): Promise<void> {
 
 async function post(question: string): Promise<Reply | null> {
   try {
+    // The function is stopped at 30 s, so an answer still missing at 35 s is not coming; giving
+    // up frees the box, chips included, and shows the examples.
     const response = await fetch(ASK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question }),
+      signal: AbortSignal.timeout(35_000),
     });
     return { status: response.status, body: await response.json().catch(() => undefined) };
   } catch {
