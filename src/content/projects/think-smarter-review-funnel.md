@@ -36,7 +36,7 @@ One HTML file with no build step, so it can be hosted anywhere and changed by an
 
 - **Cloudflare Pages instead of Vercel**, because Vercel's free tier does not allow commercial use and this is a business.
 - **Web3Forms instead of a mailto link**, because mailto is unreliable inside social-media browsers and the form gives 250 free submissions a month.
-- **A compliance toggle.** While researching, I found that routing customers by star rating ("review gating") is against Google's policy and is named as a concern under RIBO Guidance 006 for Ontario brokers. I documented the risk for the client and built a switch so the page can run an ask-everyone flow without a developer.
+- **A compliance toggle.** While researching, I found that routing customers by star rating ("review gating") is against Google's policy and is named as a concern under RIBO Guidance 006 for Ontario brokers. I documented the risk for the client and built a one-word setting that switches the page to an ask-everyone flow.
 
 ## What went wrong or what I would change
 
