@@ -114,7 +114,7 @@ const resumeHead = `${readFileSync(join(process.cwd(), 'public', 'resume.txt'), 
                 <code>{INSIGHTS.name}</code>, {group(INSIGHTS.bytes)} bytes as Vercel served it on {INSIGHTS.measured}: the page-count beacon the module above adds.
               </li>
               <li>
-                The build fails if the bootstrap passes {group(BOOTSTRAP_BUDGET_BYTES)} bytes gzipped. The sizes are gzipped at zlib's default level, so a browser's Size column, which counts headers or the raw bytes, shows other figures.
+                The tests, and so CI, fail if the bootstrap reaches {group(BOOTSTRAP_BUDGET_BYTES)} bytes gzipped. The sizes are gzipped at zlib's default level, so a browser's Size column, which counts headers or the raw bytes, shows other figures.
               </li>
             </ul>
           )}

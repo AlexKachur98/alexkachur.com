@@ -781,7 +781,7 @@ describe(`built output in ${root}`, () => {
     const analytics = assets.find((name) => readFileSync(join(root, '_astro', name), 'utf8').includes(INSIGHTS.name))!;
     const gzipped = (path: string) => gzipSync(readFileSync(path)).length;
     expect(lines).toHaveLength(5);
-    expect(lines[4]).toContain(`passes ${BOOTSTRAP_BUDGET_BYTES.toLocaleString('en-US')} bytes gzipped`);
+    expect(lines[4]).toContain(`reaches ${BOOTSTRAP_BUDGET_BYTES.toLocaleString('en-US')} bytes gzipped`);
     expect(lines[0]).toMatch(/^\/theme\.js, /);
     expect(size(lines[0]!)).toBe(gzipped(join(root, 'theme.js')));
     expect(size(lines[1]!)).toBe(gzipped(join(root, '_astro', bootstrap)));
