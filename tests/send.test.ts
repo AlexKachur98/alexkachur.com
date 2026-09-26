@@ -7,6 +7,7 @@ import { StoreError } from '../src/lib/ask/redis.ts';
 import type { SentQuestion, Store } from '../src/lib/ask/redis.ts';
 import { handleSend, mintToken, SEND, tokenKey, tokenValid, withToken } from '../src/lib/ask/send.ts';
 import { DAY, stored, TTL } from '../src/lib/ask/storage.ts';
+import { askConfig } from './helpers.ts';
 
 const SECRET = 'test-limit-secret';
 const IP = '203.0.113.7';
@@ -14,7 +15,7 @@ const QUESTION = "What is Alex's favourite food?";
 const NOW = Date.UTC(2026, 8, 24, 12, 0, 0);
 const DAY_KEY = 'ask:test:sent:2026-09-24';
 
-const config: AskConfig = { env: 'test', model: 'm', maxTokens: 512, cap: 100, apiKey: 'k', limitSecret: SECRET, redis: { url: 'u', token: 't' } };
+const config = askConfig({ limitSecret: SECRET });
 const key = tokenKey(SECRET, 'test');
 
 // Every write must be a row of the storage table, by key and lifetime; a sent question's lifetime

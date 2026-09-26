@@ -11,6 +11,7 @@ import { RATE_LIMITS_SENTENCE } from '../src/lib/openapi.ts';
 import { blockText, inlineText } from '../src/lib/page-text.ts';
 import { usesQuery } from '../src/lib/uses-query.ts';
 import { pageFiles, recordedEval, siteNumbers } from '../scripts/build-db.ts';
+import { walk } from './helpers.ts';
 
 // The build output test: no HTML comment and no TODO marker anywhere, every link into the two
 // immutable folders versioned, and nothing else made immutable by vercel.json. npm test builds
@@ -19,17 +20,14 @@ import { pageFiles, recordedEval, siteNumbers } from '../scripts/build-db.ts';
 const root = ['dist/client', 'dist'].find((dir) => existsSync(join(dir, 'index.html')));
 if (!root) throw new Error('no build output: run npm run build first');
 
+// The built database, opened once: every test only reads it.
+const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
+const db = new (await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer })).Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+
 const textTypes = new Set(['.html', '.js', '.css', '.json', '.txt', '.xml', '.sql', '.svg', '.map']);
 
-function walk(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    return entry.isDirectory() ? walk(path) : [path];
-  });
-}
-
 function vendored(path: string): boolean {
-  return path.replaceAll('\\', '/').includes('/vendor/');
+  return path.includes('/vendor/');
 }
 
 const files = walk(root).filter((path) => textTypes.has(extname(path)));
@@ -64,6 +62,9 @@ interface VercelConfig {
 
 const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
 const decode = (value: string): string => value.replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => entities[name]!);
+
+// A fragment's text: tags dropped, entities decoded, whitespace collapsed.
+const text = (html: string): string => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
 
 // The title, meta and link tags in a page's head, their values decoded.
 function head(html: string) {
@@ -158,12 +159,8 @@ describe(`built output in ${root}`, () => {
 
   // A project has a case study under /work/ unless another page covers it; then its old address
   // redirects there for good, with no page of its own in the build.
-  it('links back to the work list from every case study pager, between Previous and Next', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('links back to the work list from every case study pager, between Previous and Next', () => {
     const projects = (db.exec('SELECT slug, page FROM projects ORDER BY id')[0]!.values as string[][]).map(([slug, page]) => ({ slug: slug!, page: page! }));
-    db.close();
     const studies = pages.filter(({ url }) => url.startsWith('/work/'));
     expect(studies.map(({ url }) => url).sort()).toEqual(projects.map(({ page }) => page).filter((page) => page.startsWith('/work/')).sort());
     expect(studies.length).toBeLessThan(projects.length);
@@ -224,21 +221,16 @@ describe(`built output in ${root}`, () => {
 
   // The table the storage chip's line links to: the query, then exactly the rows it returns from
   // the built database.
-  it('shows what is stored on /api as the storage table under the query that reads it', async () => {
+  it('shows what is stored on /api as the storage table under the query that reads it', () => {
     const api = pages.find(({ url }) => url === '/api')!.html;
     const block = api.match(/<h3\b[^>]*\sid="what-is-stored"[^>]*>What is stored<\/h3>\s*<pre\b[^>]*><code\b[^>]*>([^<]*)<\/code><\/pre>\s*<div\b([^>]*)>\s*<table\b[^>]*>([\s\S]*?)<\/table>/);
     expect(block).not.toBeNull();
     const [, query, region, table] = block!;
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).trim();
     expect(decode(query!)).toBe(storageQuery);
     expect(region).toMatch(/role="region"/);
     expect(region).toMatch(/aria-labelledby="what-is-stored"/);
     expect(region).toMatch(/tabindex="0"/);
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
     const result = db.exec(storageQuery)[0]!;
-    db.close();
     expect([...table!.matchAll(/<th\b[^>]*scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map(([, cell]) => text(cell!))).toEqual(result.columns);
     const rows = [...table!.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)]
       .map(([, row]) => [...row!.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map(([, cell]) => text(cell!)))
@@ -249,7 +241,6 @@ describe(`built output in ${root}`, () => {
   // Sending a question is offered by a block that starts hidden; the page shows it only after a typed
   // question the site could not answer, and nothing is sent until its button is clicked.
   it('carries the send offer hidden in every Ask box, with its consent line and thanks', () => {
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
       const block = html.match(/<div\b([^>]*)data-ask-send-block([^>]*)>([\s\S]*?)<\/div>/);
@@ -291,7 +282,6 @@ describe(`built output in ${root}`, () => {
   // The Ask box on the home page and the 404: four chips, the privacy note with no link, and the
   // storage example's line, hidden until that example runs, linking to the table above.
   it('shows the four chips, the privacy note and the storage line in every Ask box', () => {
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
       const form = html.match(/<form\b[^>]*data-ask-form[^>]*>([\s\S]*?)<\/form>/)?.[1] ?? '';
@@ -315,7 +305,6 @@ describe(`built output in ${root}`, () => {
   // of its own type so Enter still asks, stays out of the Tab order, and takes its name from hidden
   // words beside the glyph. Ask stays the form's one submit button, after the field.
   it('puts a hidden clear control inside the question field in every Ask box', () => {
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
       const form = html.match(/<form\b[^>]*data-ask-form[^>]*>([\s\S]*?)<\/form>/)?.[1] ?? '';
@@ -360,7 +349,6 @@ describe(`built output in ${root}`, () => {
   // keep the role, name and tab stop a box that scrolls needs; the live one starts hidden, since
   // the question that names it is empty until one is asked.
   it('carries the scroll words hidden after the status, and keeps both results boxes focusable regions', () => {
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     for (const url of ['/', '/404']) {
       const html = pages.find((page) => page.url === url)!.html;
       expect(html.match(/data-ask-scroll-cue/g), url).toHaveLength(1);
@@ -506,7 +494,7 @@ describe(`built output in ${root}`, () => {
     expect(screenshots).toBeGreaterThan(0);
   });
 
-  it('links the favicon set from every page, each file the size its link says', async () => {
+  it('links the favicon set from every page, each file the size its link says', () => {
     for (const { url, html } of pages) {
       const icons = head(html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
       expect(icons.map(({ rel, href, sizes, type }) => `${rel} ${href.replace(/\.[\w-]+\.(svg|png)$/, '.$1')} ${sizes ?? ''} ${type ?? ''}`), url).toEqual([
@@ -569,17 +557,13 @@ describe(`built output in ${root}`, () => {
 
   // The example beside the Ask box is answered at build time, so its SQL must be one the site's
   // own validator accepts, and the page must show exactly the rows the built database gives.
-  it('shows the example answer with SQL the validator accepts and the rows the built database gives', async () => {
+  it('shows the example answer with SQL the validator accepts and the rows the built database gives', () => {
     const home = pages.find(({ url }) => url === '/')!.html;
     const block = home.match(/<div\b[^>]*\sclass="ask-example-answer"[^>]*>([\s\S]*?)<\/table>/)?.[1] ?? '';
     expect(block).not.toBe('');
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).trim();
     const example = answerExample;
     expect(chips.map(({ label }) => label)).not.toContain(example.label);
 
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
     expect(validateSql(example.sql, db)).toMatchObject({ ok: true });
     // One row per skill area that has a core skill, each listing exactly that area's core skills.
     const core = db.exec('SELECT skill_area, name FROM technologies WHERE core = 1')[0]!.values as string[][];
@@ -595,7 +579,6 @@ describe(`built output in ${root}`, () => {
     while (statement.step()) rows.push(statement.get());
     const columns = statement.getColumnNames();
     statement.free();
-    db.close();
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.length).toBeLessThanOrEqual(50);
 
@@ -642,16 +625,12 @@ describe(`built output in ${root}`, () => {
   // 404's heading and lead; and the lead and sections of /how-this-site-works. What only a page
   // can add, the flow diagram inside What I built and the blocks marked data-page-only, is left
   // out of the comparison.
-  it('shows on every page exactly the text its rows in the sections table hold', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('shows on every page exactly the text its rows in the sections table hold', () => {
     const rows = new Map<string, { heading: string; body: string }[]>();
     for (const [page, heading, body] of db.exec('SELECT page, heading, body FROM sections ORDER BY page, position')[0]!.values as string[][]) {
       rows.set(page!, [...(rows.get(page!) ?? []), { heading: heading!, body: body! }]);
     }
     const html = (url: string) => pages.find((page) => page.url === url)!.html;
-    const text = (source: string) => decode(source.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     const pageOnly = /<(figure|pre|p|ul|dl|div)\b[^>]*\sdata-page-only\b[^>]*>[\s\S]*?<\/\1>/g;
     const sections = (source: string) =>
       [...source.matchAll(/<section class="section"[^>]*\sid="([^"]*)"[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)<\/section>/g)].map(
@@ -679,6 +658,20 @@ describe(`built output in ${root}`, () => {
     shown.set('/uses', [leadOf(html('/uses'))]);
     const works = html('/how-this-site-works');
     shown.set('/how-this-site-works', [leadOf(works), ...sections(works).map((section) => ({ heading: section.heading, body: blockText(section.body) }))]);
+
+    expect([...shown.keys()].sort()).toEqual([...rows.keys()].sort());
+    for (const [page, expected] of rows) expect(shown.get(page), page).toEqual(expected);
+    // Every markdown page is in the table.
+    const markdown = readdirSync('src/content/pages').filter((name) => name.endsWith('.md')).map((name) => `pages/${name}`);
+    expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
+  });
+
+  // What only the write-up shows beside its text: the blocks marked data-page-only, the numbers
+  // under its title, links to the build script and the security policy at the built commit, the
+  // cost and Lighthouse sentences filled from the build, and the curl sample with the resume it gets.
+  it("shows the write-up's page-only numbers, links and samples from the build", () => {
+    const works = pages.find((page) => page.url === '/how-this-site-works')!.html;
+    const pageOnly = /<(figure|pre|p|ul|dl|div)\b[^>]*\sdata-page-only\b[^>]*>[\s\S]*?<\/\1>/g;
     expect(works.match(pageOnly)?.length ?? 0).toBeGreaterThanOrEqual(8);
     // The numbers under the title are the build's, and the build script links to its source at the built commit.
     const facts = works.match(/<dl class="facts"[^>]*\sdata-page-only[^>]*>([\s\S]*?)<\/dl>/)?.[1] ?? '';
@@ -697,23 +690,13 @@ describe(`built output in ${root}`, () => {
     expect(text(works)).toContain(`with a layout shift of ${numbers.works_cls}.`);
     expect(works).toContain('curl -A curl/8.0 https://alexkachur.com');
     expect(text(works)).toContain(readFileSync(join(root, 'resume.txt'), 'utf8').split('\n')[0]!);
-
-    expect([...shown.keys()].sort()).toEqual([...rows.keys()].sort());
-    for (const [page, expected] of rows) expect(shown.get(page), page).toEqual(expected);
-    // Every markdown page is in the table.
-    const markdown = readdirSync('src/content/pages').filter((name) => name.endsWith('.md')).map((name) => `pages/${name}`);
-    expect(markdown.sort()).toEqual(Object.keys(pageFiles).sort());
   });
 
   // A home page row shows its first screenshot, or the drawing its file names, each under the
   // same overlay link, with no caption; the drawing is named by the row's sentence and only the
   // first screenshot loads eagerly.
-  it('shows on each Selected work row its screenshot or its drawing, uncaptioned, under one link', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('shows on each Selected work row its screenshot or its drawing, uncaptioned, under one link', () => {
     const projects = (db.exec('SELECT p.page, p.row_image, p.row_image_alt, (SELECT alt FROM project_images i WHERE i.project_id = p.id AND i.position = 1) AS shot FROM projects p ORDER BY p.id')[0]!.values as (string | null)[][]).map(([page, image, alt, shot]) => ({ page: page!, image: image!, alt, shot }));
-    db.close();
     const home = pages.find(({ url }) => url === '/')!.html;
     const rows = [...home.matchAll(/<li class="work-row[^"]*"[^>]*>([\s\S]*?)<\/li>\s*(?=<li class="work-row|<\/ol>)/g)].map(([, row]) => row!);
     expect(rows).toHaveLength(projects.length);
@@ -746,13 +729,8 @@ describe(`built output in ${root}`, () => {
 
   // Each case study's screenshots carry the alt text and caption of its project_images rows,
   // numbers filled in, so a visitor's query and the page cannot disagree.
-  it('captions every case-study screenshot as its project_images row does', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('captions every case-study screenshot as its project_images row does', () => {
     const rows = db.exec('SELECT p.slug, i.alt, i.caption FROM project_images i JOIN projects p ON p.id = i.project_id ORDER BY p.id, i.position')[0]!.values as (string | null)[][];
-    db.close();
-    const text = (html: string) => decode(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     let captioned = 0;
     for (const page of pages.filter(({ url }) => url.startsWith('/work/'))) {
       const slug = page.url.slice('/work/'.length);
@@ -791,10 +769,7 @@ describe(`built output in ${root}`, () => {
     expect(lines[3]).toContain(INSIGHTS.measured);
   });
 
-  it('lists on /uses every row of the uses table in order, under its section, with the day it was last updated', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('lists on /uses every row of the uses table in order, under its section, with the day it was last updated', () => {
     const rows = db.exec('SELECT section, item, details FROM uses ORDER BY position')[0]!.values as string[][];
     const expected = rows.map(([section, item, details]) => [section, details!.startsWith(item!) ? details : `${item}: ${details}`]);
     const uses = pages.find((page) => page.url === '/uses')!.html;
@@ -814,20 +789,14 @@ describe(`built output in ${root}`, () => {
 
   // The numbers a resume bullet, a caption or a page names are filled in by build-db; none may
   // reach a page, a file or an endpoint as its placeholder.
-  it('holds no unfilled number placeholder anywhere', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('holds no unfilled number placeholder anywhere', () => {
     const sections = (db.exec('SELECT page, body FROM sections')[0]!.values as string[][]).map(([page, body]) => ({ page: page!, body: body! }));
     const placeholder = new RegExp(`\\{(?:${Object.keys(siteNumbers(sections, recordedEval())).join('|')})\\}`);
     for (const path of files.filter((file) => !vendored(file))) expect(readFileSync(path, 'utf8'), path).not.toMatch(placeholder);
     expect(readFileSync(join(root, 'resume.txt'), 'utf8')).not.toMatch(placeholder);
   });
 
-  it('serves every table but project_technologies at /api/{table}.json, row for row as the database holds it', async () => {
-    const wasm = readFileSync('node_modules/sql.js/dist/sql-wasm.wasm');
-    const SQL = await initSqlJs({ wasmBinary: wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength) as ArrayBuffer });
-    const db = new SQL.Database(readFileSync(join(root, 'data', 'portfolio.sqlite')));
+  it('serves every table but project_technologies at /api/{table}.json, row for row as the database holds it', () => {
     const names = (db.exec("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")[0]!.values as string[][]).map(([name]) => name!);
     const served = readdirSync(join(root, 'api')).filter((name) => name.endsWith('.json') && !['schema.json', 'openapi.json', 'resume.json'].includes(name));
     expect(served.sort()).toEqual(names.filter((name) => name !== 'project_technologies').map((name) => `${name}.json`).sort());

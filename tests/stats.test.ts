@@ -5,12 +5,13 @@ import { skippedStore, StoreError } from '../src/lib/ask/redis.ts';
 import type { Store } from '../src/lib/ask/redis.ts';
 import { respond } from '../src/lib/ask/result.ts';
 import { handleStats, STATS_CACHE_CONTROL } from '../src/lib/ask/stats.ts';
+import { askConfig } from './helpers.ts';
 
 // The same marker convention as the ask handler tests: a leak of the store's failure text into a
 // body is one substring search away.
 const SECRET = 'SECRET-DETAIL';
 
-const config: AskConfig = { env: 'test', model: 'model-under-test', maxTokens: 512, cap: 2000, apiKey: undefined, limitSecret: undefined, redis: null };
+const config = askConfig({ model: 'model-under-test', cap: 2000, apiKey: undefined, limitSecret: undefined, redis: null });
 const build = { commit: '3f9a2c1', builtAt: '2026-10-02T08:00:00.000Z' };
 const now = () => Date.UTC(2026, 8, 22, 12, 0, 0);
 

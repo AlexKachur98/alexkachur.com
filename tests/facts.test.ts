@@ -1,16 +1,9 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { availableMonth, siteFacts } from '../src/lib/facts.ts';
 import type { SiteFacts } from '../src/lib/facts.ts';
-
-function walk(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name).replaceAll('\\', '/');
-    return entry.isDirectory() ? walk(path) : [path];
-  });
-}
+import { walk } from './helpers.ts';
 
 const escape = (text: string) => text.replaceAll('&', '&amp;');
 

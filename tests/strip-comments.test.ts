@@ -1,13 +1,7 @@
-import { createSatteriMarkdownProcessor } from '@astrojs/markdown-satteri';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { stripComments, stripHtmlComments } from '../src/lib/strip-comments.ts';
-
-const processor = await createSatteriMarkdownProcessor({ smartypants: false, hastPlugins: [stripComments] });
-
-async function render(markdown: string): Promise<string> {
-  return (await processor.render(markdown)).code;
-}
+import { renderBody as render } from '../src/lib/markdown.ts';
+import { stripHtmlComments } from '../src/lib/strip-comments.ts';
 
 describe('stripHtmlComments', () => {
   it('removes every comment, single or multi-line, and nothing else', () => {

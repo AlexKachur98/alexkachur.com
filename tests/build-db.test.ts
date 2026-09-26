@@ -389,13 +389,16 @@ describe('build-db', () => {
     expect(query('SELECT COUNT(*) AS n FROM project_images')[0]!.n).toBe(8);
   });
 
-  it('fills each number in a highlight, a caption or a page from the thing it counts, and leaves no placeholder in any cell', () => {
+  it('reads the largest first call and the output range from the recorded eval', () => {
+    const fixture = JSON.parse(readFileSync('scripts/eval/fixtures.json', 'utf8')) as { model: string; promptVersion: number; questions: { replies: { usage: { input_tokens: number; output_tokens: number } }[] }[] };
+    const inputs = fixture.questions.map((entry) => entry.replies[0]!.usage.input_tokens);
+    const outputs = fixture.questions.map((entry) => entry.replies[0]!.usage.output_tokens);
+    expect(recordedEval()).toEqual({ promptTokens: Math.max(...inputs), model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) });
+  });
+
+  it('fills each number the text may name from the thing it counts', () => {
     const recorded = recordedEval();
     const { promptTokens } = recorded;
-    const fixture = JSON.parse(readFileSync('scripts/eval/fixtures.json', 'utf8')) as { model: string; promptVersion: number; questions: { replies: { usage: { input_tokens: number; output_tokens: number } }[] }[] };
-    const outputs = fixture.questions.map((entry) => entry.replies[0]!.usage.output_tokens);
-    expect(promptTokens).toBe(Math.max(...fixture.questions.map((entry) => entry.replies[0]!.usage.input_tokens)));
-    expect(recorded).toEqual({ promptTokens, model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) });
     expect(promptTokens).toBeLessThan(CACHE_MINIMUM_TOKENS);
     const inputCost = Math.round(((DEFAULT_CAP * promptTokens * PRICE.input) / 1e6) * 100) / 100;
     const outputCost = Math.round(((DEFAULT_CAP * MODEL.maxTokens * PRICE.output) / 1e6) * 100) / 100;
@@ -405,10 +408,10 @@ describe('build-db', () => {
       month_input_cost: `$${inputCost.toFixed(2)}`,
       month_output_tokens: (DEFAULT_CAP * MODEL.maxTokens).toLocaleString('en-US'),
       month_output_cost: `$${outputCost.toFixed(2)}`,
-      fixture_model: fixture.model,
-      fixture_prompt_version: String(fixture.promptVersion),
-      output_tokens_min: String(Math.min(...outputs)),
-      output_tokens_max: String(Math.max(...outputs)),
+      fixture_model: recorded.model,
+      fixture_prompt_version: String(recorded.promptVersion),
+      output_tokens_min: String(recorded.outputMin),
+      output_tokens_max: String(recorded.outputMax),
       eval_questions: String(questions.length),
       openapi_version: OPENAPI_VERSION.split('.').slice(0, 2).join('.'),
       splitroof_tool_tests: '12',
@@ -444,7 +447,10 @@ describe('build-db', () => {
       works_cls: '0',
     });
     expect(() => siteNumbers([], { ...recorded, promptTokens: CACHE_MINIMUM_TOKENS })).toThrow(/cache floor/);
-    // The measurements record is checked as it is read: a score outside 0 to 100 or a bad date stops the build.
+  });
+
+  it('reads the Lighthouse record, and stops the build on a score outside 0 to 100 or a date not YYYY-MM-DD', () => {
+    const recorded = recordedEval();
     const measured = recordedMeasurements();
     expect(measured.lighthouse.pages.home.url).toBe('https://alexkachur.com/');
     const sections = query('SELECT page, body FROM sections') as { page: string; body: string }[];
@@ -456,6 +462,9 @@ describe('build-db', () => {
     writeFileSync(broken, JSON.stringify({ ...measured, lighthouse: { ...measured.lighthouse, date: '25/09/2026' } }));
     expect(() => recordedMeasurements(broken)).toThrow(/not YYYY-MM-DD/);
     rmSync(broken);
+  });
+
+  it('fills the numbers the highlights and pages name, and leaves no placeholder in any cell', () => {
     const portfolio = query("SELECT highlights FROM projects WHERE slug = 'this-site'")[0]!.highlights as string;
     expect(portfolio).toContain(`CI replays a ${questions.length}-question evaluation`);
     expect(query("SELECT highlights FROM projects WHERE kind = 'client'").map((row) => row.highlights)).toEqual([null, null]);

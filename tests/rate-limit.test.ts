@@ -2,13 +2,13 @@ import { createHmac } from 'node:crypto';
 import { Ratelimit } from '@upstash/ratelimit';
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it, vi } from 'vitest';
-import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { AskDeps } from '../src/lib/ask/handler.ts';
 import { redisStore } from '../src/lib/ask/redis.ts';
 import { RATE_LIMIT, TTL } from '../src/lib/ask/storage.ts';
 import type { Store } from '../src/lib/ask/redis.ts';
+import { askConfig } from './helpers.ts';
 
 // The rate limit as Redis sees it: the real store and the real limiter over a fake client that
 // records every command. The limiter runs its script with EVALSHA and falls back to EVAL with
@@ -80,9 +80,8 @@ function fakeRedis(blocked = false, delayMs = 0) {
 const limiterCalls = (commands: Command[]) => commands.filter(({ method }) => method === 'eval').map(({ args }) => args as [string[], unknown[]]);
 
 function deps(store: Store): AskDeps {
-  const config: AskConfig = { env: 'test', model: 'm', maxTokens: 512, cap: 100, apiKey: 'k', limitSecret: SECRET, redis: { url: 'u', token: 't' } };
   return {
-    config,
+    config: askConfig({ limitSecret: SECRET }),
     store,
     model: async () => ({ parsed_output: { sql: 'SELECT name FROM projects', explanation: 'Lists the project names.' }, stop_reason: 'end_turn' }),
     db,

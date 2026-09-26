@@ -1,15 +1,11 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { repoFiles } from './helpers.ts';
 
 // Checks on the style source: type that survives zoom and a larger default text size, and the one
 // hue besides yellow kept inside the dark panels.
 
-function git(...args: string[]): string[] {
-  return execFileSync('git', ['ls-files', '-z', ...args], { encoding: 'utf8' }).split('\0').filter(Boolean);
-}
-
-const files = [...new Set([...git(), ...git('--others', '--exclude-standard')])].filter((file) => file !== 'tests/styles.test.ts');
+const files = repoFiles().filter((file) => file !== 'tests/styles.test.ts');
 const styleFiles = files.filter((file) => file.startsWith('src/') && /\.(css|astro)$/.test(file));
 const tokens = readFileSync('src/styles/tokens.css', 'utf8');
 

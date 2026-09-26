@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it } from 'vitest';
 import { buildDatabase, dumpSql, loadContent, loadSqlJs, tableRows } from '../scripts/build-db.ts';
-import type { AskConfig } from '../src/lib/ask/config.ts';
 import { openDatabase } from '../src/lib/ask/db.ts';
 import { handleAsk } from '../src/lib/ask/handler.ts';
 import type { AskDeps, ModelCall } from '../src/lib/ask/handler.ts';
@@ -11,6 +10,7 @@ import { redisStore } from '../src/lib/ask/redis.ts';
 import { handleSend, mintToken, tokenKey } from '../src/lib/ask/send.ts';
 import { handleStats } from '../src/lib/ask/stats.ts';
 import { keptFor, LIMITER_KEY_SECONDS, storageRows, stored, TTL } from '../src/lib/ask/storage.ts';
+import { askConfig } from './helpers.ts';
 
 // The storage table must list everything the code stores. The real store runs over a fake Redis
 // that keeps its data and the lifetime each key was given; every key written must match a row of
@@ -91,15 +91,7 @@ function fakeRedis() {
   return { written, data, lifetimes, redis: client as unknown as Redis };
 }
 
-const config: AskConfig = {
-  env: 'test',
-  model: 'm',
-  maxTokens: 512,
-  cap: 100,
-  apiKey: 'k',
-  limitSecret: 'test-limit-secret',
-  redis: { url: 'u', token: 't' },
-};
+const config = askConfig();
 
 function deps(redis: Redis, model: ModelCall): AskDeps {
   return { config, store: redisStore('test', redis), model, db, signal: new AbortController().signal, now: () => NOW, log: () => {} };
