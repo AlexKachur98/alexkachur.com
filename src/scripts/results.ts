@@ -1,6 +1,4 @@
-// How a result renders, the same in the browser and in the example answer the build writes into
-// the Ask box: what each cell becomes, how many rows show, the status line after a run, and the
-// SQL with its keywords marked.
+// How a result renders, the same in the browser and in the example answer the build writes.
 import { photoAlt } from '../generated/schema.json';
 import { ROWS } from '../lib/result-rows.ts';
 
@@ -19,10 +17,8 @@ const TRUNCATED_MESSAGE = `showing ${ROWS} of more`;
 const EMPTY_STATUS = 'No rows';
 const EMPTY_NOTE = 'The query ran; the data just does not have that.';
 
-// What a cell renders as. Beyond plain text: a photo_url column whose value is a site image
-// becomes a 48px thumbnail linking to the image, with the alt text from the pets collection and
-// never from the shape of the query; a value that is a web address or an email address, in any
-// column, becomes a link so a visitor can follow it straight from the results.
+// A photo_url that is a site image becomes a thumbnail, its alt text from the pets collection,
+// never from the query. A web or email address in any column becomes a link.
 export type Rendered =
   | { kind: 'text'; text: string; empty: boolean }
   | { kind: 'image'; src: string; alt: string }
@@ -50,7 +46,6 @@ export function visibleRows(result: Result): Cell[][] {
   return result.rows.slice(0, ROWS);
 }
 
-// The status line after a run: the row count, or the two copy strings for none and for more.
 export function summary(result: Result): string {
   if (result.rows.length === 0) return EMPTY_STATUS;
   if (result.truncated) return TRUNCATED_MESSAGE;
@@ -112,16 +107,10 @@ export function paint(results: HTMLElement, result: Result): void {
   results.hidden = false;
 }
 
-// The SQL an answer shows, split so its keywords can take their colour. Only syntax words count:
-// strings, quoted names, comments and numbers stay plain, and so does a word after a dot (a
-// column) or one with letters outside ASCII, which SQLite reads as a name. Left out on purpose:
-// KEY and DATE, which are columns here; COUNT and every other function, since a query often
-// names a column after one (COUNT(*) AS count); type names; words more often a name than syntax
-// (FIRST, LAST, FILTER, PLAN and the like); and EXPLAIN and every statement other than a query,
-// which the server never sends back. Some listed words (ASC, DESC, LEFT and others) are also
-// valid names in SQLite; they stay because a query almost always uses them as syntax, so an alias
-// spelled like one takes the colour. END is the exception: the experience table has an end
-// column, so END counts only when it closes a CASE.
+// The words that take the keyword colour: those a query uses more often as syntax than as a name.
+// Left out: KEY and DATE, which are columns here; every function, since a query often names a
+// column after one; type names; and statements other than a query, which the server never
+// returns. END is also a column here, so it counts only when it closes a CASE.
 const SQL_KEYWORDS = new Set([
   'SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY', 'HAVING', 'ORDER', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'AS', 'WITH', 'RECURSIVE',
   'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER', 'CROSS', 'NATURAL', 'ON', 'USING',
@@ -143,7 +132,8 @@ export interface SqlToken {
   keyword: boolean;
 }
 
-// Plain runs are merged, so the tokens alternate and joining their text gives the SQL back.
+// A word after a dot is a column, and one with letters outside ASCII a name, so neither takes the
+// colour. Plain runs are merged, so the tokens alternate and joining their text gives the SQL back.
 export function sqlTokens(sql: string): SqlToken[] {
   const tokens: SqlToken[] = [];
   let plain = '';

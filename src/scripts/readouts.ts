@@ -40,8 +40,7 @@ export function showStats(body: unknown, { readouts, modelLine, modelSlot }: Sta
   }
 }
 
-// Runs a task once the page is idle, or after 200 ms where requestIdleCallback does not exist, as
-// in Safari.
+// Runs a task once the page is idle, or after 200 ms where requestIdleCallback does not exist.
 export function whenIdle(task: () => void): void {
   if ('requestIdleCallback' in globalThis) requestIdleCallback(task);
   else setTimeout(task, 200);

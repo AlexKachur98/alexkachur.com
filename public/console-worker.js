@@ -1,8 +1,6 @@
-// The site's own worker: sql.js from the versioned vendor folder, one database
-// opened from the bytes the page posts, every statement prepared and stepped here up to a row
-// limit. A classic worker, so importScripts and the initSqlJs global it defines load sql.js;
-// the page thread never runs SQL. The stock worker.sql-wasm.js has no prepare, step or row
-// limit and is not shipped.
+// Runs the console's SQL: one database opened from the bytes the page posts, each statement
+// stepped up to a row limit. A classic worker, so importScripts can load sql.js from the vendor
+// folder.
 const VENDOR = '/vendor/sql.js-1.14.2/';
 
 importScripts(VENDOR + 'sql-wasm.js');
@@ -22,9 +20,8 @@ async function open(buffer) {
   const SQL = await sqlJs;
   if (db) db.close();
   db = new SQL.Database(new Uint8Array(buffer));
-  // Opening reads nothing, so touch the schema: bytes that are not a database fail here, not
-  // on the visitor's first query. Read-only is the engine's job, enforced when a statement
-  // steps; the page's prefix guard only produces the friendly message.
+  // Opening reads nothing, so touch the schema: bytes that are not a database fail here, not on
+  // the visitor's first query.
   db.exec('SELECT 1 FROM sqlite_schema LIMIT 1');
   db.exec(READ_ONLY);
   self.postMessage({ type: 'ready' });

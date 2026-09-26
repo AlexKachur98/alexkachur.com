@@ -1,9 +1,6 @@
-// The console chunk, loaded by the bootstrap's ready() on the first interaction and never before.
-// Nothing runs at module level, so evaluating it early on pointerdown is free. This module wires
-// the two panels, the raw console and the Ask box, to one executor (executor.ts), which owns the
-// worker, the 3-second timer and the row cap, and one renderer (results.ts). The Ask box posts the
-// question to /api/ask and runs the SQL it gets back through the same path, by the rules in
-// ask-box.ts.
+// The console chunk, loaded on the first interaction: it wires the raw console and the Ask box to
+// one executor and one renderer. The bootstrap owns every listener and calls the exported
+// functions. Nothing touches the page at module level, so loading early on pointerdown is free.
 import { FUNCTION_SECONDS } from '../lib/ask/config.ts';
 import { askState, clearQuestion, createSender, escapeClears, holdsPage, markOverflow, onScreen, scrollToShow, sendMessage, showClear } from './ask-box.ts';
 import type { AskState, ClearKey, Reply } from './ask-box.ts';
@@ -17,15 +14,12 @@ const CACHED_LABEL = 'cached';
 const ASK_URL = '/api/ask';
 const SEND_URL = '/api/questions';
 // The function is stopped at its time limit, so an answer still missing five seconds later is not
-// coming; giving up frees the box, chips included, and shows the examples.
+// coming.
 const ASK_TIMEOUT_MS = (FUNCTION_SECONDS + 5) * 1000;
 // A send that hangs gives up rather than holding its button for the rest of the visit.
 const SEND_TIMEOUT_MS = 15_000;
 
-// The parts the two panels share: the working attribute for the cursor, the status and error
-// regions, and the results container. The suffix follows the status a run ends on; the Ask
-// panel sets it to the cached label so the row count reads "2 rows, cached", while working and
-// loading stay short.
+// What both panels have. suffix follows the status a run ends on, as in "2 rows, cached".
 interface Panel {
   root: HTMLElement;
   status: HTMLElement;
@@ -37,33 +31,28 @@ interface Panel {
 
 interface ConsoleUi extends Panel {
   input: HTMLTextAreaElement;
-  // Shown while the editor, the results or the error line hold something.
   clear: HTMLElement;
 }
 
 interface AskUi extends Panel {
-  // The whole box: the form with its chips as well as the panel.
+  // The form with its chips as well as the panel.
   box: HTMLElement;
   form: HTMLElement;
   input: HTMLInputElement;
-  // The control that clears the question field, shown while the field holds text.
   clear: HTMLElement;
   question: HTMLElement;
   explanation: HTMLElement;
   sql: HTMLElement;
   edit: HTMLElement | null;
   fallback: HTMLElement;
-  // The lines an example can show under its table, hidden until that example runs.
+  // Lines shown under an example's table once it runs.
   more: HTMLElement[];
-  // The offer to send a question the site could not answer, and the thanks that replaces it.
+  // The send offer, and the thanks that replaces it.
   sendBlock: HTMLElement;
   sent: HTMLElement;
-  // The example answer a wide screen shows before the first question, if the page has one.
   example: HTMLElement | null;
   busy: boolean;
-  // The words after the row count saying the results box scrolls, shown while it does.
   scrollCue: HTMLElement;
-  // The answer's head line: the question, and the status line under it.
   head: HTMLElement;
   // Set while a question is in flight whose answer the page will scroll into sight.
   reveal: Reveal | undefined;
@@ -103,9 +92,8 @@ function working(panel: Panel, delta: number): void {
   else panel.root.removeAttribute('data-working');
 }
 
-// The rest of an empty result's sentence belongs to the "No rows" it follows. A run removes it
-// when it starts, and again if it fails, since an earlier run ahead of it in the queue may have
-// painted one while it waited.
+// The note under an empty result belongs to its "No rows". A run removes it as it starts, and
+// again if it fails, since a run ahead of it in the queue may have painted one meanwhile.
 function dropNote(panel: Panel): void {
   panel.results.querySelector('.console-empty')?.remove();
 }
@@ -142,7 +130,7 @@ async function execute(panel: Panel, sql: string): Promise<Result | undefined> {
   }
 }
 
-// Runs whatever the textarea holds. Blank input is ignored, like an empty line at a prompt.
+// Blank input is ignored, like an empty line at a prompt.
 export function run(): void {
   if (!consoleUi) return;
   const ui = consoleUi;
@@ -157,8 +145,6 @@ function query(sql: string): void {
   run();
 }
 
-// Whether the raw console has anything to clear: text in the editor, a result under it, or a
-// message on its error line.
 export function clearable(text: string, results: Pick<Element, 'childElementCount'>, error: Pick<Node, 'textContent'>): boolean {
   return text !== '' || results.childElementCount > 0 || (error.textContent ?? '') !== '';
 }
@@ -167,10 +153,9 @@ function syncClear(ui: ConsoleUi): void {
   ui.clear.hidden = !clearable(ui.input.value, ui.results, ui.error);
 }
 
-// Empties the editor and what the last run showed: the table and its note, the error line and, once
-// the database has loaded, the row count; until then the status holds the loading message, which
-// stays. A query still running is left alone, so its result never lands in an emptied panel. Focus
-// goes to the editor before the button hides, so it is never left on a hidden control.
+// Until the database loads, the status holds the loading message, which stays. A running query is
+// left alone, so its result never lands in an emptied panel. Focus moves before the button hides,
+// so it is never left on a hidden control.
 export function clearConsole(ui: ConsoleUi, databaseLoaded = loaded): void {
   if (ui.inFlight > 0) return;
   ui.input.value = '';
@@ -182,23 +167,15 @@ export function clearConsole(ui: ConsoleUi, databaseLoaded = loaded): void {
   ui.clear.hidden = true;
 }
 
-// Typing in the editor, which the bootstrap forwards.
 export function typed(): void {
   if (consoleUi) syncClear(consoleUi);
 }
 
-// Where the answer opens under the form (below 1200px, at every width on the 404 page, and in a
-// browser without subgrid), a phone often has it below the bottom of the screen, so a question would
-// change nothing in sight. When the answer's head starts out of sight, the page moves for the
-// visitor. If the answer is not in after a tenth of a second, about as long as a response can take
-// and still feel immediate, it moves just far enough to show the question and its working line.
-// Once the answer is in, it moves far enough to show all of it, or its top when it is taller than
-// the screen, unless the visitor has scrolled since. That second move waits two frames, so the
-// answer is laid out below the screen before the page scrolls to it: made in the same frame, Chrome
-// counts it as a layout shift of everything under the answer. Focus stays where it was, and screen
-// readers hear the status line as before; a control reached by keyboard also keeps its place on
-// screen, so its focus ring stays in sight. The page jumps rather than glides, as a link to a
-// section does.
+// Where the answer opens under the form, a phone often has it off screen. If its head starts out of
+// sight, the page shows the head after 100 ms, the limit for feeling immediate, and two frames after
+// the answer lands shows all of it, or its top when it is taller than the screen (Chrome counts a
+// scroll in the same frame as a layout shift). Nothing moves once the visitor has scrolled, and
+// focus stays where it was.
 const REVEAL_DELAY = 100;
 
 interface Reveal {
@@ -207,9 +184,8 @@ interface Reveal {
   at: number;
 }
 
-// The visual viewport never starts above the line scrollY gives, so the larger of the two is its top.
-// On an iPhone with the keyboard up, pageTop can still give the top from before a scroll the page
-// has just made itself, while scrollY and every box already have the new one.
+// The larger of pageTop and scrollY: on an iPhone with the keyboard up, pageTop can lag a scroll
+// the page has just made.
 function place(element: Element): { top: number; bottom: number } {
   const root = document.documentElement.getBoundingClientRect().top;
   const top = Math.max(window.visualViewport?.pageTop ?? 0, window.scrollY);
@@ -259,14 +235,9 @@ function settle(ui: AskUi): void {
   );
 }
 
-// Clears the Ask panel for a new question and opens it, the question on its header line. The
-// panel is always in the markup so its two live regions exist before they are written to; it
-// takes up space only once it has something to show. The example answer goes for good, so the
-// visitor's answer takes its place rather than appearing under it. Its height stays behind as the
-// pane's smallest height, which the stylesheet uses only beside the form, so an answer shorter than
-// the example moves nothing on the page and a longer one moves it only by the difference. The
-// height goes on the panel's style object, which the content security policy allows, unlike a
-// style attribute in the markup.
+// Clears the Ask panel for a new question. The example goes for good, leaving its height as the
+// pane's smallest, set on the style object, which the content security policy allows, unlike a
+// style attribute.
 function begin(ui: AskUi, question: string): void {
   if (ui.example) {
     ui.root.style.setProperty('--example-height', `${ui.example.getBoundingClientRect().height}px`);
@@ -303,8 +274,7 @@ async function answer(ui: AskUi, sql: string): Promise<Result | undefined> {
 // Whether the stylesheet caps this results box, which it does only beside the form.
 const capped = (box: HTMLElement): boolean => getComputedStyle(box).maxHeight !== 'none';
 
-// A typed question the site could not answer, a refusal or a query with no rows, can be sent to
-// Alex; the offer only shows the button, and nothing leaves the page until it is clicked.
+// A refusal, or an answer with no rows, can be sent on; the offer only shows the button.
 async function show(ui: AskUi, state: AskState, question: string): Promise<void> {
   if (state.kind === 'failed') {
     setStatus(ui, '');
@@ -339,8 +309,8 @@ async function postJson(url: string, body: unknown, timeoutMs: number): Promise<
 
 const sender = createSender((body) => postJson(SEND_URL, body, SEND_TIMEOUT_MS));
 
-// The send button's click, the one way a question is sent. On success the thanks takes the
-// button's place and the focus; a refusal hides the button and hands focus back to the input.
+// The only way a question is sent. The thanks takes the button's place and focus; a refusal hands
+// focus back to the input.
 async function sendAsked(): Promise<void> {
   const outcome = await sender.send();
   if (!outcome || !askUi) return;
@@ -359,8 +329,7 @@ async function sendAsked(): Promise<void> {
   }
 }
 
-// One question at a time: a submit or a chip while one is in flight does nothing. The cursor
-// blinks from the request to the last row painted.
+// One question at a time: a submit or a chip while one is in flight does nothing.
 async function occupy(ui: AskUi, question: string, work: () => Promise<void>): Promise<boolean> {
   if (ui.busy) return false;
   ui.busy = true;
@@ -378,8 +347,8 @@ async function occupy(ui: AskUi, question: string, work: () => Promise<void>): P
   return true;
 }
 
-// Submits the input: the question goes to /api/ask while the worker and the database, started
-// by the focus that preceded typing, finish loading. Blank input is ignored.
+// The question goes to /api/ask while the worker and the database, started by the focus before
+// typing, finish loading.
 export function ask(): void {
   if (!askUi || !executor) return;
   const ui = askUi;
@@ -393,10 +362,9 @@ export function ask(): void {
   });
 }
 
-// A chip, or one of the fallback examples: reviewed SQL run locally, no request made. An example
-// with a line of its own shows it under the table once the query has run. The fallback list
-// hides as the run starts, taking the activated button with it, so focus is put back afterwards:
-// on the results when a table was painted, else on the input.
+// A chip or a fallback example: reviewed SQL, run with no request. The fallback list hides as the
+// run starts, taking the clicked button with it, so focus then goes to the results, or to the input
+// when no table was painted.
 function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean, more: string | undefined): void {
   void occupy(ui, label, async () => {
     const result = await answer(ui, sql);
@@ -409,18 +377,15 @@ function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean, more
   });
 }
 
-// Typing in the question field, which the bootstrap forwards.
 export function askTyped(): void {
   if (askUi) showClear(askUi.input, askUi.clear);
 }
 
-// A keydown of Escape in the question field, which the bootstrap forwards.
 export function askEscape(event: ClearKey): void {
   if (askUi && escapeClears(event, askUi.input.value)) clearQuestion(askUi.input, askUi.clear);
 }
 
-// Moves the SQL into the raw console for editing and brings the console into view: the answer's,
-// or the example's, which its button carries.
+// Moves the answer's SQL, or the example's from its button, into the raw console.
 function edit(sql: string | undefined): void {
   if (!askUi || !consoleUi) return;
   consoleUi.input.value = sql ?? askUi.sql.textContent ?? '';
@@ -429,12 +394,9 @@ function edit(sql: string | undefined): void {
   consoleUi.input.focus({ preventScroll: true });
 }
 
-// The bootstrap owns every listener and forwards a click on an example, a chip, Run, the console's
-// Clear, Edit this query, the question field's clear control or the send button here, whether it
-// landed before this module was loaded or after. Both clear controls are checked before the Ask
-// box's own branch and the final run, either of which would take them for something else.
-// Edit this query is checked before the chips: a click on the example's button can arrive after a
-// question has already taken the example off the page, and it still means edit, not run.
+// Both clear controls are checked before the Ask box's branch and the final run, which would take
+// them for something else. Edit this query comes before the chips: a click on the example's button
+// can arrive after a question has taken the example away, and it still means edit.
 export function click(button: HTMLElement): void {
   const sql = button.dataset['sql'];
   if (button.hasAttribute('data-ask-send')) {
@@ -474,9 +436,8 @@ function panelOf(root: HTMLElement, prefix: string): Panel {
   };
 }
 
-// Called once by the bootstrap's ready(): starts the worker and the database fetch, showing the
-// byte size in the console while they load. A page has the console, the Ask box or both; the
-// database URL and size are on whichever is there.
+// Starts the worker and the database download. A page has the console, the Ask box or both, and
+// each carries the database's URL and size.
 export function init(): void {
   if (executor) return;
   const source = element<HTMLElement>(document.body, '[data-db-url]');

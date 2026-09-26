@@ -1,11 +1,8 @@
-// The Ask box's rules, apart from the page so they can be tested without one: what the panel shows
-// for a reply from /api/ask, sending a question on to Alex, the question field's clear control, and
-// how far the page scrolls to bring an answer into sight.
+// The Ask box's rules, apart from the page so they can be tested without one.
 
 const UNUSABLE_MESSAGE = 'I could not turn that into a safe query. Try rephrasing, or write the SQL yourself.';
-// The three sentences that point at the raw console, and the same sentences cut for a page that
-// has no console (404), where the examples run in the Ask panel instead. Two of them name how
-// many examples follow, as a word taken from the list the panel shows.
+// Each sentence that points at the raw console has a shorter form for the 404 page, which has no
+// console.
 const RATE_LIMITED_MESSAGE = {
   console: 'Too many questions from your connection. Try again in a minute, or type SQL directly below.',
   alone: 'Too many questions from your connection. Try again in a minute.',
@@ -18,8 +15,7 @@ const UPSTREAM_MESSAGE = {
   console: (count: string) => `The AI service is not responding right now. The raw console still works, and here are ${count} questions with their SQL.`,
   alone: (count: string) => `The AI service is not responding right now. Here are ${count} questions with their SQL.`,
 };
-// A send that did not go through: the day's quota is used up, or anything else, which asking again
-// mends, since a new answer brings a new token.
+// Asking again mends a failed send, since a new answer brings a new token.
 const DAILY_CAP_MESSAGE = 'The site has taken all the questions it can for today. Try again tomorrow.';
 const SEND_FAILED_MESSAGE = 'The question could not be sent. Ask it again to try once more.';
 const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
@@ -34,11 +30,8 @@ export interface Reply {
   body: unknown;
 }
 
-// What the Ask panel shows for a reply. An answer runs its SQL; a refusal shows only the model's
-// sentence; a failure shows one of the copy sentences, with the example queries listed when the
-// AI is out of reach and the console is the way forward.
-// An answer or a refusal carries the token that lets the visitor send the question, when the reply
-// had one.
+// What the panel shows for a reply. A failure lists the examples when the AI is out of reach. An
+// answer or a refusal carries the reply's send token, if it had one.
 export type AskState =
   | { kind: 'answer'; sql: string; explanation: string; cached: boolean; token?: string }
   | { kind: 'refusal'; explanation: string; cached: boolean; token?: string }
@@ -78,11 +71,9 @@ export function askState(reply: Reply | null, withConsole: boolean, listed: numb
 
 export type SendOutcome = 'sent' | 'rate_limited' | 'daily_cap' | 'refused' | 'failed';
 
-// Sending a question to Alex, apart from the page so it can be tested: offer() holds the
-// question and its token and posts nothing; only send(), which the send button's click calls,
-// posts. reset() withdraws the offer, and a reply that arrives after it is dropped, so a slow
-// send can never write into the next answer. One send at a time for each offer: a send still
-// pending for an earlier question does not block the next one.
+// offer() only holds the question and its token; send() posts them. reset() withdraws the offer and
+// drops a reply that arrives after it, so a slow send never writes into the next answer. One send
+// at a time for each offer; one still pending for an earlier question does not block the next.
 export function createSender(post: (body: { question: string; token: string }) => Promise<Reply | null>) {
   let offered: { question: string; token: string; generation: number } | null = null;
   let generation = 0;
@@ -123,7 +114,6 @@ export function createSender(post: (body: { question: string; token: string }) =
   };
 }
 
-// The sentence the error line shows for a send that did not go through.
 export function sendMessage(outcome: Exclude<SendOutcome, 'sent'>): string {
   if (outcome === 'rate_limited') return RATE_LIMITED_MESSAGE.alone;
   if (outcome === 'daily_cap') return DAILY_CAP_MESSAGE;
@@ -159,7 +149,6 @@ export function clearQuestion(field: QuestionField, control: Pick<HTMLElement, '
 // that ends it, when isComposing is already false.
 const COMPOSING_KEY_CODE = 229;
 
-// Escape clears only a field with text in it, and never during an input method's composition.
 export function escapeClears(event: ClearKey, value: string): boolean {
   return event.key === 'Escape' && !event.isComposing && event.keyCode !== COMPOSING_KEY_CODE && value !== '';
 }
@@ -174,12 +163,9 @@ export function scrollToShow(box: { top: number; bottom: number }, sight: { top:
   return keep === undefined || by <= 0 ? by : Math.min(by, Math.max(0, keep - sight.top));
 }
 
-// Where a box sits in the visual viewport, the part of the page actually on screen, given the root
-// element's top as measured with the box and how far down the page the visual viewport starts.
-// While an on-screen keyboard is up or the page is zoomed, the visual viewport is shorter than the
-// layout viewport and can sit anywhere inside it, and browsers disagree about which of the two a
-// box is measured from. Against the root element the box's place on the page comes out the same
-// either way, and the visual viewport's place on the page is its pageTop.
+// A box's place in the visual viewport, from the root element's top and the viewport's pageTop.
+// With the keyboard up or the page zoomed, browsers disagree on which viewport a box is measured
+// from; against the root element its place on the page comes out the same either way.
 export function onScreen(box: { top: number; bottom: number }, root: number, page: number): { top: number; bottom: number } {
   return { top: box.top - root - page, bottom: box.bottom - root - page };
 }
@@ -191,12 +177,9 @@ export function holdsPage(form: Pick<Element, 'contains'>, focused: Element, fin
   return form.contains(focused) && focused.matches(':focus-visible') && (focused.tagName === 'BUTTON' || finePointer);
 }
 
-// A capped results box that holds more than it shows, below its foot or past its right edge, says
-// so after the row count, since a scrollbar is not always drawn and the row or column the box cuts
-// can look whole. Only where the box is capped: there the status line has room for the words, and
-// in a phone's narrower pane they would push a longer status onto a second line. The words stay for
-// as long as the box overflows, not only until its end is reached, so the status line never
-// changes while the box is being scrolled. A pixel of difference is rounding, not a hidden row.
+// A capped box that holds more than it shows says so, since a scrollbar is not always drawn and a
+// cut row can look whole. The words stay while it overflows, even scrolled to the end, so the
+// status line never changes during a scroll. A pixel of difference is rounding.
 export function markOverflow(
   results: Pick<HTMLElement, 'scrollHeight' | 'clientHeight' | 'scrollWidth' | 'clientWidth'>,
   cue: Pick<HTMLElement, 'hidden'>,

@@ -175,9 +175,8 @@ export function createExecutor({ spawn, load }: ExecutorOptions): Executor {
   return { ready: () => connect().then(() => undefined), run };
 }
 
-// The URL comes from the markup, where the build put the version of the file's bytes in the
-// query string: the file is cached as immutable with no hash in its name, and a returning visitor
-// must get the database this page was built with, not the one their browser kept.
+// The URL from the markup carries the version of the file's bytes, so a returning visitor gets the
+// database this page was built with, not an older one their browser kept.
 export async function fetchDatabase(url: string | undefined): Promise<ArrayBuffer> {
   if (!url) throw new Error('console: data-db-url is missing');
   // A download that stalls fails like any other rather than leave the console loading for good.

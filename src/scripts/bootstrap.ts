@@ -1,6 +1,5 @@
-// The one deferred module every page loads before interaction, kept under 2 KB
-// gzipped. It holds the theme toggle, ready(), the memoised import of the console chunk, and
-// the footer stats fetch.
+// The one module every page loads before interaction, kept under 2 KB gzipped: the theme toggle,
+// the console chunk's loader and the footer stats fetch.
 import { showStats, whenIdle } from './readouts.ts';
 import { nextTheme, type Theme } from './theme.ts';
 
@@ -28,12 +27,9 @@ document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
   }
 });
 
-// ready(): one promise that loads the console chunk and starts it. Focus inside the console or
-// the Ask box and pointerdown on any of the panels preload it; a click on Run, Clear, an example,
-// a chip, Edit this query or the question field's clear control, a submitted question, typing or
-// Escape in the question field, and typing or Ctrl or Cmd+Enter in the textarea are handed to the
-// chunk once it is there, so the first one works before any of it has loaded. The chunk attaches
-// no listeners of its own.
+// Loads the console chunk once and starts it. Focus or a press on a panel preloads it. Every
+// listener stays here and hands its event to the chunk once it has loaded, so the first
+// interaction works before any of the chunk has arrived.
 type ConsoleModule = typeof import('./console.ts');
 let loading: Promise<ConsoleModule> | undefined;
 
@@ -63,7 +59,7 @@ editor?.addEventListener('keydown', (event) => {
     if (!repeat) void ready().then((module) => module.run());
   }
 });
-// Typing can give the console something to clear or leave it nothing; the chunk decides.
+// Typing decides whether the console shows Clear.
 editor?.addEventListener('input', () => void ready().then((module) => module.typed()));
 
 document.querySelector('[data-ask-form]')?.addEventListener('submit', (event) => {
@@ -71,8 +67,8 @@ document.querySelector('[data-ask-form]')?.addEventListener('submit', (event) =>
   void ready().then((module) => module.ask());
 });
 
-// The question field's clear control: typing decides whether it shows, and Escape in the field
-// clears it the way the control does; the chunk holds both rules.
+// Typing decides whether the question field's clear control shows, and Escape clears the field as
+// the control does.
 const askInput = document.querySelector('[data-ask-input]');
 askInput?.addEventListener('input', () => void ready().then((module) => module.askTyped()));
 askInput?.addEventListener('keydown', (event) => {
