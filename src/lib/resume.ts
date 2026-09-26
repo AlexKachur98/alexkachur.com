@@ -4,7 +4,7 @@
 import { skillAreas } from '../content/schemas.ts';
 import { stackQuery } from './rows.ts';
 
-export type Value = string | number | null;
+type Value = string | number | null;
 export type Query = (sql: string) => Record<string, Value>[];
 
 // A Query over a sql.js database, or anything else with its exec().

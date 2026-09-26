@@ -84,7 +84,7 @@ export interface Content {
 }
 
 // A page file and the address its text appears at.
-export interface PageEntry extends Entry<PageContent> {
+interface PageEntry extends Entry<PageContent> {
   page: string;
 }
 
@@ -276,7 +276,7 @@ export interface RecordedEval {
   outputMax: number;
 }
 
-export const fixturePath = fileURLToPath(new URL('./eval/fixtures.json', import.meta.url));
+const fixturePath = fileURLToPath(new URL('./eval/fixtures.json', import.meta.url));
 
 export function recordedEval(): RecordedEval {
   const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
@@ -291,7 +291,7 @@ export function recordedEval(): RecordedEval {
   return { promptTokens: Math.max(...inputs), model: fixture.model, promptVersion: fixture.promptVersion, outputMin: Math.min(...outputs), outputMax: Math.max(...outputs) };
 }
 
-export const measurementsPath = fileURLToPath(new URL('../src/data/measurements.json', import.meta.url));
+const measurementsPath = fileURLToPath(new URL('../src/data/measurements.json', import.meta.url));
 
 interface MeasuredPage {
   url: string;
@@ -400,7 +400,7 @@ function rawSections(content: Content): SectionRow[] {
   ]);
 }
 
-export function siteNumbersFor(content: Content): Record<string, string> {
+function siteNumbersFor(content: Content): Record<string, string> {
   return siteNumbers(rawSections(content), recordedEval());
 }
 
@@ -479,7 +479,7 @@ function column(name: string, schema: ZodLike): Column {
   }
 }
 
-export function columns(table: TableName): Column[] {
+function columns(table: TableName): Column[] {
   const shape = tables[table].row.shape as Record<string, ZodLike>;
   return Object.entries(shape).map(([name, schema]) => column(name, schema));
 }

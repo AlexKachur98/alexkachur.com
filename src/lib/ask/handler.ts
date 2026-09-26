@@ -22,7 +22,7 @@ import { explanationProblem, validateSql } from './validate-sql.ts';
 // The whole handler must answer inside the function's 30 s; the deadline leaves room to respond.
 export const DEADLINE_MS = 27_000;
 // A corrective retry is a second attempt with its own timeout, so it only starts with this much left.
-export const RETRY_NEEDS_MS = 16_000;
+const RETRY_NEEDS_MS = 16_000;
 
 export { QUESTION_LENGTH };
 

@@ -231,7 +231,8 @@ async function cardFacts(root: string): Promise<CardFacts> {
   }
 }
 
-export async function main(root = process.cwd()): Promise<void> {
+async function main(): Promise<void> {
+  const root = process.cwd();
   const tokens = readTokens(readFileSync(join(root, 'src', 'styles', 'tokens.css'), 'utf8'));
   const fonts: Fonts = {
     bold: loadFont('@fontsource/barlow/files/barlow-latin-700-normal.woff'),

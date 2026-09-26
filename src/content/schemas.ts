@@ -5,8 +5,8 @@ import { z } from 'astro/zod';
 
 const flag = z.literal([0, 1]);
 
-export const projectKinds = ['client', 'team', 'course', 'personal'] as const;
-export const technologyCategories = [
+const projectKinds = ['client', 'team', 'course', 'personal'] as const;
+const technologyCategories = [
   'language',
   'framework',
   'library',
@@ -18,7 +18,7 @@ export const technologyCategories = [
   'tooling',
   'platform',
 ] as const;
-export const timelineKinds = ['work', 'education', 'project', 'life'] as const;
+const timelineKinds = ['work', 'education', 'project', 'life'] as const;
 export const interestCategories = [
   'video game',
   'game genre',
@@ -81,7 +81,7 @@ export const interestAreaOf: Readonly<Record<(typeof interestCategories)[number]
 
 // The drawings a home page row can show in place of a screenshot: the site's architecture and the
 // SplitRoof flow, each a component of its own.
-export const diagrams = ['architecture', 'splitroof-flow'] as const;
+const diagrams = ['architecture', 'splitroof-flow'] as const;
 
 export const factRow = z.object({
   key: z.string().describe('Fact name, for example location or available_from'),
@@ -177,13 +177,13 @@ export const interestRow = z.object({
   note: z.string().nullable().describe("Alex's note on it, NULL if none"),
 });
 
-export const storageRow = z.object({
+const storageRow = z.object({
   item: z.string().describe('What is stored'),
   kept_for: z.string().describe('How long it is kept'),
   purpose: z.string().describe('Why'),
 });
 
-export const usesSections = ['Machines', 'Peripherals', 'Software', 'Learning'] as const;
+const usesSections = ['Machines', 'Peripherals', 'Software', 'Learning'] as const;
 
 export const usesRow = z.object({
   position: z.number().int().positive().describe('Order on the page, 1 first'),
@@ -322,7 +322,7 @@ export const screenshot = z.strictObject({
   caption: z.string().optional().describe('Caption under the screenshot'),
 });
 
-export const rowImage = z.strictObject({
+const rowImage = z.strictObject({
   diagram: z.enum(diagrams).describe('The drawing the home page row shows in place of a screenshot'),
   alt: z.string().describe('What the drawing shows, in a sentence'),
 });

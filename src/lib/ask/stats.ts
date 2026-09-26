@@ -6,7 +6,7 @@ import { StoreError } from './redis.ts';
 import type { Store } from './redis.ts';
 import { STATS_CACHE } from './storage.ts';
 
-export interface BuildInfo {
+interface BuildInfo {
   commit: string;
   builtAt: string;
 }

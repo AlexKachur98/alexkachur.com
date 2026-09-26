@@ -65,7 +65,7 @@ export function format(listed: Listed[]): string {
   return listed.map((entry) => `${entry.date}  ${entry.env}  ${printable(entry.question)}`).join('\n');
 }
 
-export async function deleteListed(redis: QuestionsRedis, listed: Listed[]): Promise<number> {
+async function deleteListed(redis: QuestionsRedis, listed: Listed[]): Promise<number> {
   let deleted = 0;
   for (let i = 0; i < listed.length; i += BATCH) {
     const chunk = listed.slice(i, i + BATCH).map((entry) => entry.key);

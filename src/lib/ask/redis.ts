@@ -18,7 +18,7 @@ export interface SentQuestion {
 
 // Whether a key is inside its window and, when it is not, the moment the window lets it through
 // again, so the refusal can say how long to wait.
-export interface Allowance {
+interface Allowance {
   allowed: boolean;
   // Epoch milliseconds; only meaningful when allowed is false.
   resetAt: number;

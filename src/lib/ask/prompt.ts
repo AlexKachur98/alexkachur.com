@@ -76,17 +76,17 @@ export function correctionTurn(error: string): string {
 type ShownSchema = Pick<typeof schema, 'ddl' | 'facts' | 'sectionPages' | 'sectionHeadings'>;
 
 // The DDL cannot show which rows the key-value table holds, so each key is listed with what it means.
-export function factList(facts: ShownSchema['facts']): string {
+function factList(facts: ShownSchema['facts']): string {
   return ['The facts table has one row per key:', ...facts.map((fact) => `- ${fact.key}: ${fact.description}`)].join('\n');
 }
 
 // The same for the sections table: a question about part of a page needs the page and the heading
 // as stored, and a case study's page is not its project's slug alone.
-export function sectionPageList(pages: string[]): string {
+function sectionPageList(pages: string[]): string {
   return ["The sections table's pages:", ...pages.map((page) => `- ${page}`)].join('\n');
 }
 
-export function sectionHeadingList(headings: string[]): string {
+function sectionHeadingList(headings: string[]): string {
   return ["The sections table's headings, in page order:", ...headings.map((heading) => `- ${heading}`)].join('\n');
 }
 

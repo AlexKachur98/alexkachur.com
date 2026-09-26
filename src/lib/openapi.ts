@@ -21,7 +21,7 @@ export const STATS_DESCRIPTION = 'The numbers behind the footer: questions answe
 // The limits, with the number from the code, for the /api lead and the ask operation alike.
 export const RATE_LIMITS_SENTENCE = `Rate limits: ${RATE_LIMIT.requests} questions a minute per address, shared by /api/ask and /api/questions, and a monthly cap; when the cap is reached the endpoint returns 503 with reason "budget".`;
 
-export interface SchemaColumn {
+interface SchemaColumn {
   name: string;
   type: string;
   nullable: boolean;
@@ -30,7 +30,7 @@ export interface SchemaColumn {
   description: string;
 }
 
-export interface SchemaTable {
+interface SchemaTable {
   name: string;
   description: string;
   primaryKey: string[];

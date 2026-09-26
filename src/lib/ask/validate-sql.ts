@@ -6,7 +6,7 @@ import type { Database } from 'sql.js';
 
 // Whole words that never belong in a read-only query. REPLACE is not listed because it is also
 // SQLite's string function; the worker's query_only pragma stops a REPLACE INTO at step time.
-export const BANNED_WORDS = [
+const BANNED_WORDS = [
   'ATTACH',
   'DETACH',
   'PRAGMA',
@@ -23,7 +23,7 @@ export const BANNED_WORDS = [
   'sqlite_temp_schema',
 ] as const;
 
-export const EXPLANATION_MAX = 240;
+const EXPLANATION_MAX = 240;
 
 export type Validation = { ok: true; sql: string } | { ok: false; stage: 'lexical' | 'engine'; message: string };
 

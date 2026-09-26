@@ -2,7 +2,7 @@
 // page shows is what a visitor's query would return.
 import { openDatabase } from './ask/db.ts';
 
-export type Cell = string | number | null;
+type Cell = string | number | null;
 
 export interface Rows {
   columns: string[];
