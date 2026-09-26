@@ -627,6 +627,14 @@ describe(`built output in ${root}`, () => {
     expect(versioned!.headers.find((header) => header.key === 'Cache-Control')?.value).toContain('immutable');
   });
 
+  // Every image is resized when the site is built, so the function behind the on-demand routes
+  // carries no image library and nothing can make it resize an image on request.
+  it('ships the server function without an image library', () => {
+    const modules = readdirSync('.vercel/output/functions/_render.func/node_modules');
+    expect(modules).toContain('@anthropic-ai');
+    expect(modules).not.toContain('sharp');
+  });
+
   // The sections table holds each page's text as the page shows it: every section of every case
   // study but Screenshots, which is the page's own; the About and Now text on the home page; the
   // 404's heading and lead; and the lead and sections of /how-this-site-works. What only a page

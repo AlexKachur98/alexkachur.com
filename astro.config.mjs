@@ -10,6 +10,7 @@ export default defineConfig({
   trailingSlash: 'never',
   adapter: vercel({ maxDuration: 30 }),
   build: { inlineStylesheets: 'never' },
+  image: { endpoint: { route: '/_image', entrypoint: './src/lib/image-endpoint.ts' } },
   markdown,
   vite: { build: { assetsInlineLimit: 0 } },
   // The Portfolio site's case study is its write-up, so its old address goes there for good.
