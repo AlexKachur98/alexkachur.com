@@ -1,13 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { clearable, clearConsole, createExecutor, guard, holdsPage, markOverflow, onScreen, renderCell, scrollToShow, setStatus, sqlTokens, summary, visibleRows } from '../src/scripts/console.ts';
+import { holdsPage, markOverflow, onScreen, scrollToShow } from '../src/scripts/ask-box.ts';
+import { clearable, clearConsole, setStatus } from '../src/scripts/console.ts';
+import { createExecutor, guard } from '../src/scripts/executor.ts';
+import type { WorkerLike, WorkerReply } from '../src/scripts/executor.ts';
+import { renderCell, sqlTokens, summary, visibleRows } from '../src/scripts/results.ts';
+import type { Cell, Result } from '../src/scripts/results.ts';
 import { ROWS } from '../src/lib/result-rows.ts';
-import type { Cell, Result, WorkerLike, WorkerReply } from '../src/scripts/console.ts';
 import schema from '../src/generated/schema.json';
 
-// The chunk's source, for the few checks below that no behaviour test can make.
-const source = readFileSync('src/scripts/console.ts', 'utf8');
+// The chunk's source, all four of its modules, for the few checks below that no behaviour test
+// can make.
+const source = ['console', 'ask-box', 'executor', 'results'].map((name) => readFileSync(`src/scripts/${name}.ts`, 'utf8')).join('\n');
 
 // The strings written out here rather than imported, so a typo in the module cannot pass by
 // comparing the module to itself.

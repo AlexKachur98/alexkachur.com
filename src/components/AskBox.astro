@@ -5,8 +5,8 @@ import { keptFor, TTL } from '../lib/ask/storage.ts';
 import { dataFile } from '../lib/data-file.ts';
 import { select } from '../lib/query.ts';
 import { ROWS } from '../lib/result-rows.ts';
-import { THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/console.ts';
-import type { Result } from '../scripts/console.ts';
+import { THUMB, renderCell, sqlTokens, summary, visibleRows } from '../scripts/results.ts';
+import type { Result } from '../scripts/results.ts';
 import '../styles/console.css';
 
 // The Ask box: a question goes to /api/ask and the SQL that comes back runs in the browser,

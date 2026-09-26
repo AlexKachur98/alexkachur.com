@@ -1,83 +1,19 @@
-// The console chunk: loaded by the bootstrap's ready() on the first interaction
-// and never before. Nothing runs at module level, so evaluating it early on pointerdown is
-// free. One executor owns the worker, the 3-second timer and the row cap, and one renderer
-// paints results into either panel: the raw console and the Ask box, which posts the question
-// to /api/ask and runs the SQL it gets back through the same path.
-import { photoAlt } from '../generated/schema.json';
+// The console chunk, loaded by the bootstrap's ready() on the first interaction and never before.
+// Nothing runs at module level, so evaluating it early on pointerdown is free. This module wires
+// the two panels, the raw console and the Ask box, to one executor (executor.ts), which owns the
+// worker, the 3-second timer and the row cap, and one renderer (results.ts). The Ask box posts the
+// question to /api/ask and runs the SQL it gets back through the same path, by the rules in
+// ask-box.ts.
 import { FUNCTION_SECONDS } from '../lib/ask/config.ts';
-import { errorMessage } from '../lib/error-message.ts';
-import { ROWS } from '../lib/result-rows.ts';
+import { askState, clearQuestion, createSender, escapeClears, holdsPage, markOverflow, onScreen, scrollToShow, sendMessage, showClear } from './ask-box.ts';
+import type { AskState, ClearKey, Reply } from './ask-box.ts';
+import { createExecutor, failure, fetchDatabase, guard, WORKER_URL } from './executor.ts';
+import type { Executor } from './executor.ts';
+import { paint, sqlNodes, summary } from './results.ts';
+import type { Result } from './results.ts';
 
-export type Cell = string | number | null | Uint8Array;
-
-export interface Result {
-  columns: string[];
-  rows: Cell[][];
-  truncated: boolean;
-}
-
-// Messages from public/console-worker.js.
-export type WorkerReply =
-  | { type: 'ready' }
-  | { type: 'started' }
-  | { type: 'result'; columns: string[]; rows: Cell[][]; truncated: boolean }
-  | { type: 'error'; error: string };
-
-export interface WorkerLike {
-  postMessage(message: unknown): void;
-  terminate(): void;
-  onmessage: ((event: MessageEvent<WorkerReply>) => void) | null;
-  onerror: ((event: ErrorEvent) => void) | null;
-}
-
-export interface Executor {
-  ready(): Promise<void>;
-  run(sql: string): Promise<Result>;
-}
-
-export interface ExecutorOptions {
-  spawn: () => WorkerLike;
-  load: () => Promise<ArrayBuffer>;
-}
-
-export const THUMB = 48;
-const TIMEOUT_MS = 3000;
-const GUARD_MESSAGE = 'Read-only console: SELECT, WITH and EXPLAIN only.';
-const TIMEOUT_MESSAGE = `query stopped after ${TIMEOUT_MS / 1000} s`;
-const TRUNCATED_MESSAGE = `showing ${ROWS} of more`;
-// The empty-result sentence is split: its first words go on the status line and the rest under
-// the results, so the status line always fits on one line.
-const EMPTY_STATUS = 'No rows';
-const EMPTY_NOTE = 'The query ran; the data just does not have that.';
-const LOAD_MESSAGE = 'The database could not be loaded. Reload the page to try again.';
 const WORKING_MESSAGE = 'working';
 const CACHED_LABEL = 'cached';
-const UNUSABLE_MESSAGE = 'I could not turn that into a safe query. Try rephrasing, or write the SQL yourself.';
-// The three sentences that point at the raw console, and the same sentences cut for a page that
-// has no console (404), where the examples run in the Ask panel instead. Two of them name how
-// many examples follow, as a word taken from the list the panel shows.
-const RATE_LIMITED_MESSAGE = {
-  console: 'Too many questions from your connection. Try again in a minute, or type SQL directly below.',
-  alone: 'Too many questions from your connection. Try again in a minute.',
-};
-const BUDGET_MESSAGE = {
-  console: (count: string) => `The AI budget for this month is used up. The raw console still works, and here are ${count} questions with their SQL.`,
-  alone: (count: string) => `The AI budget for this month is used up. Here are ${count} questions with their SQL.`,
-};
-const UPSTREAM_MESSAGE = {
-  console: (count: string) => `The AI service is not responding right now. The raw console still works, and here are ${count} questions with their SQL.`,
-  alone: (count: string) => `The AI service is not responding right now. Here are ${count} questions with their SQL.`,
-};
-// A send that did not go through: the day's quota is used up, or anything else, which asking again
-// mends, since a new answer brings a new token.
-const DAILY_CAP_MESSAGE = 'The site has taken all the questions it can for today. Try again tomorrow.';
-const SEND_FAILED_MESSAGE = 'The question could not be sent. Ask it again to try once more.';
-const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-
-export function countWord(n: number): string {
-  return NUMBER_WORDS[n] ?? String(n);
-}
-const WORKER_URL = '/console-worker.js';
 const ASK_URL = '/api/ask';
 const SEND_URL = '/api/questions';
 // The function is stopped at its time limit, so an answer still missing five seconds later is not
@@ -85,373 +21,6 @@ const SEND_URL = '/api/questions';
 const ASK_TIMEOUT_MS = (FUNCTION_SECONDS + 5) * 1000;
 // A send that hangs gives up rather than holding its button for the rest of the visit.
 const SEND_TIMEOUT_MS = 15_000;
-
-// The prefix check. It only produces the friendly message; read-only itself is the
-// engine's PRAGMA in the worker.
-export function guard(sql: string): string | null {
-  return /^\s*(?:select|with|explain)\b/i.test(sql) ? null : GUARD_MESSAGE;
-}
-
-// A failed open (the fetch, the worker script, the wasm, bytes that are not a database) keeps
-// its cause for the console but is told apart from a failed query, which shows what SQLite said.
-class LoadError extends Error {}
-
-export function failure(error: unknown): string {
-  return error instanceof LoadError ? LOAD_MESSAGE : errorMessage(error);
-}
-
-interface Pending {
-  resolve: (result: Result) => void;
-  reject: (error: Error) => void;
-  timer: ReturnType<typeof setTimeout> | undefined;
-}
-
-interface Session {
-  worker: WorkerLike;
-  alive: boolean;
-  pending: Pending | undefined;
-}
-
-// One worker at a time. The database buffer is fetched once and kept, so a worker killed by the
-// timer is replaced from memory; queries run one after another, each waiting for the open.
-export function createExecutor({ spawn, load }: ExecutorOptions): Executor {
-  let buffer: ArrayBuffer | undefined;
-  let opening: Promise<Session> | undefined;
-  let queue: Promise<unknown> = Promise.resolve();
-
-  function take(session: Session): Pending | undefined {
-    const pending = session.pending;
-    session.pending = undefined;
-    if (pending) clearTimeout(pending.timer);
-    return pending;
-  }
-
-  function resolvePending(session: Session, result: Result): void {
-    take(session)?.resolve(result);
-  }
-
-  function rejectPending(session: Session, error: Error): void {
-    take(session)?.reject(error);
-  }
-
-  function kill(session: Session): void {
-    session.alive = false;
-    session.worker.terminate();
-  }
-
-  // Armed on "started", so it never covers the wasm load or the open. A statement stuck inside
-  // wasm cannot be interrupted, only abandoned: the worker is terminated and a new one reopens
-  // the database from the buffer kept here.
-  function arm(session: Session): void {
-    if (!session.pending) return;
-    session.pending.timer = setTimeout(() => {
-      kill(session);
-      rejectPending(session, new Error(TIMEOUT_MESSAGE));
-      const attempt = start();
-      opening = attempt;
-      // Nobody awaits this open; if it fails, forget it so the next query starts afresh.
-      attempt.catch(() => {
-        if (opening === attempt) opening = undefined;
-      });
-    }, TIMEOUT_MS);
-  }
-
-  function start(): Promise<Session> {
-    // The worker starts first so sql.js loads while the database downloads.
-    const worker = spawn();
-    const session: Session = { worker, alive: true, pending: undefined };
-    let posted = false;
-    const ready = new Promise<void>((resolve, reject) => {
-      worker.onmessage = ({ data }) => {
-        if (!session.alive) return;
-        if (data.type === 'ready') resolve();
-        else if (data.type === 'started') arm(session);
-        else if (data.type === 'result') {
-          resolvePending(session, { columns: data.columns, rows: data.rows, truncated: data.truncated });
-        } else if (data.type === 'error') {
-          const error = new Error(data.error);
-          reject(error);
-          rejectPending(session, error);
-        }
-      };
-      // A worker that fails to load fires an error event that may carry no message at all.
-      worker.onerror = (event) => {
-        const error = new Error(event.message || WORKER_URL);
-        reject(error);
-        rejectPending(session, error);
-      };
-    });
-    // The worker can fail while the download is still running; the rejection is picked up below.
-    ready.catch(() => undefined);
-    return (async () => {
-      try {
-        buffer ??= await load();
-        // Structured clone, no transfer list: this thread keeps its copy for the next open.
-        worker.postMessage({ type: 'open', buffer });
-        posted = true;
-        await ready;
-        return session;
-      } catch (error) {
-        // Bytes the worker refused are not kept for a retry.
-        if (posted) buffer = undefined;
-        kill(session);
-        throw new LoadError(errorMessage(error), { cause: error });
-      }
-    })();
-  }
-
-  // A failed open (the fetch, the worker script, the wasm) is forgotten, so the next call tries
-  // again from scratch; one that a later timeout replaced is left alone.
-  async function connect(): Promise<Session> {
-    const attempt = (opening ??= start());
-    try {
-      return await attempt;
-    } catch (error) {
-      if (opening === attempt) opening = undefined;
-      throw error;
-    }
-  }
-
-  function run(sql: string): Promise<Result> {
-    const result = queue.then(async () => {
-      const session = await connect();
-      return new Promise<Result>((resolve, reject) => {
-        session.pending = { resolve, reject, timer: undefined };
-        session.worker.postMessage({ type: 'exec', sql, limit: ROWS + 1 });
-      });
-    });
-    queue = result.catch(() => undefined);
-    return result;
-  }
-
-  return { ready: () => connect().then(() => undefined), run };
-}
-
-// The URL comes from the markup, where the build put the version of the file's bytes in the
-// query string: the file is cached as immutable with no hash in its name, and a returning visitor
-// must get the database this page was built with, not the one their browser kept.
-async function fetchDatabase(url: string | undefined): Promise<ArrayBuffer> {
-  if (!url) throw new Error('console: data-db-url is missing');
-  // A download that stalls fails like any other rather than leave the console loading for good.
-  const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
-  if (!response.ok) throw new Error(`${response.status} ${url}`);
-  return response.arrayBuffer();
-}
-
-// What a cell renders as. Beyond plain text: a photo_url column whose value is a site image
-// becomes a 48px thumbnail linking to the image, with the alt text from the pets collection and
-// never from the shape of the query; a value that is a web address or an email address, in any
-// column, becomes a link so a visitor can follow it straight from the results.
-export type Rendered =
-  | { kind: 'text'; text: string; empty: boolean }
-  | { kind: 'image'; src: string; alt: string }
-  | { kind: 'link'; href: string; text: string };
-
-const alts: Record<string, string> = photoAlt;
-const WEB_ADDRESS = /^https?:\/\/\S+$/;
-const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function renderCell(column: string, value: Cell): Rendered {
-  if (column === 'photo_url' && typeof value === 'string' && value.startsWith('/images/')) {
-    const file = value.slice(value.lastIndexOf('/') + 1);
-    return { kind: 'image', src: value, alt: alts[value] ?? file.replace(/\.[^.]+$/, '') };
-  }
-  if (typeof value === 'string') {
-    const text = value.trim();
-    if (WEB_ADDRESS.test(text)) return { kind: 'link', href: text, text };
-    if (EMAIL_ADDRESS.test(text)) return { kind: 'link', href: `mailto:${text}`, text };
-  }
-  if (value === null) return { kind: 'text', text: 'NULL', empty: true };
-  return { kind: 'text', text: String(value), empty: false };
-}
-
-export function visibleRows(result: Result): Cell[][] {
-  return result.rows.slice(0, ROWS);
-}
-
-// The SQL an answer shows, split so its keywords can take their colour. Only syntax words count:
-// strings, quoted names, comments and numbers stay plain, and so does a word after a dot (a
-// column) or one with letters outside ASCII, which SQLite reads as a name. Left out on purpose:
-// KEY and DATE, which are columns here; COUNT and every other function, since a query often
-// names a column after one (COUNT(*) AS count); type names; words more often a name than syntax
-// (FIRST, LAST, FILTER, PLAN and the like); and EXPLAIN and every statement other than a query,
-// which the server never sends back. Some listed words (ASC, DESC, LEFT and others) are also
-// valid names in SQLite; they stay because a query almost always uses them as syntax, so an alias
-// spelled like one takes the colour. END is the exception: the experience table has an end
-// column, so END counts only when it closes a CASE.
-const SQL_KEYWORDS = new Set([
-  'SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY', 'HAVING', 'ORDER', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'AS', 'WITH', 'RECURSIVE',
-  'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER', 'CROSS', 'NATURAL', 'ON', 'USING',
-  'UNION', 'INTERSECT', 'EXCEPT', 'VALUES',
-  'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL', 'LIKE', 'GLOB', 'ESCAPE', 'BETWEEN', 'EXISTS', 'ISNULL', 'NOTNULL', 'COLLATE',
-  'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'CAST',
-  'OVER', 'PARTITION', 'WINDOW',
-]);
-
-// One token at a time from the start: a string with its doubled quotes, a quoted or bracketed
-// name, a comment, a number, a word (SQLite allows any character from U+0080 up in a name), or
-// any single character. An unterminated quote or comment runs to the end.
-const SQL_TOKEN =
-  /'(?:[^']|'')*'?|"(?:[^"]|"")*"?|`(?:[^`]|``)*`?|\[[^\]]*\]?|--[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[A-Za-z_\u0080-\uFFFF][\w$\u0080-\uFFFF]*|[\s\S]/gy;
-const ASCII_WORD = /^[A-Za-z]+$/;
-
-export interface SqlToken {
-  text: string;
-  keyword: boolean;
-}
-
-// Plain runs are merged, so the tokens alternate and joining their text gives the SQL back.
-export function sqlTokens(sql: string): SqlToken[] {
-  const tokens: SqlToken[] = [];
-  let plain = '';
-  // CASE expressions still waiting for their END, and whether the last token finished a value.
-  // END closes a CASE only right after a value; where a value is expected, as after ELSE or a
-  // comma, the word is the end column.
-  let open = 0;
-  let afterValue = false;
-  for (const match of sql.matchAll(SQL_TOKEN)) {
-    const text = match[0];
-    const word = text.toUpperCase();
-    let keyword = ASCII_WORD.test(text) && sql[match.index - 1] !== '.' && SQL_KEYWORDS.has(word);
-    if (keyword && word === 'CASE') open += 1;
-    if (keyword && word === 'END') {
-      if (open > 0 && afterValue) open -= 1;
-      else keyword = false;
-    }
-    if (!/^\s$/.test(text) && !text.startsWith('--') && !text.startsWith('/*')) {
-      afterValue = keyword ? word === 'NULL' || word === 'END' : text === ')' || text.charCodeAt(0) > 127 || /^(?:[\w'"`[]|\.\d)/.test(text);
-    }
-    if (keyword) {
-      if (plain !== '') tokens.push({ text: plain, keyword: false });
-      tokens.push({ text, keyword: true });
-      plain = '';
-    } else {
-      plain += text;
-    }
-  }
-  if (plain !== '') tokens.push({ text: plain, keyword: false });
-  return tokens;
-}
-
-// The SQL comes from the model, so it is built as text nodes and spans, never parsed as HTML.
-function sqlNodes(sql: string): Node[] {
-  return sqlTokens(sql).map(({ text, keyword }) => {
-    if (!keyword) return document.createTextNode(text);
-    const span = document.createElement('span');
-    span.className = 'sql-keyword';
-    span.textContent = text;
-    return span;
-  });
-}
-
-// The status line after a run: the row count, or the two copy strings for none and for more.
-export function summary(result: Result): string {
-  if (result.rows.length === 0) return EMPTY_STATUS;
-  if (result.truncated) return TRUNCATED_MESSAGE;
-  return result.rows.length === 1 ? '1 row' : `${result.rows.length} rows`;
-}
-
-// What /api/ask answered, or null when no reply arrived at all (the network, not the service).
-export interface Reply {
-  status: number;
-  body: unknown;
-}
-
-// What the Ask panel shows for a reply. An answer runs its SQL; a refusal shows only the model's
-// sentence; a failure shows one of the copy sentences, with the example queries listed when the
-// AI is out of reach and the console is the way forward.
-// An answer or a refusal carries the token that lets the visitor send the question, when the reply
-// had one.
-export type AskState =
-  | { kind: 'answer'; sql: string; explanation: string; cached: boolean; token?: string }
-  | { kind: 'refusal'; explanation: string; cached: boolean; token?: string }
-  | { kind: 'failed'; message: string; fallback: boolean };
-
-function field(body: unknown, name: string): unknown {
-  return body !== null && typeof body === 'object' ? (body as Record<string, unknown>)[name] : undefined;
-}
-
-// withConsole says whether the page also has the raw console the sentences point at; listed is
-// how many examples the fallback list holds.
-export function askState(reply: Reply | null, withConsole: boolean, listed: number): AskState {
-  const wording = withConsole ? 'console' : 'alone';
-  const count = countWord(listed);
-  const upstream: AskState = { kind: 'failed', message: UPSTREAM_MESSAGE[wording](count), fallback: true };
-  if (!reply) return upstream;
-  const { status, body } = reply;
-  if (status === 200) {
-    const sql = field(body, 'sql');
-    const explanation = field(body, 'explanation');
-    if (typeof sql !== 'string' || typeof explanation !== 'string') return upstream;
-    const cached = field(body, 'cached') === true;
-    const token = field(body, 'token');
-    const extra = typeof token === 'string' && token !== '' ? { token } : {};
-    if (sql.trim() === '') return { kind: 'refusal', explanation, cached, ...extra };
-    return { kind: 'answer', sql, explanation, cached, ...extra };
-  }
-  // A 400 (a question under three characters) shares the unusable sentence.
-  if (status === 400 || status === 422) return { kind: 'failed', message: UNUSABLE_MESSAGE, fallback: false };
-  if (status === 429) return { kind: 'failed', message: RATE_LIMITED_MESSAGE[wording], fallback: false };
-  if (status === 503 && field(body, 'reason') === 'budget') {
-    return { kind: 'failed', message: BUDGET_MESSAGE[wording](count), fallback: true };
-  }
-  // Anything else, a fault in the site's own settings included, reads as the service not responding.
-  return upstream;
-}
-
-export type SendOutcome = 'sent' | 'rate_limited' | 'daily_cap' | 'refused' | 'failed';
-
-// Sending a question to Alex, apart from the page so it can be tested: offer() holds the
-// question and its token and posts nothing; only send(), which the send button's click calls,
-// posts. reset() withdraws the offer, and a reply that arrives after it is dropped, so a slow
-// send can never write into the next answer. One send at a time for each offer: a send still
-// pending for an earlier question does not block the next one.
-export function createSender(post: (body: { question: string; token: string }) => Promise<Reply | null>) {
-  let offered: { question: string; token: string; generation: number } | null = null;
-  let generation = 0;
-  // The offer whose send is in flight, if any.
-  let inFlight: number | null = null;
-  return {
-    offer(question: string, token: string): void {
-      generation += 1;
-      offered = { question, token, generation };
-    },
-    reset(): void {
-      generation += 1;
-      offered = null;
-    },
-    async send(): Promise<SendOutcome | null> {
-      if (!offered || inFlight === offered.generation) return null;
-      const mine = offered;
-      inFlight = mine.generation;
-      try {
-        const reply = await post({ question: mine.question, token: mine.token });
-        if (mine.generation !== generation) return null;
-        if (reply?.status === 200) {
-          offered = null;
-          return 'sent';
-        }
-        if (reply?.status === 429) return field(reply.body, 'error') === 'daily_cap' ? 'daily_cap' : 'rate_limited';
-        // A refused token or question stays refused, so the offer ends; any other failure can be
-        // tried again.
-        if (reply?.status === 403 || reply?.status === 400) {
-          offered = null;
-          return 'refused';
-        }
-        return 'failed';
-      } finally {
-        if (inFlight === mine.generation) inFlight = null;
-      }
-    },
-  };
-}
-
-// The sentence the error line shows for a send that did not go through.
-export function sendMessage(outcome: Exclude<SendOutcome, 'sent'>): string {
-  if (outcome === 'rate_limited') return RATE_LIMITED_MESSAGE.alone;
-  if (outcome === 'daily_cap') return DAILY_CAP_MESSAGE;
-  return SEND_FAILED_MESSAGE;
-}
 
 // The parts the two panels share: the working attribute for the cursor, the status and error
 // regions, and the results container. The suffix follows the status a run ends on; the Ask
@@ -534,61 +103,6 @@ function working(panel: Panel, delta: number): void {
   else panel.root.removeAttribute('data-working');
 }
 
-function paint(panel: Panel, result: Result): void {
-  const table = document.createElement('table');
-  const head = table.createTHead().insertRow();
-  for (const column of result.columns) {
-    const th = document.createElement('th');
-    th.scope = 'col';
-    th.textContent = column;
-    head.append(th);
-  }
-  const body = table.createTBody();
-  for (const row of visibleRows(result)) {
-    const tr = body.insertRow();
-    row.forEach((value, index) => {
-      const td = tr.insertCell();
-      const cell = renderCell(result.columns[index] ?? '', value);
-      if (cell.kind === 'image') {
-        const link = document.createElement('a');
-        link.href = cell.src;
-        const img = document.createElement('img');
-        img.src = cell.src;
-        img.alt = cell.alt;
-        img.width = THUMB;
-        img.height = THUMB;
-        img.loading = 'lazy';
-        link.append(img);
-        td.append(link);
-      } else if (cell.kind === 'link') {
-        const link = document.createElement('a');
-        link.href = cell.href;
-        link.textContent = cell.text;
-        td.append(link);
-      } else {
-        td.textContent = cell.text;
-        if (cell.empty) td.classList.add('null');
-      }
-    });
-  }
-  // One DOM operation, so assistive technology sees a single change; the CSS row reveal does
-  // the rest. The container scrolls sideways for wide results, so it must take focus.
-  if (result.rows.length === 0) {
-    const note = document.createElement('p');
-    note.className = 'console-empty';
-    note.textContent = EMPTY_NOTE;
-    panel.results.replaceChildren(table, note);
-  } else {
-    panel.results.replaceChildren(table);
-  }
-  // Each result starts at its first row and column, wherever the last one was scrolled to.
-  panel.results.scrollTo(0, 0);
-  panel.results.tabIndex = 0;
-  // The Ask box's results start hidden: a region named by the question, which is empty until one
-  // is asked.
-  panel.results.hidden = false;
-}
-
 // The rest of an empty result's sentence belongs to the "No rows" it follows. A run removes it
 // when it starts, and again if it fails, since an earlier run ahead of it in the queue may have
 // painted one while it waited.
@@ -615,7 +129,7 @@ async function execute(panel: Panel, sql: string): Promise<Result | undefined> {
     loaded = true;
     // An earlier query in the queue may have failed since this one was submitted.
     setError(panel, '');
-    paint(panel, result);
+    paint(panel.results, result);
     setStatus(panel, summary(result), true);
     return result;
   } catch (error) {
@@ -693,26 +207,6 @@ interface Reveal {
   at: number;
 }
 
-// How far to scroll so a box sits between two lines: all of it when it fits, its top when it does
-// not, nothing when it is already there. Given the top of a control that must stay in sight, a move
-// down stops before that top passes the upper line.
-export function scrollToShow(box: { top: number; bottom: number }, sight: { top: number; bottom: number }, keep?: number): number {
-  let by = 0;
-  if (box.top < sight.top || box.bottom - box.top > sight.bottom - sight.top) by = box.top - sight.top;
-  else if (box.bottom > sight.bottom) by = box.bottom - sight.bottom;
-  return keep === undefined || by <= 0 ? by : Math.min(by, Math.max(0, keep - sight.top));
-}
-
-// Where a box sits in the visual viewport, the part of the page actually on screen, given the root
-// element's top as measured with the box and how far down the page the visual viewport starts.
-// While an on-screen keyboard is up or the page is zoomed, the visual viewport is shorter than the
-// layout viewport and can sit anywhere inside it, and browsers disagree about which of the two a
-// box is measured from. Against the root element the box's place on the page comes out the same
-// either way, and the visual viewport's place on the page is its pageTop.
-export function onScreen(box: { top: number; bottom: number }, root: number, page: number): { top: number; bottom: number } {
-  return { top: box.top - root - page, bottom: box.bottom - root - page };
-}
-
 // The visual viewport never starts above the line scrollY gives, so the larger of the two is its top.
 // On an iPhone with the keyboard up, pageTop can still give the top from before a scroll the page
 // has just made itself, while scrollY and every box already have the new one.
@@ -731,13 +225,6 @@ function sight(element: HTMLElement): { top: number; bottom: number } {
 
 function distance(element: HTMLElement): number {
   return scrollToShow(place(element), sight(element));
-}
-
-// A control in the form reached by keyboard keeps its place on screen. A text box matches
-// :focus-visible however it was focused, so it holds the page only where the main pointer is a
-// mouse or trackpad; on a phone the page moves past it to show the answer.
-export function holdsPage(form: Pick<Element, 'contains'>, focused: Element, finePointer: boolean): boolean {
-  return form.contains(focused) && focused.matches(':focus-visible') && (focused.tagName === 'BUTTON' || finePointer);
 }
 
 function bring(ui: AskUi, element: HTMLElement): void {
@@ -811,20 +298,6 @@ async function answer(ui: AskUi, sql: string): Promise<Result | undefined> {
   const result = await execute(ui, sql);
   markOverflow(ui.results, ui.scrollCue, capped(ui.results));
   return result;
-}
-
-// A capped results box that holds more than it shows, below its foot or past its right edge, says
-// so after the row count, since a scrollbar is not always drawn and the row or column the box cuts
-// can look whole. Only where the box is capped: there the status line has room for the words, and
-// in a phone's narrower pane they would push a longer status onto a second line. The words stay for
-// as long as the box overflows, not only until its end is reached, so the status line never
-// changes while the box is being scrolled. A pixel of difference is rounding, not a hidden row.
-export function markOverflow(
-  results: Pick<HTMLElement, 'scrollHeight' | 'clientHeight' | 'scrollWidth' | 'clientWidth'>,
-  cue: Pick<HTMLElement, 'hidden'>,
-  capped: boolean,
-): void {
-  cue.hidden = !capped || (results.scrollHeight - results.clientHeight <= 1 && results.scrollWidth - results.clientWidth <= 1);
 }
 
 // Whether the stylesheet caps this results box, which it does only beside the form.
@@ -934,40 +407,6 @@ function askQuery(ui: AskUi, sql: string, label: string, fromList: boolean, more
     const target = ui.results.hasAttribute('tabindex') ? ui.results : ui.input;
     target.focus({ preventScroll: true });
   });
-}
-
-// The question field's clear control, apart from the page so its rules can be tested without one.
-// Clearing touches only the field and the control, so the answer stays until the next question.
-export interface QuestionField {
-  value: string;
-  focus(options?: FocusOptions): void;
-}
-
-// The parts of a keydown that decide whether Escape clears.
-export interface ClearKey {
-  key: string;
-  isComposing: boolean;
-  keyCode: number;
-}
-
-export function showClear(field: Pick<QuestionField, 'value'>, control: Pick<HTMLElement, 'hidden'>): void {
-  control.hidden = field.value === '';
-}
-
-// Focus goes back to the field before the control hides, so it is never left on a hidden control.
-export function clearQuestion(field: QuestionField, control: Pick<HTMLElement, 'hidden'>): void {
-  field.value = '';
-  field.focus({ preventScroll: true });
-  control.hidden = true;
-}
-
-// A keydown that belongs to an input method's composition carries this keyCode, even the one
-// that ends it, when isComposing is already false.
-const COMPOSING_KEY_CODE = 229;
-
-// Escape clears only a field with text in it, and never during an input method's composition.
-export function escapeClears(event: ClearKey, value: string): boolean {
-  return event.key === 'Escape' && !event.isComposing && event.keyCode !== COMPOSING_KEY_CODE && value !== '';
 }
 
 // Typing in the question field, which the bootstrap forwards.

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { examples } from '../src/data/examples.ts';
-import { askState, clearQuestion, countWord, createExecutor, createSender, escapeClears, failure, sendMessage, showClear } from '../src/scripts/console.ts';
-import type { AskState, WorkerLike } from '../src/scripts/console.ts';
+import { askState, clearQuestion, countWord, createSender, escapeClears, sendMessage, showClear } from '../src/scripts/ask-box.ts';
+import type { AskState } from '../src/scripts/ask-box.ts';
+import { createExecutor, failure } from '../src/scripts/executor.ts';
+import type { WorkerLike } from '../src/scripts/executor.ts';
 
 // The sentences written out here rather than imported, so a typo in the module cannot pass by
 // comparing the module to itself.
