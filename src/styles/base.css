@@ -178,6 +178,11 @@ pre {
   overflow-wrap: anywhere;
 }
 
+/* A path in running text breaks inside itself only when it is wider than the line. */
+code {
+  overflow-wrap: anywhere;
+}
+
 figure img {
   border: 1px solid var(--rule);
 }
@@ -232,7 +237,7 @@ figcaption {
    write-up's measured numbers; labels in the muted mono, values beside them. */
 .facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: auto 1fr;
   gap: var(--space-2) var(--space-5);
   margin: 0;
   font-family: var(--font-mono);
