@@ -15,7 +15,6 @@ import Analytics from '@vercel/analytics/astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import appleTouchIcon from '../generated/apple-touch-icon.png?url';
-import icon from '../generated/icon.svg?url';
 import linkPreview from '../generated/link-preview.png?url';
 import { siteFacts } from '../lib/facts.ts';
 
@@ -72,7 +71,6 @@ const preloads = [barlow400, barlow600, barlow700, mono400];
       )
     }
     <link rel="icon" href="/favicon.ico" sizes="32x32 64x64" />
-    <link rel="icon" href={icon} type="image/svg+xml" />
     <link rel="apple-touch-icon" href={appleTouchIcon} />
     {structuredData && <script type="application/ld+json" set:html={JSON.stringify(structuredData).replaceAll('<', '\\u003c')} />}
     <script is:inline src="/theme.js"></script>

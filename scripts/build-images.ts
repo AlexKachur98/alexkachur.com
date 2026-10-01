@@ -1,7 +1,6 @@
 // Draws the link-preview image and the favicon set from the site's own colour tokens and fonts.
-// A browser draws an SVG favicon as an image, which cannot load web fonts, and the SVG renderer
-// used here (librsvg inside sharp) cannot load them either, so every letter is shaped with
-// HarfBuzz, the shaping engine Chrome and Firefox use, and written out as path data.
+// The SVG renderer used here (librsvg inside sharp) cannot load web fonts, so every letter is
+// shaped with HarfBuzz, the shaping engine Chrome and Firefox use, and written out as path data.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -241,7 +240,8 @@ async function main(): Promise<void> {
   const generated = join(root, 'src', 'generated');
   mkdirSync(generated, { recursive: true });
   writeFileSync(join(generated, 'link-preview.png'), await png(previewSvg(tokens, fonts, await cardFacts(root))));
-  writeFileSync(join(generated, 'icon.svg'), iconSvg(tokens, fonts));
+  // The icon drawing ships only as PNGs: Google Search only accepts BMP, GIF, ICO, PNG, JPEG, PPM
+  // and TIFF favicons, so the site links no SVG favicon.
   writeFileSync(join(generated, 'apple-touch-icon.png'), await png(iconSvg(tokens, fonts, 4, 180)));
   // Google Search recommends a favicon larger than 48 pixels, so the file carries a 64-pixel frame
   // beside the 32-pixel one.

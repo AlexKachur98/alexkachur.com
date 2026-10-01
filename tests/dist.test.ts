@@ -487,13 +487,12 @@ describe(`built output in ${root}`, () => {
   it('links the favicon set from every page, each file the size its link says', () => {
     for (const { url, html } of pages) {
       const icons = head(html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
-      expect(icons.map(({ rel, href, sizes, type }) => `${rel} ${href.replace(/\.[\w-]+\.(svg|png)$/, '.$1')} ${sizes ?? ''} ${type ?? ''}`), url).toEqual([
+      expect(icons.map(({ rel, href, sizes, type }) => `${rel} ${href.replace(/\.[\w-]+\.png$/, '.png')} ${sizes ?? ''} ${type ?? ''}`), url).toEqual([
         'icon /favicon.ico 32x32 64x64 ',
-        'icon /_astro/icon.svg  image/svg+xml',
         'apple-touch-icon /_astro/apple-touch-icon.png  ',
       ]);
     }
-    const [, svg, touch] = head(pages[0]!.html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
+    const [, touch] = head(pages[0]!.html).links.filter(({ rel }) => rel === 'icon' || rel === 'apple-touch-icon');
 
     // An ICO header, a directory entry per frame, and the PNG each entry points at.
     const ico = readFileSync(join(root, 'favicon.ico'));
@@ -508,9 +507,6 @@ describe(`built output in ${root}`, () => {
       expect([2, 6]).toContain(embedded.colour);
     });
 
-    const icon = readFileSync(join(root, svg!.href), 'utf8');
-    expect(icon).toMatch(/^<svg\b[^>]*\sviewBox="0 0 32 32"/);
-    expect(icon).not.toMatch(/<text\b/);
     // iOS paints a transparent pixel black, so the touch icon has no alpha channel.
     const { width, height, colour } = pngHeader(readFileSync(join(root, touch!.href)));
     expect([width, height, colour]).toEqual([180, 180, 2]);
