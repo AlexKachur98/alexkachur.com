@@ -30,7 +30,7 @@ One question sends the model about {prompt_tokens} tokens: the schema, the fact 
 
 The prompt is not cached. Anthropic's prompt cache needs at least {cache_minimum_tokens} tokens on Claude Haiku 4.5, checked the same day, and this prompt is under that, so a cache marker would do nothing. It would not pay anyway: a cached prompt lasts five minutes unless another question refreshes it, a cache write costs a quarter more than the prompt it saves, and this site sees far fewer than one question every five minutes.
 
-<!-- TODO: add the typical month's real cost once a full month's bill exists. -->
+In October 2026 the real bill was about $0.05.
 
 ## Caching
 
