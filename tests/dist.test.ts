@@ -314,6 +314,21 @@ describe(`built output in ${root}`, () => {
     }
   });
 
+  // An empty dark field on a dark panel does not look like somewhere to type, so each says so.
+  // The label stays the field's name; the hint only adds to it.
+  it('gives the question field and the console a hint to type, beside their labels', () => {
+    for (const url of ['/', '/404']) {
+      const html = pages.find((page) => page.url === url)!.html;
+      const input = html.match(/<input\b[^>]*\sdata-ask-input\b[^>]*>/)?.[0] ?? '';
+      expect(input, url).toMatch(/\splaceholder="Type a question"/);
+      expect(html, url).toMatch(/<label\b[^>]*for="ask-input"/);
+    }
+    const home = pages.find((page) => page.url === '/')!.html;
+    const editor = home.match(/<textarea\b[^>]*\sdata-console-input\b[^>]*>/)?.[0] ?? '';
+    expect(editor).toMatch(/\splaceholder="Type SQL here"/);
+    expect(editor).toMatch(/\saria-labelledby="console-label"/);
+  });
+
   // Nothing between them, so Run never moves. The 404 page has no console and no Clear.
   it("puts the console's Clear, hidden, straight after Run", () => {
     const home = pages.find((page) => page.url === '/')!.html;

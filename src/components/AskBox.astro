@@ -45,7 +45,7 @@ const answer = shown ? await run(shown.sql) : undefined;
       <!-- Escape in the field does what the clear control does, so the control is not a Tab stop
            and Tab goes on to Ask. -->
       <div class="ask-field">
-        <input class="input" id="ask-input" type="text" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
+        <input class="input" id="ask-input" type="text" placeholder="Type a question" maxlength={QUESTION_LENGTH.max} autocomplete="off" data-ask-input />
         <button type="button" class="ask-clear" tabindex="-1" data-ask-clear hidden>
           <span class="visually-hidden">Clear question</span>
           <span aria-hidden="true">×</span>

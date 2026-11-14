@@ -113,6 +113,14 @@
   border-color: var(--console-accent);
 }
 
+/* The hint in an empty field is dimmer than anything typed there. Full opacity, because Firefox
+   fades a placeholder on its own and the grey would drop under readable contrast. */
+.console .input::placeholder,
+.console-input::placeholder {
+  color: var(--console-muted);
+  opacity: 1;
+}
+
 .console-run {
   display: inline-flex;
   align-items: center;
